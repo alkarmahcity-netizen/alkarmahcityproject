@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>لوحة متابعة مشاريع قضاء الكرمة</title>
+<meta name="description" content="لوحة متابعة تنفيذ المشاريع الاستثمارية والخدمية في قضاء الكرمة والنواحي التابعة له - محافظة الانبار">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;600;700;800;900&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0c1826;
+  --bg-2:#0a1420;
+  --panel:#122236;
+  --panel-2:#17293f;
+  --line:#25384f;
+  --line-soft:#1c2e44;
+  --gold:#c9a24b;
+  --gold-soft:#e3c777;
+  --gold-dim:#8a7237;
+  --text:#eef1f6;
+  --text-dim:#94a6bf;
+  --text-faint:#5f7390;
+  --ok:#4f9e74;
+  --ok-bg:#173226;
+  --plan:#4f86b8;
+  --plan-bg:#152a3a;
+  --warn:#d99a3e;
+  --warn-bg:#332612;
+  --late:#cf7a45;
+  --late-bg:#331f11;
+  --stop:#c15c4a;
+  --stop-bg:#331813;
+  --radius:14px;
+  --serif-num: 'Cairo', sans-serif;
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0;
+  background:
+    radial-gradient(1100px 620px at 85% -10%, #16273c 0%, transparent 60%),
+    radial-gradient(900px 500px at -10% 10%, #12233a 0%, transparent 55%),
+    var(--bg);
+  color:var(--text);
+  font-family:'Tajawal', sans-serif;
+  line-height:1.6;
+  min-height:100vh;
+}
+::selection{background:var(--gold-dim); color:#fff;}
+a{color:inherit;}
+.wrap{max-width:1180px; margin:0 auto; padding:0 22px;}
+
+/* ---------- top bar ---------- */
+.topbar{
+  border-bottom:1px solid var(--line-soft);
+  background:rgba(10,20,32,.65);
+  backdrop-filter:blur(8px);
+  position:sticky; top:0; z-index:40;
+}
+.topbar-inner{display:flex; align-items:center; justify-content:space-between; padding:14px 22px; max-width:1180px; margin:0 auto;}
+.brand{display:flex; align-items:center; gap:10px; font-family:'Cairo',sans-serif; font-weight:800; font-size:15px; letter-spacing:.2px;}
+.brand .seal{
+  width:34px; height:34px; border-radius:50%;
+  border:1.5px solid var(--gold);
+  display:flex; align-items:center; justify-content:center;
+  font-size:14px; color:var(--gold-soft); font-weight:900;
+  background:radial-gradient(circle at 35% 30%, #1c3149, #0c1826);
+  flex-shrink:0;
+}
+.brand-text small{display:block; color:var(--text-dim); font-weight:500; font-size:11.5px; margin-top:1px;}
+.topnav{display:flex; gap:22px; font-size:14px; color:var(--text-dim);}
+.topnav a{text-decoration:none; transition:color .15s;}
+.topnav a:hover{color:var(--gold-soft);}
+.topnav-toggle{display:none;}
+
+/* ---------- hero ---------- */
+.hero{padding:56px 0 34px; position:relative;}
+.eyebrow{
+  display:inline-flex; align-items:center; gap:8px;
+  font-size:12.5px; color:var(--gold-soft); font-weight:700;
+  letter-spacing:.5px; margin-bottom:18px;
+  border:1px solid var(--gold-dim); padding:5px 12px 5px 12px; border-radius:999px;
+  background:rgba(201,162,75,.06);
+}
+.eyebrow::before{content:''; width:6px; height:6px; border-radius:50%; background:var(--gold); box-shadow:0 0 0 3px rgba(201,162,75,.18);}
+h1.title{
+  font-family:'Cairo', sans-serif; font-weight:900;
+  font-size:clamp(28px, 4.6vw, 46px);
+  margin:0 0 14px; line-height:1.25; max-width:820px;
+}
+h1.title .em{color:var(--gold-soft);}
+.hero-sub{color:var(--text-dim); max-width:640px; font-size:15.5px; margin:0 0 26px;}
+.hero-meta{display:flex; flex-wrap:wrap; gap:10px 26px; font-size:13px; color:var(--text-faint); margin-bottom:6px;}
+.hero-meta b{color:var(--text-dim); font-weight:700;}
+.hero-meta .dot{color:var(--gold-dim);}
+
+/* ---------- KPI strip ---------- */
+.kpi-grid{
+  display:grid; grid-template-columns:repeat(5, 1fr); gap:14px;
+  margin-top:30px;
+}
+.kpi{
+  background:linear-gradient(180deg, var(--panel-2), var(--panel));
+  border:1px solid var(--line-soft);
+  border-radius:var(--radius);
+  padding:20px 18px;
+  position:relative; overflow:hidden;
+}
+.kpi::after{content:''; position:absolute; inset:auto -30% -60% auto; width:120px; height:120px; background:radial-gradient(circle, rgba(201,162,75,.10), transparent 70%);}
+.kpi .k-label{font-size:12.5px; color:var(--text-faint); font-weight:500; margin-bottom:10px;}
+.kpi .k-value{font-family:'Cairo',sans-serif; font-weight:800; font-size:26px; color:var(--text); direction:ltr; unicode-bidi:isolate; text-align:right;}
+.kpi .k-value small{font-size:12px; font-weight:600; color:var(--text-dim); margin-inline-start:4px;}
+.kpi .k-sub{font-size:11.5px; color:var(--text-faint); margin-top:6px;}
+.kpi.gold .k-value{color:var(--gold-soft);}
+.ledger{margin-top:12px; height:6px; border-radius:99px; background:var(--line); position:relative; overflow:visible;}
+.ledger .fill{position:absolute; inset:0; border-radius:99px; background:linear-gradient(90deg, var(--stop), var(--warn));}
+.ledger .mark{position:absolute; top:-4px; width:2px; height:14px; background:var(--gold-soft); box-shadow:0 0 0 2px rgba(0,0,0,.0);}
+
+/* ---------- section shell ---------- */
+section{padding:50px 0;}
+.section-head{display:flex; align-items:baseline; justify-content:space-between; gap:16px; margin-bottom:22px; flex-wrap:wrap;}
+.section-head h2{font-family:'Cairo',sans-serif; font-size:21px; font-weight:800; margin:0;}
+.section-head p{color:var(--text-faint); font-size:13px; margin:4px 0 0;}
+.num-eyebrow{font-family:'Cairo',sans-serif; color:var(--gold-dim); font-weight:800; font-size:12px; letter-spacing:1px;}
+
+/* ---------- breakdown panels ---------- */
+.grid-2{display:grid; grid-template-columns:1fr 1fr; gap:18px;}
+.panel{background:var(--panel); border:1px solid var(--line-soft); border-radius:var(--radius); padding:22px;}
+.panel h3{font-family:'Cairo',sans-serif; font-size:14.5px; margin:0 0 16px; color:var(--text-dim); font-weight:700; display:flex; justify-content:space-between;}
+.bar-row{margin-bottom:13px;}
+.bar-row:last-child{margin-bottom:0;}
+.bar-row .bl{display:flex; justify-content:space-between; font-size:12.5px; margin-bottom:5px; color:var(--text);}
+.bar-row .bl .cnt{color:var(--text-faint); direction:ltr; unicode-bidi:isolate;}
+.bar-track{height:8px; border-radius:99px; background:var(--line-soft); overflow:hidden;}
+.bar-fill{height:100%; border-radius:99px;}
+
+.status-legend{display:flex; flex-wrap:wrap; gap:8px 16px; margin-top:18px; font-size:12px; color:var(--text-dim);}
+.status-legend span{display:inline-flex; align-items:center; gap:6px;}
+.status-legend i{width:9px; height:9px; border-radius:3px; display:inline-block;}
+
+/* ---------- filters ---------- */
+.filters{
+  display:flex; flex-wrap:wrap; gap:10px; align-items:center;
+  background:var(--panel); border:1px solid var(--line-soft); border-radius:var(--radius);
+  padding:14px 16px; margin-bottom:22px;
+}
+.filters input[type=text]{
+  flex:1 1 220px; background:var(--bg-2); border:1px solid var(--line-soft); color:var(--text);
+  padding:10px 14px; border-radius:9px; font-family:inherit; font-size:13.5px;
+}
+.filters select{
+  background:var(--bg-2); border:1px solid var(--line-soft); color:var(--text);
+  padding:10px 12px; border-radius:9px; font-family:inherit; font-size:13px; min-width:150px;
+}
+.filters input:focus, .filters select:focus{outline:2px solid var(--gold-dim); outline-offset:1px;}
+.filters .reset-btn{
+  background:transparent; border:1px solid var(--line-soft); color:var(--text-dim);
+  padding:10px 16px; border-radius:9px; font-size:13px; cursor:pointer; font-family:inherit;
+  transition:.15s;
+}
+.filters .reset-btn:hover{border-color:var(--gold-dim); color:var(--gold-soft);}
+.result-count{font-size:12.5px; color:var(--text-faint); margin:0 0 14px;}
+.result-count b{color:var(--text-dim);}
+
+/* ---------- badges ---------- */
+.badge{display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:700; padding:4px 10px; border-radius:99px; white-space:nowrap;}
+.badge i{width:6px; height:6px; border-radius:50%; display:inline-block;}
+.badge.st-منجز{background:var(--ok-bg); color:#7fcaa2;} .badge.st-منجز i{background:var(--ok);}
+.badge.st-ضمن_الخطة{background:var(--plan-bg); color:#8bb9e0;} .badge.st-ضمن_الخطة i{background:var(--plan);}
+.badge.st-متلكئ{background:var(--warn-bg); color:#eab568;} .badge.st-متلكئ i{background:var(--warn);}
+.badge.st-متأخر_عن_الخطة{background:var(--late-bg); color:#eb9a6c;} .badge.st-متأخر_عن_الخطة i{background:var(--late);}
+.badge.st-متوقف{background:var(--stop-bg); color:#e58873;} .badge.st-متوقف i{background:var(--stop);}
+.legal{font-size:11.5px; color:var(--text-faint);}
+.legal.has{color:var(--late);}
+
+/* ---------- table ---------- */
+.table-wrap{background:var(--panel); border:1px solid var(--line-soft); border-radius:var(--radius); overflow:hidden;}
+table{width:100%; border-collapse:collapse; font-size:13px;}
+thead th{
+  text-align:right; font-family:'Cairo',sans-serif; font-weight:700; font-size:11.5px;
+  color:var(--text-faint); text-transform:uppercase; letter-spacing:.4px;
+  padding:14px 16px; border-bottom:1px solid var(--line-soft); background:var(--panel-2);
+  position:sticky; top:57px;
+}
+tbody tr{border-bottom:1px solid var(--line-soft); cursor:pointer; transition:background .12s;}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:rgba(201,162,75,.045);}
+tbody td{padding:13px 16px; vertical-align:middle;}
+td.num, th.num{direction:ltr; unicode-bidi:isolate; text-align:left; font-variant-numeric:tabular-nums;}
+.proj-name{font-weight:700; color:var(--text); max-width:280px; display:block;}
+.proj-file{font-size:11px; color:var(--text-faint); margin-top:2px;}
+.mini-ledger{width:90px; height:6px; border-radius:99px; background:var(--line-soft); position:relative; margin-top:4px;}
+.mini-ledger .f{position:absolute; inset:0; border-radius:99px;}
+.mini-ledger .m{position:absolute; top:-3px; width:2px; height:12px; background:var(--gold-soft);}
+.pct-line{font-size:11px; color:var(--text-faint); margin-top:3px; direction:ltr; unicode-bidi:isolate;}
+
+.detail-row td{background:var(--bg-2); padding:0;}
+.detail-inner{padding:18px 24px 22px; display:none; grid-template-columns:repeat(4,1fr); gap:18px 24px; font-size:12.5px;}
+.detail-inner.open{display:grid;}
+.detail-inner .d-item b{display:block; color:var(--text-faint); font-weight:600; font-size:11px; margin-bottom:4px;}
+.detail-inner .d-item span{color:var(--text);}
+.detail-inner .d-full{grid-column:1/-1;}
+.detail-inner .d-full span{color:var(--text-dim); line-height:1.7; display:block;}
+
+/* ---------- mobile cards ---------- */
+.cards{display:none; flex-direction:column; gap:12px;}
+.p-card{background:var(--panel); border:1px solid var(--line-soft); border-radius:12px; padding:16px;}
+.p-card .pc-top{display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:10px;}
+.p-card .pc-name{font-weight:700; font-size:14px; line-height:1.5;}
+.p-card .pc-file{font-size:11px; color:var(--text-faint); margin-top:3px;}
+.p-card .pc-row{display:flex; justify-content:space-between; font-size:12px; color:var(--text-dim); margin-top:6px;}
+.p-card .pc-row b{color:var(--text-faint); font-weight:500;}
+.p-card .pc-notes{margin-top:10px; font-size:12px; color:var(--text-dim); line-height:1.7; border-top:1px dashed var(--line-soft); padding-top:10px;}
+
+/* ---------- footer ---------- */
+footer{border-top:1px solid var(--line-soft); padding:34px 0 46px; margin-top:20px;}
+footer .fgrid{display:flex; justify-content:space-between; flex-wrap:wrap; gap:20px; font-size:12.5px; color:var(--text-faint);}
+footer b{color:var(--text-dim); display:block; margin-bottom:6px; font-family:'Cairo',sans-serif; font-weight:700; font-size:13px;}
+
+/* ---------- responsive ---------- */
+@media (max-width:900px){
+  .kpi-grid{grid-template-columns:repeat(2,1fr);}
+  .grid-2{grid-template-columns:1fr;}
+  .topnav{display:none;}
+}
+@media (max-width:720px){
+  .table-wrap{display:none;}
+  .cards{display:flex;}
+  .kpi-grid{grid-template-columns:1fr 1fr;}
+  .hero{padding:40px 0 22px;}
+}
+@media (max-width:480px){
+  .kpi-grid{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <span class="seal">ك</span>
+      <span class="brand-text">لجنة متابعة مشاريع الكرمة
+        <small>محافظة الأنبار — الشؤون الفنية</small>
+      </span>
+    </div>
+    <nav class="topnav">
+      <a href="#kpis">المؤشرات</a>
+      <a href="#breakdown">التوزيع</a>
+      <a href="#projects">المشاريع</a>
+    </nav>
+  </div>
+</div>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">تحديث حي لموقف التنفيذ</div>
+    <h1 class="title">لوحة متابعة مشاريع <span class="em">قضاء الكرمة</span> والنواحي التابعة له</h1>
+    <p class="hero-sub">رصد ميداني لسير تنفيذ المشاريع الخدمية والاستثمارية في قضاء الكرمة، من حيث الكلفة والمدد التعاقدية ونسب الإنجاز الفعلية مقارنة بالمخطط، معدّة لرفعها إلى نائب المحافظ للشؤون الفنية.</p>
+    <div class="hero-meta">
+      <span><b id="m-count">٤٧</b> مشروعاً قيد المتابعة</span>
+      <span class="dot">•</span>
+      <span>آخر تحديث للبيانات: <b id="m-date">١٣ / ٨ / ٢٠٢٦</b></span>
+      <span class="dot">•</span>
+      <span><span id="m-sectors">١١</span> قطاعات مستفيدة</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <section id="kpis" style="padding-top:6px;">
+    <div class="kpi-grid">
+      <div class="kpi gold">
+        <div class="k-label">إجمالي عدد المشاريع</div>
+        <div class="k-value" id="k-total-count">—</div>
+        <div class="k-sub">موزّعة على ١١ قطاعاً خدمياً</div>
+      </div>
+      <div class="kpi">
+        <div class="k-label">الكلفة الكلية الحالية</div>
+        <div class="k-value" id="k-total-cost">—<small>د.ع</small></div>
+        <div class="k-sub" id="k-cost-sub">شاملة أوامر التغيير</div>
+      </div>
+      <div class="kpi">
+        <div class="k-label">كلفة أوامر التغيير</div>
+        <div class="k-value" id="k-co-cost">—<small>د.ع</small></div>
+        <div class="k-sub" id="k-co-sub">من الكلفة الكلية</div>
+      </div>
+      <div class="kpi">
+        <div class="k-label">متوسط الإنجاز الفعلي</div>
+        <div class="k-value" id="k-actual">—٪</div>
+        <div class="k-sub">مقابل <span id="k-planned-sub">—٪</span> مخطط لهذا التاريخ</div>
+      </div>
+      <div class="kpi">
+        <div class="k-label">متوسط الانحراف عن الخطة</div>
+        <div class="k-value" id="k-dev">—٪</div>
+        <div class="ledger"><div class="fill" id="k-dev-fill" style="width:100%"></div><div class="mark" id="k-dev-mark" style="right:0"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="breakdown">
+    <div class="section-head">
+      <div>
+        <div class="num-eyebrow">01 — التوزيع</div>
+        <h2>توزيع المشاريع حسب الحالة والقطاع وبرنامج التمويل</h2>
+        <p>نسب العدد والكلفة الإجمالية لكل تصنيف، لتحديد مواطن التعثر وأولويات المتابعة.</p>
+      </div>
+    </div>
+
+    <div class="grid-2" style="margin-bottom:18px;">
+      <div class="panel">
+        <h3>تصنيف حالة المشاريع</h3>
+        <div id="status-bars"></div>
+        <div class="status-legend" id="status-legend"></div>
+      </div>
+      <div class="panel">
+        <h3>برنامج التمويل</h3>
+        <div id="program-bars"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>القطاع المستفيد <span style="font-weight:400; color:var(--text-faint);">— عدد المشاريع والكلفة الكلية (مليار د.ع)</span></h3>
+      <div id="sector-bars"></div>
+    </div>
+  </section>
+
+  <section id="projects">
+    <div class="section-head">
+      <div>
+        <div class="num-eyebrow">02 — السجل</div>
+        <h2>سجل المشاريع التفصيلي</h2>
+        <p>انقر على أي مشروع لعرض بيانات المقاول والمهندس المقيم والملاحظات الميدانية كاملة.</p>
+      </div>
+    </div>
+
+    <div class="filters">
+      <input type="text" id="f-search" placeholder="بحث باسم المشروع، الشركة، أو المهندس المقيم…">
+      <select id="f-sector"><option value="">كل القطاعات</option></select>
+      <select id="f-status"><option value="">كل الحالات</option></select>
+      <select id="f-program"><option value="">كل برامج التمويل</option></select>
+      <button class="reset-btn" id="f-reset">إعادة تعيين</button>
+    </div>
+    <p class="result-count">عرض <b id="r-count">47</b> من أصل <b>47</b> مشروعاً</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:34px;">ت</th>
+            <th>المشروع</th>
+            <th>القطاع</th>
+            <th class="num">الكلفة الكلية</th>
+            <th style="width:130px;">التقدّم</th>
+            <th>الحالة</th>
+            <th>إجراء قانوني</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+
+    <div class="cards" id="cards"></div>
+  </section>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="fgrid">
+      <div>
+        <b>لجنة متابعة مشاريع قضاء الكرمة</b>
+        تُعدّ هذه اللوحة ضمن منظومة متابعة المشاريع الاستثمارية والخدمية في محافظة الأنبار، وترفع دورياً كمطالعة إلى السيد نائب المحافظ للشؤون الفنية.
+      </div>
+      <div>
+        <b>ملاحظة بشأن البيانات</b>
+        البيانات مستخرجة من جدول المتابعة الرسمي (لوحة مشاريع الكرمة) بتاريخ <span id="f-date">١٣/٨/٢٠٢٦</span>، وتُحدَّث الصفحة يدوياً عند كل تحديث للجدول.
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="data.js"></script>
+<script>
+const STATUS_COLOR = {
+  'منجز':'var(--ok)', 'ضمن الخطة':'var(--plan)', 'متلكئ':'var(--warn)',
+  'متأخر عن الخطة':'var(--late)', 'متوقف':'var(--stop)'
+};
+const STATUS_ORDER = ['متوقف','متلكئ','متأخر عن الخطة','ضمن الخطة','منجز'];
+
+function fmtNum(n){ if(n===null||n===undefined) return '—'; return Math.round(n).toLocaleString('en-US'); }
+function fmtPct(n){ if(n===null||n===undefined) return '—'; return (Math.round(n*1000)/10).toFixed(1); }
+function cls(s){ return 'st-' + s.replace(/\s+/g,'_'); }
+
+const total = PROJECTS.length;
+const totalCost = PROJECTS.reduce((a,p)=>a+(p.total_cost||0),0);
+const totalCO = PROJECTS.reduce((a,p)=>a+(p.co_cost||0),0);
+const avgActual = PROJECTS.reduce((a,p)=>a+(p.actual_pct||0),0)/total;
+const avgPlanned = PROJECTS.reduce((a,p)=>a+(p.planned_pct||0),0)/total;
+const avgDev = avgActual - avgPlanned;
+
+document.getElementById('m-count').textContent = total;
+document.getElementById('m-sectors').textContent = new Set(PROJECTS.map(p=>p.sector)).size;
+document.getElementById('k-total-count').textContent = total;
+document.getElementById('k-total-cost').innerHTML = fmtNum(totalCost) + '<small>د.ع</small>';
+document.getElementById('k-co-cost').innerHTML = fmtNum(totalCO) + '<small>د.ع</small>';
+document.getElementById('k-co-sub').textContent = fmtPct(totalCO/totalCost) + '٪ من الكلفة الكلية';
+document.getElementById('k-actual').textContent = fmtPct(avgActual) + '٪';
+document.getElementById('k-planned-sub').textContent = fmtPct(avgPlanned) + '٪';
+document.getElementById('k-dev').textContent = (avgDev>=0?'+':'') + fmtPct(avgDev) + '٪';
+document.getElementById('k-dev').style.color = avgDev < -0.1 ? 'var(--stop)' : (avgDev < 0 ? 'var(--warn)' : 'var(--ok)');
+const devPct = Math.min(100, Math.abs(avgDev)*100*2.2);
+document.getElementById('k-dev-fill').style.width = devPct+'%';
+document.getElementById('k-dev-mark').style.right = (100-devPct)+'%';
+
+/* ---- status bars ---- */
+function groupBy(arr, key){
+  const m = {};
+  arr.forEach(p=>{ const k=p[key]||'—'; (m[k]=m[k]||[]).push(p); });
+  return m;
+}
+const byStatus = groupBy(PROJECTS,'status');
+const statusHtml = STATUS_ORDER.filter(s=>byStatus[s]).map(s=>{
+  const n = byStatus[s].length; const pct = Math.round(n/total*100);
+  return `<div class="bar-row"><div class="bl"><span>${s}</span><span class="cnt">${n} مشروع — ${pct}٪</span></div>
+  <div class="bar-track"><div class="bar-fill" style="width:${pct}%; background:${STATUS_COLOR[s]}"></div></div></div>`;
+}).join('');
+document.getElementById('status-bars').innerHTML = statusHtml;
+document.getElementById('status-legend').innerHTML = STATUS_ORDER.map(s=>
+  `<span><i style="background:${STATUS_COLOR[s]}"></i>${s}</span>`).join('');
+
+/* ---- program bars ---- */
+const byProgram = groupBy(PROJECTS,'program');
+const progColors = ['#c9a24b','#4f86b8','#4f9e74','#cf7a45','#8b6bd9'];
+const progEntries = Object.entries(byProgram).sort((a,b)=>b[1].length-a[1].length);
+document.getElementById('program-bars').innerHTML = progEntries.map(([name,list],i)=>{
+  const pct = Math.round(list.length/total*100);
+  return `<div class="bar-row"><div class="bl"><span>${name}</span><span class="cnt">${list.length} — ${pct}٪</span></div>
+  <div class="bar-track"><div class="bar-fill" style="width:${pct}%; background:${progColors[i%progColors.length]}"></div></div></div>`;
+}).join('');
+
+/* ---- sector bars ---- */
+const bySector = groupBy(PROJECTS,'sector');
+const sectorEntries = Object.entries(bySector).sort((a,b)=>b[1].length-a[1].length);
+const maxSectorCost = Math.max(...sectorEntries.map(([,list])=>list.reduce((a,p)=>a+(p.total_cost||0),0)));
+document.getElementById('sector-bars').innerHTML = sectorEntries.map(([name,list])=>{
+  const cost = list.reduce((a,p)=>a+(p.total_cost||0),0);
+  const pct = Math.round(cost/maxSectorCost*100);
+  const costB = (cost/1e9).toFixed(2);
+  return `<div class="bar-row"><div class="bl"><span>${name}</span><span class="cnt">${list.length} مشروع — ${costB} مليار</span></div>
+  <div class="bar-track"><div class="bar-fill" style="width:${pct}%; background:var(--gold-dim)"></div></div></div>`;
+}).join('');
+
+/* ---- filters ---- */
+function uniq(key){ return [...new Set(PROJECTS.map(p=>p[key]).filter(Boolean))].sort((a,b)=>a.localeCompare('ar')); }
+function fillSelect(id, key){
+  const sel = document.getElementById(id);
+  uniq(key).forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o); });
+}
+fillSelect('f-sector','sector');
+fillSelect('f-status','status');
+fillSelect('f-program','program');
+
+function ledgerHtml(p){
+  const planned = Math.round((p.planned_pct||0)*100);
+  const actual = Math.round((p.actual_pct||0)*100);
+  const color = STATUS_COLOR[p.status] || 'var(--text-faint)';
+  return `<div class="mini-ledger"><div class="f" style="width:${actual}%; background:${color}"></div><div class="m" style="right:${planned}%"></div></div>
+  <div class="pct-line">${actual}٪ فعلي / ${planned}٪ مخطط</div>`;
+}
+
+function detailHtml(p){
+  return `<div class="d-item"><b>رقم الاضبارة</b><span>${p.file_no ?? '—'}</span></div>
+  <div class="d-item"><b>الشركة المنفذة</b><span>${p.contractor ?? '—'}</span></div>
+  <div class="d-item"><b>برنامج التمويل</b><span>${p.program ?? '—'}</span></div>
+  <div class="d-item"><b>تاريخ المباشرة</b><span>${p.start_date ?? 'لم تباشر'}</span></div>
+  <div class="d-item"><b>تاريخ الإنجاز المخطط</b><span>${p.planned_finish ?? '—'}</span></div>
+  <div class="d-item"><b>المدة الكلية</b><span>${p.total_days ?? '—'} يوم</span></div>
+  <div class="d-item"><b>المهندس المقيم</b><span>${p.engineer ?? '—'}</span></div>
+  <div class="d-item"><b>هاتف المهندس</b><span style="direction:ltr; unicode-bidi:isolate; display:inline-block;">${p.phone ?? '—'}</span></div>
+  <div class="d-item"><b>الكلفة الأصلية</b><span>${fmtNum(p.orig_cost)} د.ع</span></div>
+  <div class="d-item"><b>كلفة أوامر التغيير</b><span>${fmtNum(p.co_cost)} د.ع</span></div>
+  <div class="d-item"><b>السلف المصروفة</b><span>${fmtNum(p.advance_spent)} د.ع</span></div>
+  <div class="d-item"><b>السلف المرفوعة</b><span>${fmtNum(p.advance_raised)} د.ع</span></div>
+  <div class="d-item d-full"><b>ملاحظات ميدانية</b><span>${p.notes ?? '—'}</span></div>`;
+}
+
+let currentList = PROJECTS.slice();
+
+function render(){
+  const q = document.getElementById('f-search').value.trim();
+  const sector = document.getElementById('f-sector').value;
+  const status = document.getElementById('f-status').value;
+  const program = document.getElementById('f-program').value;
+
+  currentList = PROJECTS.filter(p=>{
+    if(sector && p.sector!==sector) return false;
+    if(status && p.status!==status) return false;
+    if(program && p.program!==program) return false;
+    if(q){
+      const hay = [p.name,p.contractor,p.engineer].join(' ');
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
+  document.getElementById('r-count').textContent = currentList.length;
+
+  document.getElementById('tbody').innerHTML = currentList.map((p,idx)=>{
+    const legalHas = p.legal_action && p.legal_action !== '-';
+    return `<tr class="main-row" data-idx="${idx}">
+      <td class="num">${p.id}</td>
+      <td><span class="proj-name">${p.name}</span><span class="proj-file">اضبارة رقم ${p.file_no ?? '—'} · ${p.contractor ?? '—'}</span></td>
+      <td>${p.sector}</td>
+      <td class="num">${fmtNum(p.total_cost)}</td>
+      <td>${ledgerHtml(p)}</td>
+      <td><span class="badge ${cls(p.status)}"><i></i>${p.status}</span></td>
+      <td><span class="legal ${legalHas?'has':''}">${legalHas ? p.legal_action : 'لا يوجد'}</span></td>
+    </tr>
+    <tr class="detail-row"><td colspan="7"><div class="detail-inner" id="d-${idx}">${detailHtml(p)}</div></td></tr>`;
+  }).join('');
+
+  document.querySelectorAll('.main-row').forEach(tr=>{
+    tr.addEventListener('click', ()=>{
+      document.getElementById('d-'+tr.dataset.idx).classList.toggle('open');
+    });
+  });
+
+  document.getElementById('cards').innerHTML = currentList.map(p=>{
+    const legalHas = p.legal_action && p.legal_action !== '-';
+    return `<div class="p-card">
+      <div class="pc-top">
+        <div><div class="pc-name">${p.name}</div><div class="pc-file">اضبارة ${p.file_no ?? '—'} · ${p.sector}</div></div>
+        <span class="badge ${cls(p.status)}"><i></i>${p.status}</span>
+      </div>
+      ${ledgerHtml(p)}
+      <div class="pc-row"><b>الكلفة الكلية</b><span>${fmtNum(p.total_cost)} د.ع</span></div>
+      <div class="pc-row"><b>الشركة المنفذة</b><span>${p.contractor ?? '—'}</span></div>
+      <div class="pc-row"><b>المهندس المقيم</b><span>${p.engineer ?? '—'}</span></div>
+      <div class="pc-row"><b>إجراء قانوني</b><span class="${legalHas?'legal has':'legal'}">${legalHas ? p.legal_action : 'لا يوجد'}</span></div>
+      ${p.notes ? `<div class="pc-notes">${p.notes}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+['f-search','f-sector','f-status','f-program'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', render);
+  document.getElementById(id).addEventListener('change', render);
+});
+document.getElementById('f-reset').addEventListener('click', ()=>{
+  document.getElementById('f-search').value='';
+  document.getElementById('f-sector').value='';
+  document.getElementById('f-status').value='';
+  document.getElementById('f-program').value='';
+  render();
+});
+
+render();
+</script>
+</body>
+</html>

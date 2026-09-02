@@ -232,6 +232,23 @@ td.num, th.num{direction:ltr; unicode-bidi:isolate; text-align:left; font-varian
 .lb .lb-x{top:14px; left:14px;} .lb .lb-prev{right:12px; top:50%; transform:translateY(-50%);} .lb .lb-next{left:12px; top:50%; transform:translateY(-50%);}
 .lb .lb-n{direction:ltr; position:absolute; top:22px; right:20px; color:var(--text-faint); font-size:12px;}
 
+
+/* ---------- map ---------- */
+#map-el{height:520px; border-radius:var(--radius); border:1px solid var(--line-soft); background:var(--bg-2); overflow:hidden; z-index:0;}
+@media(max-width:700px){#map-el{height:380px;}}
+.leaflet-container{font-family:'Tajawal',sans-serif; direction:rtl;}
+.leaflet-popup-content-wrapper,.leaflet-popup-tip{background:var(--panel); color:var(--text); box-shadow:0 10px 30px rgba(0,0,0,.5);}
+.leaflet-popup-content{margin:12px 14px; font-size:12.5px; line-height:1.6; min-width:200px;}
+.leaflet-popup-content b{display:block; font-size:13px; margin-bottom:4px;}
+.leaflet-popup-content .pp{color:var(--text-dim); font-size:11.5px;}
+.leaflet-popup-content a{color:var(--gold-soft); text-decoration:none;}
+.leaflet-popup-close-button{color:var(--text-dim)!important;}
+.pin{width:16px; height:16px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 0 3px rgba(0,0,0,.35);}
+.pin.done{background:#4f9e74} .pin.plan{background:#4f86b8} .pin.warn{background:#d99a3e} .pin.late{background:#cf7a45} .pin.stop{background:#c15c4a}
+.map-legend{display:flex; gap:14px; flex-wrap:wrap; font-size:12px; color:var(--text-dim); margin-top:10px;}
+.map-legend i{display:inline-block; width:10px; height:10px; border-radius:50%; margin-inline-end:5px; vertical-align:middle;}
+.coord{direction:ltr; unicode-bidi:isolate; display:inline-block; font-variant-numeric:tabular-nums;}
+
 /* ---------- footer ---------- */
 footer{border-top:1px solid var(--line-soft); padding:34px 0 46px; margin-top:20px;}
 footer .fgrid{display:flex; justify-content:space-between; flex-wrap:wrap; gap:20px; font-size:12.5px; color:var(--text-faint);}
@@ -253,6 +270,8 @@ footer b{color:var(--text-dim); display:block; margin-bottom:6px; font-family:'C
   .kpi-grid{grid-template-columns:1fr;}
 }
 </style>
+<link rel="stylesheet" href="leaflet/leaflet.css">
+<script src="leaflet/leaflet.js"></script>
 </head>
 <body>
 
@@ -267,6 +286,7 @@ footer b{color:var(--text-dim); display:block; margin-bottom:6px; font-family:'C
     <nav class="topnav">
       <a href="#kpis">المؤشرات</a>
       <a href="#breakdown">التوزيع</a>
+      <a href="#map">الخريطة</a>
       <a href="#projects">المشاريع</a>
     </nav>
   </div>
@@ -345,10 +365,25 @@ footer b{color:var(--text-dim); display:block; margin-bottom:6px; font-family:'C
     </div>
   </section>
 
+  <section id="map">
+    <div class="section-head">
+      <div>
+        <div class="num-eyebrow">02 — الخريطة</div>
+        <h2>مواقع المشاريع على الخريطة</h2>
+        <p>كل دائرة تمثل مشروعاً، ولونها يمثل حالته. انقر على الدائرة لعرض بيانات المشروع ورابط الوصول إلى الموقع.</p>
+      </div>
+    </div>
+    <div id="map-el"></div>
+    <div class="map-legend">
+      <span><i style="background:#4f9e74"></i>منجز</span><span><i style="background:#4f86b8"></i>ضمن الخطة</span><span><i style="background:#d99a3e"></i>متلكئ</span><span><i style="background:#cf7a45"></i>متأخر عن الخطة</span><span><i style="background:#c15c4a"></i>متوقف</span>
+      <span id="map-missing" style="margin-inline-start:auto"></span>
+    </div>
+  </section>
+
   <section id="projects">
     <div class="section-head">
       <div>
-        <div class="num-eyebrow">02 — السجل</div>
+        <div class="num-eyebrow">03 — السجل</div>
         <h2>سجل المشاريع التفصيلي</h2>
         <p>انقر على أي مشروع لعرض بيانات المقاول والمهندس المقيم والملاحظات الميدانية كاملة.</p>
       </div>
@@ -503,6 +538,7 @@ function detailHtml(p){
   <div class="d-item"><b>تاريخ المباشرة</b><span>${p.start_date ?? 'لم تباشر'}</span></div>
   <div class="d-item"><b>تاريخ الإنجاز المخطط</b><span>${p.planned_finish ?? '—'}</span></div>
   <div class="d-item"><b>المدة الكلية</b><span>${p.total_days ?? '—'} يوم</span></div>
+  <div class="d-item"><b>موقع المشروع</b><span>${p.lat&&p.lng?`<a href="https://www.google.com/maps?q=${p.lat},${p.lng}" target="_blank" rel="noopener" style="color:var(--gold-soft);text-decoration:none">📍 افتح في خرائط Google</a><br><span class="coord" style="font-size:11px;color:var(--text-faint)">${p.lat}, ${p.lng}</span>`:'لم تُحدَّد الإحداثيات بعد'}</span></div>
   <div class="d-item"><b>المهندس المقيم</b><span>${p.engineer ?? '—'}</span></div>
   <div class="d-item"><b>هاتف المهندس</b><span style="direction:ltr; unicode-bidi:isolate; display:inline-block;">${p.phone ?? '—'}</span></div>
   <div class="d-item"><b>الكلفة الأصلية</b><span>${fmtNum(p.orig_cost)} د.ع</span></div>
@@ -536,6 +572,24 @@ function openLb(a){ lbKey=a.dataset.key; lbI=+a.dataset.i; showLb(); return fals
 function closeLb(){ document.getElementById('lb').classList.remove('open'); }
 document.addEventListener('keydown',e=>{ if(!document.getElementById('lb').classList.contains('open')) return; if(e.key==='Escape') closeLb(); if(e.key==='ArrowLeft'){lbI++;showLb();} if(e.key==='ArrowRight'){lbI--;showLb();} });
 fetch('photos.json?t='+Date.now()).then(r=>r.ok?r.json():{}).then(j=>{ PHOTOS=j||{}; render(); }).catch(()=>{});
+
+/* ---- map ---- */
+(function(){
+  if(typeof L==='undefined') return;
+  const PIN={'منجز':'done','ضمن الخطة':'plan','متلكئ':'warn','متأخر عن الخطة':'late','متوقف':'stop'};
+  const withCoords=PROJECTS.filter(p=>p.lat&&p.lng);
+  const map=L.map('map-el',{scrollWheelZoom:false});
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'&copy; OpenStreetMap &copy; CARTO',maxZoom:19}).addTo(map);
+  const group=L.featureGroup(withCoords.map(p=>{
+    const m=L.marker([p.lat,p.lng],{icon:L.divIcon({className:'',html:`<div class="pin ${PIN[p.status]||'plan'}"></div>`,iconSize:[16,16],iconAnchor:[8,8]})});
+    m.bindPopup(`<b>${p.id}. ${p.name}</b><div class="pp">${p.sector} · ${p.contractor??'—'}<br>الحالة: ${p.status} · الإنجاز الفعلي ${Math.round((p.actual_pct||0)*100)}٪<br>المهندس المقيم: ${p.engineer??'—'}</div><a href="https://www.google.com/maps?q=${p.lat},${p.lng}" target="_blank" rel="noopener">📍 الاتجاهات في خرائط Google</a>`);
+    return m;
+  })).addTo(map);
+  if(withCoords.length) map.fitBounds(group.getBounds().pad(0.12));
+  map.on('click',()=>map.scrollWheelZoom.enable());
+  const missing=PROJECTS.length-withCoords.length;
+  document.getElementById('map-missing').textContent=missing?`${withCoords.length} مشروعاً على الخريطة · ${missing} بلا إحداثيات`:`${withCoords.length} مشروعاً على الخريطة`;
+})();
 
 let currentList = PROJECTS.slice();
 
@@ -590,6 +644,7 @@ function render(){
       <div class="pc-row"><b>الشركة المنفذة</b><span>${p.contractor ?? '—'}</span></div>
       <div class="pc-row"><b>المهندس المقيم</b><span>${p.engineer ?? '—'}</span></div>
       <div class="pc-row"><b>إجراء قانوني</b><span class="${legalHas?'legal has':'legal'}">${legalHas ? p.legal_action : 'لا يوجد'}</span></div>
+      ${p.lat&&p.lng ? `<div class="pc-row"><b>الموقع</b><a href="https://www.google.com/maps?q=${p.lat},${p.lng}" target="_blank" rel="noopener" style="color:var(--gold-soft);text-decoration:none">📍 افتح في الخرائط</a></div>` : ''}
       ${p.notes ? `<div class="pc-notes">${p.notes}</div>` : ''}
       ${(PHOTOS[photoKey(p)]||[]).length ? `<div class="pc-notes"><b style="color:var(--text-faint);font-weight:500;font-size:11px">الصور الموقعية</b>${galleryHtml(p)}</div>` : ''}
     </div>`;

@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>إدارة صور المشاريع — لجنة متابعة مشاريع الكرمة</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0c1826;--bg-2:#0a1420;--panel:#122236;--panel-2:#17293f;--line:#25384f;--line-soft:#1c2e44;--gold:#c9a24b;--gold-soft:#e3c777;--text:#eef1f6;--text-dim:#94a6bf;--text-faint:#5f7390;--ok:#4f9e74;--stop:#c15c4a;--warn:#d99a3e;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:'Tajawal',sans-serif;line-height:1.6;min-height:100vh}
+.wrap{max-width:860px;margin:0 auto;padding:18px 16px 60px}
+header{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 0 18px;border-bottom:1px solid var(--line-soft);margin-bottom:18px}
+header h1{font-size:18px;margin:0;font-weight:800}
+header p{margin:2px 0 0;font-size:12px;color:var(--text-faint)}
+a.back{color:var(--gold-soft);text-decoration:none;font-size:13px;white-space:nowrap}
+.card{background:var(--panel);border:1px solid var(--line-soft);border-radius:14px;padding:16px;margin-bottom:14px}
+label{display:block;font-size:12px;color:var(--text-faint);margin-bottom:6px;font-weight:600}
+input[type=text],input[type=password],input[type=date],select,textarea{width:100%;background:var(--bg-2);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:11px 12px;font:inherit;font-size:14px}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:560px){.row{grid-template-columns:1fr}}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--gold);color:#1a1405;border:0;border-radius:10px;padding:12px 18px;font:inherit;font-weight:700;font-size:14px;cursor:pointer}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.ghost{background:transparent;color:var(--text-dim);border:1px solid var(--line)}
+.btn.danger{background:transparent;color:var(--stop);border:1px solid var(--stop)}
+.btn.block{width:100%}
+.proj-list{max-height:260px;overflow:auto;border:1px solid var(--line-soft);border-radius:10px;margin-top:8px;background:var(--bg-2)}
+.proj-item{padding:10px 12px;border-bottom:1px solid var(--line-soft);cursor:pointer;font-size:13px;display:flex;justify-content:space-between;gap:10px}
+.proj-item:last-child{border-bottom:0}
+.proj-item:hover{background:var(--panel-2)}
+.proj-item.sel{background:#1f3350;border-inline-start:3px solid var(--gold)}
+.proj-item small{color:var(--text-faint);white-space:nowrap}
+.selected{background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:12px;font-size:13px;margin-top:10px}
+.selected b{display:block;font-weight:700;margin-bottom:2px}
+.selected span{color:var(--text-faint);font-size:12px}
+.drop{border:2px dashed var(--line);border-radius:12px;padding:22px;text-align:center;color:var(--text-dim);cursor:pointer;background:var(--bg-2)}
+.drop:hover{border-color:var(--gold)}
+.drop input{display:none}
+.previews{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;margin-top:12px}
+.thumb{position:relative;aspect-ratio:4/3;border-radius:10px;overflow:hidden;background:var(--bg-2);border:1px solid var(--line-soft)}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb .x{position:absolute;top:6px;left:6px;background:rgba(0,0,0,.65);color:#fff;border:0;border-radius:50%;width:24px;height:24px;cursor:pointer;font-size:14px;line-height:24px}
+.thumb .cap{position:absolute;bottom:0;right:0;left:0;background:linear-gradient(transparent,rgba(0,0,0,.75));color:#fff;font-size:10.5px;padding:14px 6px 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.thumb .sz{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.6);color:#fff;font-size:10px;padding:2px 6px;border-radius:6px}
+.log{background:var(--bg-2);border:1px solid var(--line-soft);border-radius:10px;padding:10px 12px;font-size:12.5px;color:var(--text-dim);max-height:180px;overflow:auto;white-space:pre-wrap;direction:rtl}
+.log .ok{color:var(--ok)} .log .err{color:var(--stop)} .log .warn{color:var(--warn)}
+.bar{height:6px;background:var(--line);border-radius:99px;overflow:hidden;margin:10px 0}
+.bar i{display:block;height:100%;width:0;background:var(--gold);transition:width .3s}
+.muted{color:var(--text-faint);font-size:12px}
+h2{font-size:15px;margin:0 0 12px;font-weight:700}
+.count{background:var(--panel-2);border:1px solid var(--line);border-radius:99px;padding:1px 9px;font-size:11px;color:var(--text-dim)}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div><h1>إدارة صور المشاريع</h1><p>لجنة متابعة مشاريع قضاء الكرمة والنواحي التابعة لها</p></div>
+  <a class="back" href="index.html">← الموقع</a>
+</header>
+
+<!-- login -->
+<section class="card" id="login">
+  <h2>الدخول</h2>
+  <label>توكن GitHub (يُحفظ على هذا الجهاز فقط ولا يُنشر في الموقع)</label>
+  <input type="password" id="tok" placeholder="github_pat_…" autocomplete="off">
+  <p class="muted">توكن Fine-grained مقيّد بالمستودع <b>alkarmahcityproject</b> بصلاحية Contents: Read and write.</p>
+  <button class="btn block" id="tok-save">تحقق وادخل</button>
+  <div id="login-msg" class="muted" style="margin-top:8px"></div>
+</section>
+
+<div id="app" class="hidden">
+<section class="card">
+  <h2>١ · اختر المشروع</h2>
+  <input type="text" id="q" placeholder="ابحث باسم المشروع أو الشركة أو رقم الاضبارة…">
+  <div class="proj-list" id="plist"></div>
+  <div class="selected hidden" id="psel"></div>
+</section>
+
+<section class="card hidden" id="existing-card">
+  <h2>الصور الحالية <span class="count" id="ex-count">0</span></h2>
+  <div class="previews" id="existing"></div>
+  <p class="muted" id="ex-empty">لا توجد صور لهذا المشروع بعد.</p>
+</section>
+
+<section class="card hidden" id="upload-card">
+  <h2>٢ · أضف صوراً</h2>
+  <label class="drop" id="drop">
+    <input type="file" id="files" accept="image/*" multiple capture="environment">
+    📷 التقط صورة من الكاميرا أو اختر من المعرض<br><span class="muted">تُضغط الصور تلقائياً إلى ~1600 بكسل قبل الرفع</span>
+  </label>
+  <div class="previews" id="previews"></div>
+  <div class="row" style="margin-top:12px">
+    <div><label>تاريخ الزيارة</label><input type="date" id="pdate"></div>
+    <div><label>وصف موحّد (اختياري — يطبَّق على كل الصور)</label><input type="text" id="pcap" placeholder="مثال: أعمال صب الأساس — الجزء الشمالي"></div>
+  </div>
+  <div class="bar"><i id="prog"></i></div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <button class="btn" id="upload" disabled>رفع الصور إلى الموقع</button>
+    <button class="btn ghost" id="clear">إفراغ القائمة</button>
+    <button class="btn ghost" id="logout" style="margin-inline-start:auto">تسجيل خروج</button>
+  </div>
+</section>
+
+<section class="card">
+  <h2>السجل</h2>
+  <div class="log" id="log">—</div>
+</section>
+</div>
+</div>
+
+<script src="data.js"></script>
+<script>
+const OWNER='alkarmahcity-netizen', REPO='alkarmahcityproject', BRANCH='main';
+const API=`https://api.github.com/repos/${OWNER}/${REPO}`;
+const $=id=>document.getElementById(id);
+const log=(m,c='')=>{const el=$('log');el.innerHTML=(el.innerHTML==='—'?'':el.innerHTML)+`<div class="${c}">${new Date().toLocaleTimeString('ar-IQ')} · ${m}</div>`;el.scrollTop=el.scrollHeight;};
+const photoKey=p=>/^\d+$/.test(String(p.file_no))?String(p.file_no):'p'+p.id;
+let token=localStorage.getItem('gh_token')||'', selected=null, queue=[], photos={}, photosSha=null;
+
+async function gh(path,opts={}){
+  const r=await fetch(API+path,{...opts,headers:{'Authorization':'Bearer '+token,'Accept':'application/vnd.github+json','Content-Type':'application/json',...(opts.headers||{})}});
+  if(r.status===401) throw new Error('التوكن غير صالح أو منتهي (401)');
+  if(r.status===403) throw new Error('صلاحيات غير كافية أو تجاوز الحد (403)');
+  if(r.status===404 && opts.allow404) return null;
+  if(!r.ok) throw new Error('GitHub '+r.status+': '+((await r.json()).message||''));
+  return r.status===204?null:r.json();
+}
+const b64=s=>btoa(unescape(encodeURIComponent(s)));
+const blobToB64=b=>new Promise(res=>{const fr=new FileReader();fr.onload=()=>res(fr.result.split(',')[1]);fr.readAsDataURL(b);});
+
+async function loadPhotos(){
+  const j=await gh(`/contents/photos.json?ref=${BRANCH}&t=${Date.now()}`,{allow404:true});
+  if(!j){photos={};photosSha=null;return;}
+  photosSha=j.sha; photos=JSON.parse(decodeURIComponent(escape(atob(j.content.replace(/\n/g,'')))));
+}
+async function savePhotos(msg){
+  const res=await gh('/contents/photos.json',{method:'PUT',body:JSON.stringify({message:msg,branch:BRANCH,content:b64(JSON.stringify(photos,null,1)),sha:photosSha||undefined})});
+  photosSha=res.content.sha;
+}
+
+/* ---- login ---- */
+async function tryLogin(){
+  $('login-msg').textContent='جارٍ التحقق…';
+  try{ await loadPhotos(); $('login').classList.add('hidden'); $('app').classList.remove('hidden'); log('تم الدخول والاتصال بالمستودع بنجاح.','ok'); renderList(); }
+  catch(e){ $('login-msg').textContent='فشل الدخول: '+e.message; token=''; localStorage.removeItem('gh_token'); }
+}
+$('tok-save').onclick=()=>{token=$('tok').value.trim(); if(!token) return; localStorage.setItem('gh_token',token); tryLogin();};
+$('logout').onclick=()=>{localStorage.removeItem('gh_token');location.reload();};
+if(token) tryLogin();
+
+/* ---- project list ---- */
+function renderList(){
+  const q=$('q').value.trim();
+  const list=PROJECTS.filter(p=>!q||[p.name,p.contractor,String(p.file_no),p.sector].join(' ').includes(q));
+  $('plist').innerHTML=list.map(p=>`<div class="proj-item ${selected&&selected.id===p.id?'sel':''}" data-id="${p.id}"><span>${p.id}. ${p.name}</span><small>${(photos[photoKey(p)]||[]).length?'📷 '+photos[photoKey(p)].length:''} ${p.file_no??''}</small></div>`).join('')||'<div class="proj-item">لا نتائج</div>';
+  $('plist').querySelectorAll('.proj-item[data-id]').forEach(el=>el.onclick=()=>selectProject(PROJECTS.find(p=>p.id==el.dataset.id)));
+}
+$('q').oninput=renderList;
+function selectProject(p){
+  selected=p; renderList();
+  $('psel').classList.remove('hidden');
+  $('psel').innerHTML=`<b>${p.name}</b><span>اضبارة ${p.file_no??'—'} · ${p.sector} · ${p.contractor??'—'} · مجلد الصور: photos/${photoKey(p)}/</span>`;
+  $('existing-card').classList.remove('hidden'); $('upload-card').classList.remove('hidden');
+  if(!$('pdate').value) $('pdate').value=new Date().toISOString().slice(0,10);
+  renderExisting();
+}
+function renderExisting(){
+  const arr=photos[photoKey(selected)]||[];
+  $('ex-count').textContent=arr.length; $('ex-empty').classList.toggle('hidden',arr.length>0);
+  $('existing').innerHTML=arr.map((ph,i)=>`<div class="thumb"><img src="${ph.f}" loading="lazy"><button class="x" title="حذف" data-i="${i}">×</button><div class="cap">${ph.d||''} ${ph.c?'· '+ph.c:''}</div></div>`).join('');
+  $('existing').querySelectorAll('.x').forEach(b=>b.onclick=()=>deletePhoto(+b.dataset.i));
+}
+async function deletePhoto(i){
+  const key=photoKey(selected), ph=photos[key][i];
+  if(!confirm('حذف هذه الصورة نهائياً من الموقع؟')) return;
+  try{
+    const meta=await gh(`/contents/${ph.f}?ref=${BRANCH}`,{allow404:true});
+    if(meta) await gh(`/contents/${ph.f}`,{method:'DELETE',body:JSON.stringify({message:`حذف صورة — ${selected.name}`,branch:BRANCH,sha:meta.sha})});
+    photos[key].splice(i,1); if(!photos[key].length) delete photos[key];
+    await savePhotos(`تحديث فهرس الصور بعد حذف — ${selected.name}`);
+    log('تم حذف الصورة.','ok'); renderExisting(); renderList();
+  }catch(e){log('فشل الحذف: '+e.message,'err');}
+}
+
+/* ---- queue & compress ---- */
+$('files').onchange=e=>{ [...e.target.files].forEach(addFile); e.target.value=''; };
+async function addFile(file){
+  const item={file,blob:null,url:null,name:file.name}; queue.push(item); renderQueue();
+  try{ item.blob=await compress(file); item.url=URL.createObjectURL(item.blob); }
+  catch(err){ item.error='تعذر قراءة الصورة'; log(`${file.name}: ${item.error}`,'err'); }
+  renderQueue();
+}
+function compress(file,max=1600,q=0.82){
+  return new Promise((res,rej)=>{
+    const img=new Image(); const url=URL.createObjectURL(file);
+    img.onload=()=>{ const s=Math.min(1,max/Math.max(img.width,img.height));
+      const c=document.createElement('canvas'); c.width=Math.round(img.width*s); c.height=Math.round(img.height*s);
+      c.getContext('2d').drawImage(img,0,0,c.width,c.height); URL.revokeObjectURL(url);
+      c.toBlob(b=>b?res(b):rej(new Error('toBlob')),'image/jpeg',q); };
+    img.onerror=()=>rej(new Error('load')); img.src=url;
+  });
+}
+function renderQueue(){
+  $('previews').innerHTML=queue.map((it,i)=>`<div class="thumb">${it.url?`<img src="${it.url}">`:`<div style="padding:30px 0;text-align:center" class="muted">${it.error||'…'}</div>`}<button class="x" data-i="${i}">×</button>${it.blob?`<span class="sz">${(it.blob.size/1024).toFixed(0)} KB</span>`:''}</div>`).join('');
+  $('previews').querySelectorAll('.x').forEach(b=>b.onclick=()=>{queue.splice(+b.dataset.i,1);renderQueue();});
+  $('upload').disabled=!(selected&&queue.some(it=>it.blob));
+}
+$('clear').onclick=()=>{queue=[];renderQueue();};
+
+/* ---- upload ---- */
+$('upload').onclick=async()=>{
+  const ready=queue.filter(it=>it.blob); if(!ready.length||!selected) return;
+  const key=photoKey(selected), date=$('pdate').value||new Date().toISOString().slice(0,10), cap=$('pcap').value.trim();
+  $('upload').disabled=true; let done=0;
+  log(`بدء رفع ${ready.length} صورة إلى المشروع: ${selected.name}`);
+  try{
+    await loadPhotos(); // احصل على أحدث فهرس وsha قبل التعديل
+    photos[key]=photos[key]||[];
+    for(const it of ready){
+      const stamp=new Date().toISOString().replace(/[-:T]/g,'').slice(0,14)+Math.random().toString(36).slice(2,5);
+      const path=`photos/${key}/${date.replace(/-/g,'')}-${stamp}.jpg`;
+      await gh(`/contents/${path}`,{method:'PUT',body:JSON.stringify({message:`صورة موقعية — ${selected.name} (${date})`,branch:BRANCH,content:await blobToB64(it.blob)})});
+      photos[key].push({f:path,d:date,c:cap});
+      done++; $('prog').style.width=Math.round(done/ready.length*90)+'%'; log(`✓ ${path} (${(it.blob.size/1024).toFixed(0)} KB)`,'ok');
+    }
+    await savePhotos(`تحديث فهرس الصور — ${selected.name} (+${done})`);
+    $('prog').style.width='100%';
+    log(`اكتمل الرفع. ستظهر الصور في الموقع خلال دقيقة إلى ثلاث دقائق بعد إعادة النشر.`,'ok');
+    queue=[]; renderQueue(); renderExisting(); renderList(); $('pcap').value='';
+  }catch(e){ log('توقف الرفع: '+e.message,'err'); if(done) { try{ await savePhotos(`تحديث فهرس الصور (جزئي) — ${selected.name}`); log(`حُفظ الفهرس للصور المرفوعة (${done}).`,'warn'); }catch(e2){ log('تعذر حفظ الفهرس: '+e2.message,'err'); } } }
+  finally{ setTimeout(()=>$('prog').style.width='0',1500); $('upload').disabled=!(queue.some(it=>it.blob)); }
+};
+</script>
+</body>
+</html>

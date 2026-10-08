@@ -26,6 +26,8 @@
   --ok-bg:#173226;
   --plan:#4f86b8;
   --plan-bg:#152a3a;
+  --cont:#3fa3a0;
+  --cont-bg:#122f2e;
   --warn:#d99a3e;
   --warn-bg:#332612;
   --late:#cf7a45;
@@ -168,6 +170,7 @@ section{padding:50px 0;}
 .badge{display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:700; padding:4px 10px; border-radius:99px; white-space:nowrap;}
 .badge i{width:6px; height:6px; border-radius:50%; display:inline-block;}
 .badge.st-منجز{background:var(--ok-bg); color:#7fcaa2;} .badge.st-منجز i{background:var(--ok);}
+.badge.st-مستمر{background:var(--cont-bg); color:#86d0cc;} .badge.st-مستمر i{background:var(--cont);}
 .badge.st-ضمن_الخطة{background:var(--plan-bg); color:#8bb9e0;} .badge.st-ضمن_الخطة i{background:var(--plan);}
 .badge.st-متلكئ{background:var(--warn-bg); color:#eab568;} .badge.st-متلكئ i{background:var(--warn);}
 .badge.st-متأخر_عن_الخطة{background:var(--late-bg); color:#eb9a6c;} .badge.st-متأخر_عن_الخطة i{background:var(--late);}
@@ -244,7 +247,7 @@ td.num, th.num{direction:ltr; unicode-bidi:isolate; text-align:left; font-varian
 .leaflet-popup-content a{color:var(--gold-soft); text-decoration:none;}
 .leaflet-popup-close-button{color:var(--text-dim)!important;}
 .pin{width:16px; height:16px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 0 3px rgba(0,0,0,.35);}
-.pin.done{background:#4f9e74} .pin.plan{background:#4f86b8} .pin.warn{background:#d99a3e} .pin.late{background:#cf7a45} .pin.stop{background:#c15c4a}
+.pin.done{background:#4f9e74} .pin.plan{background:#4f86b8} .pin.cont{background:#3fa3a0} .pin.warn{background:#d99a3e} .pin.late{background:#cf7a45} .pin.stop{background:#c15c4a}
 .map-legend{display:flex; gap:14px; flex-wrap:wrap; font-size:12px; color:var(--text-dim); margin-top:10px;}
 .map-legend i{display:inline-block; width:10px; height:10px; border-radius:50%; margin-inline-end:5px; vertical-align:middle;}
 .coord{direction:ltr; unicode-bidi:isolate; display:inline-block; font-variant-numeric:tabular-nums;}
@@ -300,7 +303,7 @@ footer b{color:var(--text-dim); display:block; margin-bottom:6px; font-family:'C
     <div class="hero-meta">
       <span><b id="m-count">٤٧</b> مشروعاً قيد المتابعة</span>
       <span class="dot">•</span>
-      <span>آخر تحديث للبيانات: <b id="m-date">١ / ٩ / ٢٠٢٦</b></span>
+      <span>آخر تحديث للبيانات: <b id="m-date">٨ / ١٠ / ٢٠٢٦</b></span>
       <span class="dot">•</span>
       <span><span id="m-sectors">١١</span> قطاعات مستفيدة</span>
     </div>
@@ -375,7 +378,7 @@ footer b{color:var(--text-dim); display:block; margin-bottom:6px; font-family:'C
     </div>
     <div id="map-el"></div>
     <div class="map-legend">
-      <span><i style="background:#4f9e74"></i>منجز</span><span><i style="background:#4f86b8"></i>ضمن الخطة</span><span><i style="background:#d99a3e"></i>متلكئ</span><span><i style="background:#cf7a45"></i>متأخر عن الخطة</span><span><i style="background:#c15c4a"></i>متوقف</span>
+      <span><i style="background:#4f9e74"></i>منجز</span><span><i style="background:#3fa3a0"></i>مستمر</span><span><i style="background:#4f86b8"></i>ضمن الخطة</span><span><i style="background:#d99a3e"></i>متلكئ</span><span><i style="background:#cf7a45"></i>متأخر عن الخطة</span><span><i style="background:#c15c4a"></i>متوقف</span>
       <span id="map-missing" style="margin-inline-start:auto"></span>
     </div>
   </section>
@@ -428,7 +431,7 @@ footer b{color:var(--text-dim); display:block; margin-bottom:6px; font-family:'C
       </div>
       <div>
         <b>ملاحظة بشأن البيانات</b>
-        البيانات مستخرجة من جدول المتابعة الرسمي (لوحة مشاريع الكرمة) بتاريخ <span id="f-date">١/٩/٢٠٢٦</span>، وتُحدَّث الصفحة يدوياً عند كل تحديث للجدول.
+        البيانات مستخرجة من جدول المتابعة الرسمي (لوحة مشاريع الكرمة) بتاريخ <span id="f-date">٨/١٠/٢٠٢٦</span>، وتُحدَّث الصفحة يدوياً عند كل تحديث للجدول.
       </div>
     </div>
   </div>
@@ -446,9 +449,16 @@ footer b{color:var(--text-dim); display:block; margin-bottom:6px; font-family:'C
 <script>
 const STATUS_COLOR = {
   'منجز':'var(--ok)', 'ضمن الخطة':'var(--plan)', 'متلكئ':'var(--warn)',
-  'متأخر عن الخطة':'var(--late)', 'متوقف':'var(--stop)'
+  'متأخر عن الخطة':'var(--late)', 'متوقف':'var(--stop)', 'مستمر':'var(--cont)'
 };
-const STATUS_ORDER = ['متوقف','متلكئ','متأخر عن الخطة','ضمن الخطة','منجز'];
+const STATUS_ORDER = ['متوقف','متلكئ','متأخر عن الخطة','مستمر','ضمن الخطة','منجز'];
+/* نسبة الإنجاز المخطط تُحسب يومياً كما في ملف الإكسل: (اليوم - تاريخ المباشرة) ÷ المدة الكلية */
+(function(){ const t=new Date(); t.setHours(0,0,0,0);
+  PROJECTS.forEach(p=>{ if(p.start_date && p.total_days){
+    const s=new Date(p.start_date+'T00:00:00');
+    const v=Math.min(1,Math.max(0,Math.round((t-s)/86400000)/p.total_days));
+    p.planned_pct=v; p.deviation=(p.actual_pct||0)-v; } });
+})();
 
 function fmtNum(n){ if(n===null||n===undefined) return '—'; return Math.round(n).toLocaleString('en-US'); }
 function fmtPct(n){ if(n===null||n===undefined) return '—'; return (Math.round(n*1000)/10).toFixed(1); }
@@ -576,7 +586,7 @@ fetch('photos.json?t='+Date.now()).then(r=>r.ok?r.json():{}).then(j=>{ PHOTOS=j|
 /* ---- map ---- */
 (function(){
   if(typeof L==='undefined') return;
-  const PIN={'منجز':'done','ضمن الخطة':'plan','متلكئ':'warn','متأخر عن الخطة':'late','متوقف':'stop'};
+  const PIN={'منجز':'done','ضمن الخطة':'plan','مستمر':'cont','متلكئ':'warn','متأخر عن الخطة':'late','متوقف':'stop'};
   const withCoords=PROJECTS.filter(p=>p.lat&&p.lng);
   const map=L.map('map-el',{scrollWheelZoom:false});
   L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'&copy; OpenStreetMap &copy; CARTO',maxZoom:19}).addTo(map);

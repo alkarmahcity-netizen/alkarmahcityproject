@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>برنامج إطلاق التأمينات</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Noto+Naskh+Arabic:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#14304f; --navy-2:#1d416a; --gold:#b8913a; --gold-soft:#e8d6a8;
+  --bg:#eef1f5; --panel:#ffffff; --line:#d5dbe3; --text:#1b2533; --dim:#5d6b7d; --danger:#b23b2a;
+  --doc-font:'Noto Naskh Arabic','Traditional Arabic','Times New Roman',serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:'Cairo','Segoe UI',Tahoma,sans-serif;font-size:14px}
+header.top{background:var(--navy);color:#fff;padding:10px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;border-bottom:3px solid var(--gold)}
+header.top h1{font-size:17px;margin:0;font-weight:800}
+header.top .sp{flex:1}
+header.top button,header.top label.btn{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:8px;padding:6px 12px;font:inherit;font-size:13px;cursor:pointer}
+header.top button.pri{background:var(--gold);border-color:var(--gold);color:#1b1405;font-weight:700}
+header.top input[type=file]{display:none}
+
+.layout{display:grid;grid-template-columns:35% 65%;height:calc(100vh - 56px)}
+.panel{background:var(--panel);border-inline-end:1px solid var(--line);overflow:auto;padding:14px 14px 40px}
+.preview{overflow:auto;padding:24px 16px}
+.tabs{display:none}
+
+fieldset{border:1px solid var(--line);border-radius:10px;padding:10px 12px 12px;margin:0 0 12px}
+legend{font-weight:700;color:var(--navy);padding:0 6px;font-size:13.5px}
+.f{margin-top:8px}
+.f label{display:block;font-size:12px;color:var(--dim);margin-bottom:3px;font-weight:600}
+.f input,.f select,.f textarea{width:100%;border:1px solid var(--line);border-radius:7px;padding:7px 9px;font:inherit;font-size:13.5px;background:#fbfcfd;color:var(--text)}
+.f input:focus,.f select:focus,.f textarea:focus{outline:none;border-color:var(--navy-2);background:#fff}
+.f .hint{font-size:11px;color:var(--dim);margin-top:2px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+.opt{font-size:11px;color:var(--gold);font-weight:600}
+.mem{display:grid;grid-template-columns:1fr 1fr 110px 28px;gap:6px;margin-top:6px;align-items:center}
+.mem input{width:100%;border:1px solid var(--line);border-radius:7px;padding:6px 8px;font:inherit;font-size:12.5px}
+.mem button,.addbtn{border:1px solid var(--line);background:#fff;border-radius:7px;cursor:pointer;font:inherit}
+.mem button{color:var(--danger);height:30px}
+.addbtn{margin-top:8px;padding:5px 10px;font-size:12.5px;color:var(--navy)}
+.savedlist{max-height:200px;overflow:auto;border:1px solid var(--line);border-radius:8px}
+.savedlist div{padding:7px 10px;border-bottom:1px solid var(--line);cursor:pointer;font-size:12.5px;display:flex;justify-content:space-between;gap:8px}
+.savedlist div:hover{background:#f3f6fa}
+.savedlist small{color:var(--dim);white-space:nowrap}
+.savedlist .x{color:var(--danger);border:0;background:none;cursor:pointer;font-size:14px}
+.row-btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.row-btns button{flex:1;border:1px solid var(--navy);background:#fff;color:var(--navy);border-radius:8px;padding:7px;font:inherit;font-weight:600;cursor:pointer}
+.row-btns button.pri{background:var(--navy);color:#fff}
+.msg{font-size:12px;color:var(--dim);margin-top:6px;min-height:16px}
+
+/* ---------- A4 document ---------- */
+.page{width:210mm;min-height:297mm;margin:0 auto;background:#fff;box-shadow:0 2px 14px rgba(20,48,79,.15);padding:10mm 13mm 8mm;font-family:var(--doc-font);color:#000;font-size:13pt;line-height:1.65}
+.dh{display:grid;grid-template-columns:1fr 34mm 1fr;align-items:start;border-bottom:2px solid #000;padding-bottom:3mm}
+.dh .ar{font-weight:700;font-size:13.5pt;line-height:1.6}
+.dh .en{direction:ltr;text-align:left;font-family:'Times New Roman',serif;font-size:12.5pt;line-height:1.6}
+.dh .logo{text-align:center}
+.dh .logo img{max-width:26mm;max-height:24mm}
+.dh .logo .ph{width:26mm;height:26mm;margin:0 auto;border:1px dashed #aaa;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8pt;color:#999;font-family:'Cairo',sans-serif}
+.refline{display:flex;justify-content:space-between;font-size:11.5pt;margin-top:1mm}
+.dt{text-align:center;font-weight:700;font-size:15pt;margin:4mm 0 2mm;text-decoration:underline;text-underline-offset:5px}
+.body p{margin:0;text-align:justify}
+.fill{font-weight:700;padding:0 2px}
+.proj{font-weight:700;font-size:14.5pt}
+.sec{font-weight:700;text-decoration:underline;margin-top:3mm}
+table.info{width:100%;border-collapse:collapse;margin-top:1.5mm;font-size:12pt;line-height:1.5;break-inside:avoid}
+table.info td{border:1px solid #000;padding:1mm 2mm;vertical-align:middle}
+table.info td.k{width:5%;text-align:center;font-weight:700}
+table.info td.l{width:26%;font-weight:700;white-space:nowrap}
+table.info td.v{width:19%;text-align:center;white-space:nowrap}
+.num{direction:ltr;unicode-bidi:isolate;display:inline-block}
+.rec-t{font-weight:700;margin-top:3mm}
+.rec{border:2px solid #000;padding:2.5mm 4mm;min-height:20mm;margin-top:1mm;break-inside:avoid}
+.rec .sig{margin-top:3mm;font-size:11.5pt;text-align:left}
+.sigs{display:grid;gap:2mm;margin-top:3mm;text-align:center;font-size:11.5pt;line-height:1.4;break-inside:avoid}
+.sigs .s .sp{height:9mm}
+.sigs .s .t{font-weight:700}
+.sigs .s .dd{font-size:11.5pt}
+.appr{break-inside:avoid}
+.appr-t{font-weight:700;text-decoration:underline;margin-top:3mm}
+.foot{margin-top:4mm;font-size:10pt;border-top:1px solid #000;padding-top:1.5mm;display:flex;justify-content:space-between}
+
+@media (max-width:900px){
+  .tabs{display:flex;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+  .tabs button{flex:1;padding:10px;border:0;background:none;font:inherit;font-weight:700;color:var(--dim);border-bottom:3px solid transparent;cursor:pointer}
+  .tabs button.on{color:var(--navy);border-color:var(--gold)}
+  .layout{display:block;height:auto}
+  .layout .panel,.layout .preview{display:none}
+  .layout.show-in .panel,.layout.show-pv .preview{display:block}
+  .preview{padding:10px 0;overflow-x:auto}
+  .page{transform-origin:top right}
+  .g2{grid-template-columns:1fr}
+  .mem{grid-template-columns:1fr 1fr 28px}
+  .mem input[type=date]{grid-column:1/3}
+}
+@media print{
+  @page{size:A4 portrait;margin:0}
+  body{background:#fff}
+  header.top,.panel,.tabs{display:none!important}
+  .layout{display:block;height:auto}
+  .preview{display:block!important;padding:0;overflow:visible}
+  .page{box-shadow:none;margin:0;transform:none!important;width:210mm;min-height:auto}
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>برنامج إطلاق التأمينات</h1>
+  <span class="sp"></span>
+  <button id="b-new">استمارة جديدة</button>
+  <button id="b-export">تصدير نسخة احتياطية</button>
+  <label class="btn">استيراد<input type="file" id="b-import" accept=".json,application/json"></label>
+  <button class="pri" id="b-print">طباعة</button>
+</header>
+<div class="tabs"><button data-t="in" class="on">الإدخال</button><button data-t="pv">المعاينة</button></div>
+
+<div class="layout show-in" id="layout">
+<aside class="panel" id="panel">
+
+  <fieldset id="fs-proj" class="hidden-if-none">
+    <legend>جلب بيانات مشروع (اختياري)</legend>
+    <div class="f"><select id="pick"><option value="">— اختر مشروعاً من قائمة مشاريع الكرمة —</option></select>
+    <div class="hint">يملأ اسم المشروع والشركة والخطة والكلف والمدد، ويمكن تعديلها بعد ذلك.</div></div>
+  </fieldset>
+
+  <fieldset>
+    <legend>الترويسة</legend>
+    <div class="g2">
+      <div class="f"><label>العدد</label><input data-k="ref_no"></div>
+      <div class="f"><label>التاريخ</label><input type="date" data-k="ref_date"></div>
+    </div>
+    <div class="f"><label>الشعار <span class="opt">(اختياري — يُحفظ على هذا الجهاز)</span></label><input type="file" id="logo" accept="image/*"></div>
+  </fieldset>
+
+  <fieldset>
+    <legend>الأمر الإداري للجنة الاستلام النهائي</legend>
+    <div class="g2">
+      <div class="f"><label>رقم الأمر الإداري</label><input data-k="ao_no" inputmode="numeric"></div>
+      <div class="f"><label>تاريخه</label><input type="date" data-k="ao_date"></div>
+    </div>
+    <div class="g2">
+      <div class="f"><label>رقم ملحق الأمر الإداري <span class="opt">(اختياري)</span></label><input data-k="ao_annex_no"></div>
+      <div class="f"><label>تاريخ الملحق <span class="opt">(اختياري)</span></label><input type="date" data-k="ao_annex_date"></div>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>المشروع</legend>
+    <div class="f"><label>اسم المشروع</label><textarea data-k="project" rows="2"></textarea></div>
+    <div class="f"><label>الشركة المنفذة</label><input data-k="company"></div>
+    <div class="g2">
+      <div class="f"><label>ضمن خطة</label><input data-k="plan" list="plans"></div>
+      <div class="f"><label>لعام</label><input data-k="plan_year" inputmode="numeric"></div>
+    </div>
+    <datalist id="plans"><option>تنمية الاقاليم</option><option>الأمن الغذائي</option><option>الموازنة الاستثمارية</option></datalist>
+  </fieldset>
+
+  <fieldset>
+    <legend>معلومات عامة عن المشروع</legend>
+    <div class="g2">
+      <div class="f"><label>١- كلفة العمل (د.ع)</label><input data-k="cost" inputmode="numeric" data-num></div>
+      <div class="f"><label>٧- كلفة العمل بعد أوامر التغيير (د.ع)</label><input data-k="cost_after" inputmode="numeric" data-num></div>
+      <div class="f"><label>٢- المدة التعاقدية (يوم)</label><input data-k="days" inputmode="numeric" data-num></div>
+      <div class="f"><label>٨- المدة الإضافية الممنوحة (يوم)</label><input data-k="extra_days" inputmode="numeric" data-num></div>
+      <div class="f"><label>٣- تاريخ المباشرة التعاقدي</label><input type="date" data-k="start_contract"></div>
+      <div class="f"><label>٩- تاريخ الإنجاز التعاقدي</label><input type="date" data-k="finish_contract" data-auto><div class="hint" id="h-fc"></div></div>
+      <div class="f"><label>٤- تاريخ المباشرة الفعلي</label><input type="date" data-k="start_actual"></div>
+      <div class="f"><label>١٠- تاريخ الإنجاز الفعلي</label><input type="date" data-k="finish_actual"></div>
+      <div class="f"><label>٥- المدة التأخيرية</label><input data-k="delay" data-auto><div class="hint" id="h-dl"></div></div>
+      <div class="f"><label>١١- تاريخ الاستلام الأولي</label><input type="date" data-k="initial_receipt"></div>
+      <div class="f"><label>٦- فترة الصيانة بدأت من</label><input type="date" data-k="maint_from" data-auto><div class="hint">تلقائياً = تاريخ الاستلام الأولي</div></div>
+      <div class="f"><label>ولغاية</label><input type="date" data-k="maint_to" data-auto><div class="hint">تلقائياً = سنة من بدء الصيانة</div></div>
+    </div>
+    <div class="hint">الحقول المحسوبة تلقائياً تبقى قابلة للتعديل يدوياً؛ امسح الحقل ليعود للحساب التلقائي.</div>
+  </fieldset>
+
+  <fieldset>
+    <legend>التوصيات</legend>
+    <div class="f"><textarea data-k="rec" rows="3" data-auto></textarea><div class="hint">تُكتب تلقائياً من بيانات الأمر الإداري؛ يمكنك تعديلها.</div></div>
+    <div class="f"><label>اسم الموقّع على التوصية <span class="opt">(اختياري)</span></label><input data-k="rec_signer"></div>
+  </fieldset>
+
+  <fieldset>
+    <legend>لجنة الاستلام النهائي</legend>
+    <div id="m-list"></div>
+    <button class="addbtn" data-add="members">+ إضافة عضو</button>
+  </fieldset>
+
+  <fieldset>
+    <legend>لجنة المصادقة</legend>
+    <div id="a-list"></div>
+    <button class="addbtn" data-add="approvers">+ إضافة موقّع</button>
+  </fieldset>
+
+  <fieldset>
+    <legend>الاستمارات المحفوظة</legend>
+    <div class="savedlist" id="saved"></div>
+    <div class="row-btns"><button class="pri" id="b-save">حفظ الاستمارة</button></div>
+    <div class="msg" id="msg"></div>
+  </fieldset>
+</aside>
+
+<main class="preview"><div class="page" id="doc"></div></main>
+</div>
+
+<script src="data.js" onerror="void 0"></script>
+<script>
+const $=id=>document.getElementById(id);
+const STORE='guarantees_forms_v1', LOGO='guarantees_logo_v1', DRAFT='guarantees_draft_v1';
+const AR='٠١٢٣٤٥٦٧٨٩';
+const toAr=s=>String(s).replace(/\d/g,d=>AR[d]);
+const toEn=s=>String(s??'').replace(/[٠-٩]/g,d=>AR.indexOf(d));
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const lsGet=(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}};
+const lsSet=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));return true;}catch(e){return false;}};
+const num=v=>{const s=toEn(v).replace(/[,،٬\s]/g,'');return s&&/^-?\d+(\.\d+)?$/.test(s)?Number(s):null;};
+const money=v=>{const n=num(v);return n===null?'':`<span class="num">${toAr(Math.round(n).toLocaleString('en-US'))}</span>`;};
+// التاريخ: السنة يساراً والشهر في الوسط واليوم يميناً
+const dfmt=iso=>{if(!iso) return '';const [y,m,d]=iso.split('-').map(Number);return `<span class="num">${toAr(`${y}/${m}/${d}`)}</span>`;};
+const addDays=(iso,n)=>{const d=new Date(iso+'T00:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10);};
+const addYear=iso=>{const d=new Date(iso+'T00:00:00Z');d.setUTCFullYear(d.getUTCFullYear()+1);return d.toISOString().slice(0,10);};
+const diffDays=(a,b)=>Math.round((new Date(b+'T00:00:00Z')-new Date(a+'T00:00:00Z'))/864e5);
+const blank=v=>v===undefined||v===null||String(v).trim()==='';
+
+const DEFAULT_APPROVERS=[
+  {title:'المهندس',name:'قاسم محمد رشيد',role:'رئيس قسم الشؤون الهندسية'},
+  {title:'السيد',name:'علي حميد رشيد',role:'مدير الشؤون المالية'},
+  {title:'المهندس',name:'خالد ثويني احمد',role:'معاون المحافظ للشؤون الفنية'},
+  {title:'السيد',name:'جاسم محمد عسل',role:'نائب المحافظ للشؤون الفنية'},
+];
+function newForm(){
+  const prev=lsGet(STORE,[]).slice(-1)[0];
+  return {id:null,ref_no:'',ref_date:'',ao_no:'',ao_date:'',ao_annex_no:'',ao_annex_date:'',project:'',company:'',plan:'',plan_year:'',
+    cost:'',cost_after:'',days:'',extra_days:'',start_contract:'',finish_contract:'',start_actual:'',finish_actual:'',delay:'',initial_receipt:'',maint_from:'',maint_to:'',
+    rec:'',rec_signer:'',
+    members:[{name:'',role:'رئيس اللجنة',date:''},{name:'',role:'عضواً',date:''},{name:'',role:'عضواً',date:''},{name:'',role:'عضواً',date:''},{name:'',role:'عضواً',date:''}],
+    // لجنة المصادقة ثابتة غالباً، فتُنسخ من آخر استمارة محفوظة
+    approvers:prev?prev.approvers.map(a=>({...a,date:''})):DEFAULT_APPROVERS.map(a=>({...a,date:''}))};
+}
+let F=lsGet(DRAFT,null)||newForm();
+let logo=lsGet(LOGO,'');
+
+/* ---- computed values (manual entry wins) ---- */
+function computed(){
+  const c={};
+  const d=num(F.days), x=num(F.extra_days)||0;
+  c.finish_contract=F.start_contract&&d!==null?addDays(F.start_contract,d+x):'';
+  if(F.finish_actual&&(F.finish_contract||c.finish_contract)){
+    const late=diffDays(F.finish_contract||c.finish_contract,F.finish_actual);
+    c.delay=late>0?`${late} يوم`:'لا توجد';
+  } else c.delay='';
+  c.maint_from=F.initial_receipt||'';
+  c.maint_to=(F.maint_from||c.maint_from)?addYear(F.maint_from||c.maint_from):'';
+  const ao=F.ao_no?`المرقم (${toAr(F.ao_no)}) في (${F.ao_date?toAr(F.ao_date.split('-').map(Number).join('/')):'   '})`:'المرقم (   ) في (   )';
+  const annex=F.ao_annex_no?` وملحقه المرقم (${toAr(F.ao_annex_no)})${F.ao_annex_date?` في (${toAr(F.ao_annex_date.split('-').map(Number).join('/'))})`:''}`:'';
+  c.rec=`توصي اللجنة بصرف مستحقات الشركة من التأمينات وحسب شهادة الاستلام النهائي المشكلة بالأمر الإداري ${ao}${annex}.`;
+  return c;
+}
+const val=(k,c)=>blank(F[k])?(c[k]??''):F[k];
+
+/* ---- preview ---- */
+function aoText(){
+  let t=`بموجب الأمر الإداري المرقم ( <span class="fill">${F.ao_no?toAr(esc(F.ao_no)):'&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'}</span> ) في ( <span class="fill">${dfmt(F.ao_date)||'&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'}</span> )`;
+  if(F.ao_annex_no) t+=` وملحقه المرقم ( <span class="fill">${toAr(esc(F.ao_annex_no))}</span> )${F.ao_annex_date?` في ( <span class="fill">${dfmt(F.ao_annex_date)}</span> )`:''}`;
+  return t;
+}
+function sigBlock(arr,showTitle){
+  const n=Math.max(1,Math.min(arr.length,5));
+  return `<div class="sigs" style="grid-template-columns:repeat(${n},1fr)">${arr.map(m=>`<div class="s"><div class="sp"></div><div>${esc(showTitle?(m.title||''):'المهندس')}</div><div class="t">${esc(m.name)||'&nbsp;'}</div><div>${esc(m.role)}</div><div class="dd">${m.date?dfmt(m.date):'<span class="num">'+toAr('   /   / '+new Date().getFullYear())+'</span>'}</div></div>`).join('')}</div>`;
+}
+function render(){
+  const c=computed();
+  const delay=val('delay',c);
+  const row=(k1,l1,v1,k2,l2,v2)=>`<tr><td class="k">${k1}-</td><td class="l">${l1}</td><td class="v">${v1||''}</td><td class="k">${k2}-</td><td class="l">${l2}</td><td class="v">${v2||''}</td></tr>`;
+  const days=v=>num(v)!==null?`<span class="num">${toAr(num(v))}</span> يوم`:'';
+  $('doc').innerHTML=`
+  <div class="dh">
+    <div class="ar">جمهورية العراق<br>ديوان محافظة الأنبار<br>القسم الهندسي</div>
+    <div class="logo">${logo?`<img src="${logo}" alt="">`:'<div class="ph">الشعار</div>'}</div>
+    <div class="en">Republic of Iraq<br>Anbar Province<br>Engineering Department</div>
+  </div>
+  ${F.ref_no||F.ref_date?`<div class="refline"><span>العدد: ${toAr(esc(F.ref_no))}</span><span>التاريخ: ${dfmt(F.ref_date)}</span></div>`:''}
+  <div class="dt">استمارة إطلاق التأمينات الخاصة بالمشاريع</div>
+  <div class="body"><p>بناءً على ما جاء بمحضر لجنة الاستلام النهائي والمشكلة ${aoText()} ، ونظراً لانتهاء فترة الصيانة لمشروع:-</p>
+  <p style="text-align:center" class="proj">( ${esc(F.project)||'&nbsp;'.repeat(40)} )</p>
+  <p>المحال بعهدة شركة ( <span class="fill">${esc(F.company)}</span> ) ضمن خطة ( <span class="fill">${esc(F.plan)}</span> ) لعام ( <span class="fill">${F.plan_year?`<span class="num">${toAr(esc(F.plan_year))}</span>`:''}</span> ).</p></div>
+  <div class="sec">معلومات عامة عن المشروع</div>
+  <table class="info">
+    ${row('١','كلفة العمل',money(F.cost),'٧','كلفة العمل بعد أوامر التغيير',money(F.cost_after))}
+    ${row('٢','المدة التعاقدية',days(F.days),'٨','المدة الإضافية الممنوحة',days(F.extra_days))}
+    ${row('٣','تاريخ المباشرة التعاقدي',dfmt(F.start_contract),'٩','تاريخ الإنجاز التعاقدي',dfmt(val('finish_contract',c)))}
+    ${row('٤','تاريخ المباشرة الفعلي',dfmt(F.start_actual),'١٠','تاريخ الإنجاز الفعلي',dfmt(F.finish_actual))}
+    ${row('٥','المدة التأخيرية',esc(delay).replace(/\d+/g,m=>`<span class="num">${toAr(m)}</span>`),'١١','تاريخ الاستلام الأولي',dfmt(F.initial_receipt))}
+    <tr><td class="k">٦-</td><td colspan="5">فترة الصيانة بدأت من ( ${dfmt(val('maint_from',c))} ) ولغاية ( ${dfmt(val('maint_to',c))} )</td></tr>
+  </table>
+  <div class="rec-t">التوصيات :</div>
+  <div class="rec">${toAr(esc(val('rec',c))).replace(/[٠-٩]+(\/[٠-٩]+)+/g,m=>`<span class="num">${m}</span>`)}${F.rec_signer?`<div class="sig">${esc(F.rec_signer)}</div>`:''}</div>
+  ${sigBlock(F.members,false)}
+  <div class="appr"><div class="appr-t">لجنة المصادقة :</div>
+  ${sigBlock(F.approvers,true)}</div>`;
+  // hints for computed fields
+  $('h-fc').textContent=c.finish_contract?'محسوب: المباشرة + المدة التعاقدية + الإضافية':'';
+  $('h-dl').textContent=c.delay?'محسوبة: '+c.delay:'';
+  document.querySelectorAll('[data-auto]').forEach(el=>{el.placeholder=c[el.dataset.k]||'';});
+  fitPreview();
+  lsSet(DRAFT,F);
+}
+
+/* ---- inputs ---- */
+function bindInputs(){
+  document.querySelectorAll('[data-k]').forEach(el=>{
+    el.value=F[el.dataset.k]??'';
+    el.oninput=()=>{F[el.dataset.k]=el.value;render();};
+  });
+  renderPeople('members','m-list',false); renderPeople('approvers','a-list',true);
+}
+function renderPeople(key,box,withTitle){
+  $(box).innerHTML=F[key].map((m,i)=>`<div class="mem">
+    ${withTitle?`<input data-p="${i}" data-f="role" value="${esc(m.role)}" placeholder="المنصب">`:`<input data-p="${i}" data-f="role" value="${esc(m.role)}" placeholder="الصفة">`}
+    <input data-p="${i}" data-f="name" value="${esc(m.name)}" placeholder="${withTitle?'الاسم':'المهندس/ الاسم'}">
+    <input type="date" data-p="${i}" data-f="date" value="${esc(m.date)}">
+    <button data-del="${i}" title="حذف">×</button></div>`).join('');
+  $(box).querySelectorAll('input').forEach(el=>el.oninput=()=>{F[key][+el.dataset.p][el.dataset.f]=el.value;render();});
+  $(box).querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{F[key].splice(+b.dataset.del,1);renderPeople(key,box,withTitle);render();});
+}
+document.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{
+  const k=b.dataset.add; F[k].push(k==='members'?{name:'',role:'عضواً',date:''}:{title:'السيد',name:'',role:'',date:''});
+  renderPeople(k,k==='members'?'m-list':'a-list',k==='approvers'); render();
+});
+
+/* ---- logo ---- */
+$('logo').onchange=e=>{const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{logo=r.result; if(!lsSet(LOGO,logo)) msg('الشعار كبير ولم يُحفظ على الجهاز، سيظهر في هذه الجلسة فقط.'); render();}; r.readAsDataURL(f);};
+
+/* ---- projects from data.js (optional) ---- */
+if(typeof PROJECTS!=='undefined'){
+  $('pick').innerHTML+=PROJECTS.map(p=>`<option value="${p.id}">${p.id}. ${esc(p.name)}</option>`).join('');
+  $('pick').onchange=()=>{
+    const p=PROJECTS.find(x=>x.id==$('pick').value); if(!p) return;
+    Object.assign(F,{project:p.name||'',company:p.contractor||'',plan:p.program||'',cost:p.orig_cost??'',cost_after:p.total_cost??'',
+      days:p.contract_days??'',extra_days:p.extra_days??'',start_contract:p.start_date||'',start_actual:p.start_date||''});
+    bindInputs(); render(); $('pick').value='';
+  };
+} else $('fs-proj').style.display='none';
+
+/* ---- save / load ---- */
+const msg=t=>{$('msg').textContent=t; clearTimeout(msg.t); msg.t=setTimeout(()=>$('msg').textContent='',4000);};
+function renderSaved(){
+  const list=lsGet(STORE,[]);
+  $('saved').innerHTML=list.slice().reverse().map(f=>`<div data-id="${f.id}"><span>${esc(f.project||'بدون اسم')}</span><small>${esc((f.saved_at||'').slice(0,10))}</small><button class="x" data-rm="${f.id}" title="حذف">×</button></div>`).join('')||'<div style="cursor:default;color:var(--dim)">لا توجد استمارات محفوظة.</div>';
+  $('saved').querySelectorAll('[data-id]').forEach(el=>el.onclick=e=>{
+    if(e.target.dataset.rm){ if(confirm('حذف هذه الاستمارة؟')){ lsSet(STORE,lsGet(STORE,[]).filter(x=>x.id!==e.target.dataset.rm)); renderSaved(); } return; }
+    const f=lsGet(STORE,[]).find(x=>x.id===el.dataset.id); if(f){F=JSON.parse(JSON.stringify(f)); bindInputs(); render(); msg('تم فتح الاستمارة.'); showTab('in');}
+  });
+}
+$('b-save').onclick=()=>{
+  if(!F.project.trim()){msg('أدخل اسم المشروع قبل الحفظ.');return;}
+  const list=lsGet(STORE,[]); F.saved_at=new Date().toISOString();
+  if(!F.id) F.id=Date.now().toString(36);
+  const i=list.findIndex(x=>x.id===F.id); if(i>=0) list[i]=F; else list.push(F);
+  msg(lsSet(STORE,list)?'تم الحفظ على هذا الجهاز.':'تعذر الحفظ (مساحة التخزين ممتلئة أو محظورة). استخدم «تصدير نسخة احتياطية».');
+  renderSaved();
+};
+$('b-new').onclick=()=>{ if(!confirm('بدء استمارة جديدة؟ ستُفرَّغ الحقول (الاستمارات المحفوظة لا تتأثر).')) return; F=newForm(); bindInputs(); render(); };
+$('b-export').onclick=()=>{
+  const blob=new Blob([JSON.stringify({type:'guarantees',version:1,forms:lsGet(STORE,[]),current:F},null,1)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`اطلاق_التأمينات_${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(a.href);
+};
+$('b-import').onchange=e=>{
+  const f=e.target.files[0]; if(!f) return; const r=new FileReader();
+  r.onload=()=>{ try{
+    const j=JSON.parse(r.result); if(j.type!=='guarantees'||!Array.isArray(j.forms)) throw 0;
+    const list=lsGet(STORE,[]); j.forms.forEach(x=>{const i=list.findIndex(y=>y.id===x.id); if(i>=0) list[i]=x; else list.push(x);});
+    lsSet(STORE,list); renderSaved(); msg(`تم استيراد ${j.forms.length} استمارة.`);
+  }catch(err){ msg('الملف غير صالح.'); } e.target.value=''; };
+  r.readAsText(f);
+};
+$('b-print').onclick=()=>window.print();
+
+/* ---- mobile tabs & scaling ---- */
+function showTab(t){ $('layout').className='layout show-'+t; document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t)); fitPreview(); }
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>showTab(b.dataset.t));
+function fitPreview(){
+  const doc=$('doc'), pv=doc.parentElement; doc.style.transform=''; doc.style.marginBottom='';
+  if(window.innerWidth>900) return;
+  const s=Math.min(1,(pv.clientWidth-8)/doc.offsetWidth);
+  if(s<1){ doc.style.transform=`scale(${s})`; doc.style.marginBottom=`-${doc.offsetHeight*(1-s)}px`; }
+}
+window.addEventListener('resize',fitPreview);
+
+bindInputs(); renderSaved(); render();
+</script>
+</body>
+</html>

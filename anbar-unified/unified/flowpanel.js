@@ -35,7 +35,10 @@
       <span class="wfi" data-wf="info"></span>`;
     k.anchor.insertAdjacentElement('afterend', el);
     const $ = n => el.querySelector(`[data-wf="${n}"]`);
-    $('recv').addEventListener('change', () => { if (cur && cur.key) put({ recv: $('recv').value }); });
+    /* نظام المدد يحوّل حقل التاريخ إلى «يوم/شهر/سنة» + زر تقويم ويُرسل input لا change — يُستمع للحدثين، ولا يُرسل التاريخ نفسه مرتين */
+    let sent = null; const recvSave = () => { const v = $('recv').value; if (!cur || !cur.key || !v || v === sent) return; sent = v; put({ recv: v }); };
+    $('recv').addEventListener('change', recvSave); $('recv').addEventListener('input', recvSave);
+    el._resetSent = v => { sent = v; };
     $('st').addEventListener('change', () => {
       if (!cur || !cur.key) return;
       if ($('st').value === 'ret') { $('whyl').hidden = false; $('why').focus(); info('اكتب سبب الإرجاع ثم Enter'); return; }
@@ -54,14 +57,20 @@
     try { const r = await window.desktop.flowSet(cur.key, patch); if (r && r.error) info(r.error, 'err'); else { if (patch.why && document.activeElement === q('why')) document.activeElement.blur(); show(r && r.card); } } catch (_) { info('تعذّر الحفظ في اللوحة', 'err'); }
     busy = false;
   }
+  /* الحقل المرئي البديل (يوم/شهر/سنة) وزر التقويم في نظام المدد */
+  const dmy = v => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v || ''); return m ? `${+m[3]}/${+m[2]}/${m[1]}` : ''; };
+  /* نظام المدد يحوّل الحقل بعد بنائه (MutationObserver) — يُعاد التطبيق بعد لحظة */
+  function twin(dis) { twin0(dis); setTimeout(() => twin0(dis), 60); setTimeout(() => twin0(dis), 400); }
+  function twin0(dis) { const h = q('recv'), w = h && h.parentNode; if (!w || !w.classList || !w.classList.contains('dmy')) return; const t = w.querySelector('input[type=text]'), b = w.querySelector('button');
+    if (t) { t.disabled = dis; if (document.activeElement !== t) { t.value = dmy(h.value); t.classList.remove('bad'); } } if (b) b.disabled = dis; }
   function show(c) {
     const el = P(); if (!el || !cur) return;
     const fa = document.activeElement, setv = (n, v) => { const x = q(n); if (x !== fa) x.value = v; };   // لا يُغيَّر الحقل الذي يُكتب فيه الآن
     q('lbl').textContent = cur.label ? '— ' + cur.label : '';
     for (const n of ['recv', 'st']) q(n).disabled = !cur.key;
-    if (!cur.key) { q('whyl').hidden = true; info(cur.none || ''); return; }
-    if (!c) { setv('recv', today()); setv('st', 'rcv'); q('whyl').hidden = true; info('غير مضافة إلى اللوحة بعد — تُضاف عند تحديد التاريخ أو المرحلة'); return; }
-    { setv('recv', c.recv || ''); const h = (c.hist || [])[c.hist.length - 1] || {}; if (!(fa === q('why') && q('st').value === 'ret' && c.st !== 'ret')) { setv('st', c.st); q('whyl').hidden = c.st !== 'ret'; setv('why', c.st === 'ret' ? (h.why || '') : ''); } }
+    if (!cur.key) { q('whyl').hidden = true; twin(true); info(cur.none || ''); return; }
+    if (!c) { setv('recv', today()); if (P()._resetSent) P()._resetSent(null); twin(false); setv('st', 'rcv'); q('whyl').hidden = true; info('غير مضافة إلى اللوحة بعد — تُضاف عند تحديد التاريخ أو المرحلة'); return; }
+    { setv('recv', c.recv || ''); if (P()._resetSent) P()._resetSent(c.recv || null); twin(false); const h = (c.hist || [])[c.hist.length - 1] || {}; if (!(fa === q('why') && q('st').value === 'ret' && c.st !== 'ret')) { setv('st', c.st); q('whyl').hidden = c.st !== 'ret'; setv('why', c.st === 'ret' ? (h.why || '') : ''); } }
     const h = (c.hist || [])[c.hist.length - 1] || {}, since = c.since || h.at || c.updated, d = Math.floor((Date.now() - since) / 864e5), late = !['done', 'ret'].includes(c.st) && d > (c.late || 5);
     info(`في «${SN[c.st]}» ${d < 1 ? 'منذ اليوم' : 'منذ ' + d + ' يوماً'}${h.by ? ' — آخر نقل: ' + h.by : ''}`, late ? 'late' : '');
   }

@@ -2687,6 +2687,8 @@ table.rs td.d{text-align:center;width:28mm}
 /* ---------- paper: stoppage / resumption memo and order ---------- */
 .page.pm,.page.po{font-size:calc(13pt*var(--k,1));line-height:calc(1.7*var(--lh,1));padding:8mm 13mm 21mm}
 .hd.hdv{--hb:40mm;margin:0 -2mm 2mm}
+.pm .ometa{font-family:Arial,sans-serif;font-weight:700;font-size:calc(11pt*var(--k,1));line-height:1.55;margin:1mm 0 0}
+.pm .ocmt{font-family:'PT Bold Heading','AnbarNaskh',serif;font-weight:700;color:#1f2a68;font-size:12pt;line-height:1.5;margin:-1mm 0 1mm}
 .pm .mto{font-weight:700;font-size:calc(13.5pt*var(--k,1));line-height:calc(1.75*var(--lh,1));margin:calc(2mm*var(--g,1)) 0 0;max-width:62%}
 .pm .msub{font-weight:700;margin:calc(4mm*var(--g,1)) 0 calc(3mm*var(--g,1));padding-right:46%;font-size:calc(13.5pt*var(--k,1))}
 .pm .mgr{font-weight:700;margin:0 0 1mm;font-size:calc(13.5pt*var(--k,1))}
@@ -3770,6 +3772,7 @@ function pageMemo(d){
   <div class="bottom">${memoSigs()}</div>
   ${gbar}</div>`,mo);}
   return mpoDigits(`<div class="page pm${MS.cls?' '+MS.cls:''}" data-p="m" style="${MS.style}">${headV()}
+  <div class="ometa"><div class="ocmt">لجنة المدد الإضافية والتوقفات</div><div>العدد : ${esc(d.memoNo||'')}</div><div>التاريخ : ${d.memoDate?dt(d.memoDate):blankDate()}</div></div>
   <div class="mto">${+mo.toU&&to?'<u>'+to+'</u>':to}</div>
   <div class="msub">${+mo.sjU?'<u>م/مطالعة</u>':'م/مطالعة'}</div>
   <div class="mgr">تحية طيبة:</div>

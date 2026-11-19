@@ -202,8 +202,8 @@ function adIdx(){if(Date.now()-adxAt<5000&&ADX)return ADX;adxAt=Date.now();try{c
   const by={};x.recs.forEach(r=>{let fn=r.fn&&AnbarReg.find(r.fn)?r.fn:'';if(!fn){const m=AnbarReg.matchProject('',r.name,r.cno);if(m)fn=String(m.fileNo);}if(fn)(by[fn]=by[fn]||[]).push(r);});ADX={mt:x.mt,by};}catch(_){ADX=null;}return ADX;}
 /* ملخص سلف في الموقف بلا ملف يقابله في لجنة التدقيق على هذه الحاسبة: وصل من حاسبة أخرى بالمزامنة قبل بياناتها، أو بقي من ملف حُذف/نُقل.
    يُقال ذلك صراحةً مع «إزالة هذا الملخص» (إن كانت السلفة حقيقية على حاسبة أخرى يعيده تحديث تلك الحاسبة) */
-function adOrphan(fn,X){const a=(AnbarReg.links(fn)||{}).ad;if(!a)return '';const at=Date.parse(a.at||'')||0;
-  return `<div class="hint" style="grid-column:1/-1;color:#b42318"><b>⚠ لا يوجد في لجنة تدقيق السلف على هذه الحاسبة ملف سلف لهذا المشروع</b> — هذا الملخص (${esc(a.count||0)} سلفة، التراكمي ${money(a.cumulative)}${at?'، آخر تحديث '+esc(DMY(new Date(at).toISOString().slice(0,10))):''}) وصل من حاسبة أخرى بالمزامنة قبل بيانات السلف، أو بقي من ملف سلف حُذف أو نُقل إلى اضبارة أخرى.${X?'':' (لا توجد بيانات لجنة التدقيق على هذه الحاسبة أصلاً.)'} <button class="btn sm" data-adrm="${esc(fn)}">إزالة هذا الملخص</button></div>`;}
+function adOrphan(fn,X){const a=(AnbarReg.links(fn)||{}).ad;if(!a)return '';const at=Date.parse(a.at||'')||0,other=a.src&&AnbarReg.srcId&&a.src!==AnbarReg.srcId();
+  return `<div class="hint" style="grid-column:1/-1;color:#b42318"><b>⚠ لا يوجد في لجنة تدقيق السلف على هذه الحاسبة ملف سلف لهذا المشروع</b> — هذا الملخص (${esc(a.count||0)} سلفة، التراكمي ${money(a.cumulative)}${at?'، آخر تحديث '+esc(DMY(new Date(at).toISOString().slice(0,10))):''}) وصل من حاسبة أخرى بالمزامنة قبل بيانات السلف، أو بقي من ملف سلف حُذف أو نُقل إلى اضبارة أخرى.${other?' <b>كتبه البرنامج على حاسبة أخرى أو باسم مستخدم آخر</b> — لذلك كان يعود بعد إزالته؛ الإزالة الآن تمنع عودته ما لم تُضف سلفة جديدة فعلاً.':''}${X?'':' (لا توجد بيانات لجنة التدقيق على هذه الحاسبة أصلاً.)'} <button class="btn sm" data-adrm="${esc(fn)}">إزالة هذا الملخص</button></div>`;}
 function adSrc(fn,p){const X=adIdx();if(!X)return adOrphan(fn,null);const L=(X.by[fn]||[]).filter(r=>r.n);if(!L.length)return adOrphan(fn,X);const K=s=>RN(s).replace(/[^ء-ي0-9]/g,'');
   const bad=L.filter(r=>AnbarReg.nameSim&&AnbarReg.nameSim(K(r.name),K(p.name))<0.45);
   return `<div class="hint" style="grid-column:1/-1">مصدر السلف: ${L.map(r=>`ملف «${esc(r.name)}»${r.cno?' — عقد '+esc(r.cno):''}${r.legacy?' (أرشيف)':''}`).join('، ')}${bad.length?` <b style="color:#b33">⚠ اسم ملف السلف يختلف عن اسم هذا المشروع — تحقق من رقم الاضبارة المكتوب في ملف السلف</b>`:''}</div>`;}
@@ -817,6 +817,6 @@ document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest
 /* «إزالة هذا الملخص»: ملخص سلف بلا ملف مقابل على هذه الحاسبة */
 document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-adrm]');if(!b)return;const fn=b.dataset.adrm;
   if(!confirm('إزالة ملخص السلف من الموقف لهذه الاضبارة؟\nلا يوجد ملف سلف يقابله في لجنة التدقيق على هذه الحاسبة. إن كانت السلفة حقيقية على حاسبة أخرى فسيعود الملخص عند تحديث تلك الحاسبة.'))return;
-  try{AnbarReg.dropLink('ad',fn);}catch(err){flash('تعذّر: '+err.message,true);return;}
+  try{const a=(AnbarReg.links(fn)||{}).ad;AnbarReg.setMeta(fn,{linkDrop_ad:(a&&a.at)||new Date().toISOString()});AnbarReg.dropLink('ad',fn);}catch(err){flash('تعذّر: '+err.message,true);return;}
   flash('أُزيل ملخص السلف للاضبارة '+fn);try{drawer(fn);}catch(_){}try{window.SitRender&&window.SitRender();}catch(_){}});
 })();

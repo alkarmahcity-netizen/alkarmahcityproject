@@ -21,6 +21,15 @@ const R = []; const ok = (n, c, d = '') => R.push([c ? 'PASS' : 'FAIL', n, d]);
   t = await pg.evaluate(() => document.getElementById('drawer').textContent.replace(/\s+/g, ' '));
   const gone = await pg.evaluate(() => !window.AnbarReg.links('571').ad);
   ok('after removing: the summary is gone and so is the advance difference', gone && !/السلف المرفوعة في الموقف/.test(t) && !/لا يوجد في لجنة تدقيق السلف على هذه الحاسبة/.test(t), t.slice(0, 300));
+  // كما حدث فعلاً: الملخص كتبه البرنامج على حاسبة أخرى، فيعود بالمزامنة بعد إزالته — يُحاكى بإعادته إلى ملف الموقف المشترك بالوقت نفسه
+  const regF = path.join(RG, 'registry.json');
+  const inject = at => { const j = JSON.parse(fs.readFileSync(regF, 'utf8')); j.links = j.links || {}; j.links['571'] = Object.assign({}, j.links['571'], { ad: { count: 1, cumulative: 200000000, at, src: 'other-pc', items: [{ no: 1, cum: 200000000, net: 200000000, date: '2026-10-20' }] } }); fs.writeFileSync(regF, JSON.stringify(j)); };
+  inject('2026-10-20T10:00:00.000Z'); await pg.evaluate(() => window.AnbarReg.invalidate()); await sleep(300);
+  ok('the removed summary written by ANOTHER PC does not come back through sync (same summary)', await pg.evaluate(() => !window.AnbarReg.links('571').ad), JSON.stringify(await pg.evaluate(() => window.AnbarReg.links('571'))));
+  inject('2026-11-25T10:00:00.000Z'); await pg.evaluate(() => window.AnbarReg.invalidate()); await sleep(300);
+  ok('…but a NEWER summary (a real new advance) does come back', await pg.evaluate(() => !!window.AnbarReg.links('571').ad));
+  t = await txt();
+  ok('the warning says it was written on another PC / by another user', /كتبه البرنامج على حاسبة أخرى أو باسم مستخدم آخر/.test(t), t.slice(0, 400));
   const e = await app.evaluate(() => (global.__uniErrors || []).slice()); ok('no JavaScript errors', e.length === 0, e.join(' | ').slice(0, 400));
   await app.close();
   R.forEach(x => console.log(x[0], x[1], x[2] ? '— ' + String(x[2]).slice(0, 500) : '')); console.log(`${R.filter(x => x[0] === 'PASS').length}/${R.length}`); process.exit(R.every(x => x[0] === 'PASS') ? 0 : 1);

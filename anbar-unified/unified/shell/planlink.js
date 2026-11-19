@@ -30,6 +30,18 @@ async function load(){if(!window.desktop||!window.desktop.plan)return null;try{R
   try{const fc=window.AnbarReg&&AnbarReg.fundCanon;const m=R&&R.model;if(fc&&m){(m.comps||[]).forEach(c=>{if(c.fund)c.fund=fc(c.fund);});(m.projects||[]).forEach(p=>{if(p.plan)p.plan=fc(p.plan);});}}catch(_){}
   return R;}
 const model=()=>R&&R.model;
+/* «حيّ مع الموقف العام»: المكوّن المرتبط باضبارة في الموقف تُعرض قيمه (النسب، الحالة، المبالغ، التواريخ، المدد، الإحداثيات…) من الموقف العام،
+   وتتحدث تلقائياً عند تحديث الموقف. ملف التخطيط المحفوظ لا يتغير — ويُكتب فيه فقط عند «⬇ تصدير ملف التخطيط المحدَّث». */
+let V=null,vKey='';
+function liveSig(){if(!window.AnbarReg)return '';const S=AnbarReg.state();let h=0;const add=t=>{t=String(t==null?'':t);for(let i=0;i<t.length;i++)h=(h*31+t.charCodeAt(i))|0;};
+  (S.projects||[]).forEach(p=>{add(p.fileNo);add(p.actualPct);add(p.planPct);add(p.status);add(p.total);add(p.orig);add(p.changeCost);add(p.start);add(p.dur);add(p.extra);add(p.contractor);add(p.contractNo);add(p.lat);add(p.lng);add(p.district);add(p.resident);});
+  Object.entries(S.links||{}).forEach(([k,L])=>{add(k);add(L&&L.co&&L.co.orders);});return [R&&R.updated,(S.projects||[]).length,h].join('|');}
+function view(){const m=model();if(!m||!window.AnbarReg)return m;const sig=liveSig();if(V&&vKey===sig&&V._src===m)return V;
+  const S=AnbarReg.state(),byFn=new Map((S.projects||[]).map(p=>[String(p.fileNo),p])),U=new Map();updates().forEach(u=>U.set(u.key,u));
+  const comps=m.comps.map(c=>{const u=U.get(c.key);if(!u)return c;const p=byFn.get(String(u.fn))||{},o=Object.assign({},c,u.set);
+    if(num(p.orig)>0)o.contract=num(p.orig);if(num(p.total)>0)o.contractAfter=num(p.total);if(num(p.changeCost)>0)o.coSumH=num(p.changeCost);
+    o._live=Object.keys(u.set).filter(k=>k!=='updated'&&String(u.set[k])!==String(c[k]==null?'':c[k]));o._fn=u.fn;return o;});
+  V=Object.assign({},m,{comps,_src:m});vKey=sig;return V;}
 
 /* مطابقة المكوّنات بموقف اللجان: رقم العقد مع الشركة أو الاسم، ثم الاسم والشركة */
 /* تطابق قوي (قاعدة القسم): اسم المشروع متطابق بنسبة 90% فأكثر + اسم الشركة متشابه + رقم العقد نفسه ← يُعتمد الربط
@@ -75,10 +87,10 @@ function section(p){
     ${d('في موقف اللجنة',`التمويل: ${esc(p._orig.fund||'—')} — الجهة: ${esc(p._orig.sector||'—')}`)}${FV&&has(pr.cost)?d('الكلفة التخمينية للمشروع',money(pr.cost)):''}${FV&&has(c.spent)?d('مجموع المصروف (التخطيط)',money(c.spent)):''}${has(c.actPct)?d('الإنجاز الفني (التخطيط)',num(c.actPct)+'%'):''}${c.status?d('الحالة في ملف التخطيط',esc(c.status)):''}</div>`;}
 
 /* ---------- الصفحة ---------- */
-function filtered(){const m=model(),mm=matchAll()||{byComp:{}};const q=T(ui.q);
+function filtered(){const m=view(),mm=matchAll()||{byComp:{}};const q=T(ui.q);
   return m.projects.map(p=>{const comps=p.comps.map(k=>m.comps.find(c=>c.key===k)).filter(Boolean).filter(c=>(!ui.st||stK(c.status)===ui.st)&&(!ui.dist||String(c.district||'').trim()===ui.dist)&&(!ui.ours||mm.byComp[c.key])&&(!ui.plan||(c.fund||p.plan)===ui.plan)&&(!ui.min||(c.ministry||p.ministry)===ui.min)&&(!q||T([c.name,c.company,c.contractNo,c.resident,c.directorate,mm.byComp[c.key]?mm.byComp[c.key].fn:''].join(' ')).includes(q)||T(p.name+' '+p.code).includes(q)));
     return {p,comps};}).filter(x=>x.comps.length||(!ui.st&&!ui.dist&&!ui.ours&&!q&&(!ui.plan||x.p.plan===ui.plan)&&(!ui.min||x.p.ministry===ui.min)&&!x.p.comps.length));}
-function kpis(){const m=model(),mm=matchAll()||{byComp:{},byFn:{}},FV=finVis();
+function kpis(){const m=view(),mm=matchAll()||{byComp:{},byFn:{}},FV=finVis();
   const real=m.projects.filter(p=>!p.virtual),cost=real.reduce((s,p)=>s+num(p.cost),0),spent=m.comps.reduce((s,c)=>s+num(c.spent),0);
   const ours=Object.keys(mm.byComp).length,S=window.AnbarReg?AnbarReg.state():{projects:[]},regN=S.projects.length,regM=Object.keys(mm.byFn).length;
   const cnt={};m.comps.forEach(c=>{const k=stK(c.status);cnt[k]=(cnt[k]||0)+1;});
@@ -92,12 +104,12 @@ function kpis(){const m=model(),mm=matchAll()||{byComp:{},byFn:{}},FV=finVis();
     +kf('مجموع المصروف (المكوّنات)',`<span title="${money(spent)}">${compact(spent)}</span>`,cost?((spent/cost*100).toFixed(1)+'% من الكلفة التخمينية'):'','#2f8a45');}
 function bars(title,map,color){const e=Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,10),mx=Math.max(1,...e.map(x=>x[1]));
   return `<div class="card"><h4>${title}</h4>${e.map(([l,n])=>`<div class="hbr"><span title="${esc(l)}">${esc(l||'غير محدد')}</span><i style="width:${Math.max(2,n/mx*100)}%;background:${typeof color==='function'?color(l):color}"></i><b>${n}</b></div>`).join('')}</div>`;}
-function charts(){const m=model(),by=f=>{const o={};m.comps.forEach(c=>{const k=f(c);o[k]=(o[k]||0)+1;});return o;};
+function charts(){const m=view(),by=f=>{const o={};m.comps.forEach(c=>{const k=f(c);o[k]=(o[k]||0)+1;});return o;};
   return bars('المكوّنات حسب نوع التمويل',by(c=>c.fund||'غير محدد'),'#b08a2e')+bars('حسب الحالة',by(c=>STL[stK(c.status)]),l=>STC[Object.keys(STL).find(k=>STL[k]===l)]||'#888')+bars('حسب القضاء',by(c=>String(c.district||'').trim()||'غير محدد'),'#2563a8')+bars('حسب الجهة المستفيدة (الدائرة)',by(c=>c.directorate||'غير محدد'),'#0f766e');}
 function opts(id,vals,all,cur){const s=$(id);if(!s)return;s.innerHTML=`<option value="">${all}</option>`+vals.map(v=>`<option${v===cur?' selected':''}>${esc(v)}</option>`).join('');}
 function tree(){const L=filtered(),mm=matchAll()||{byComp:{}},FV=finVis();const shown=L.slice(0,ui.limit);
   const comp=c=>{const o=mm.byComp[c.key];return `<tr class="plc${o?' ours':''}"><td class="pk">${o?`<button class="btn sm" data-plopen="${esc(o.fn)}" title="فتح في الموقف العام">اضبارة ${esc(o.fn)}</button>`:''}</td>
-    <td><div class="pn">${esc(c.name)}</div><div class="co">${esc(c.company||'')}${c.contractNo?' — عقد '+esc(c.contractNo):''}${c.contractDate?' / '+esc(dmy(c.contractDate)):''}${c.resident?' — المقيم: '+esc(c.resident):''}</div></td>
+    <td><div class="pn">${esc(c.name)}</div>${c._live&&c._live.length?`<span class="chip" style="background:#2563a822;color:#2563a8;font-size:11px" title="محدَّث من الموقف العام (اضبارة ${esc(c._fn)}): ${esc(c._live.join('، '))}">↻ من الموقف</span>`:''}<div class="co">${esc(c.company||'')}${c.contractNo?' — عقد '+esc(c.contractNo):''}${c.contractDate?' / '+esc(dmy(c.contractDate)):''}${c.resident?' — المقيم: '+esc(c.resident):''}</div></td>
     <td>${esc(c.fund||'')}</td><td>${esc(c.directorate||'')}</td><td>${esc(String(c.district||'').trim())}</td><td><span class="chip" style="background:${STC[stK(c.status)]}22;color:${STC[stK(c.status)]}">${esc(c.status||'—')}</span></td>
     <td class="n">${has(c.actPct)?num(c.actPct)+'%':''}</td><td class="n">${FV&&has(c.contractAfter||c.contract)?money(c.contractAfter||c.contract):FV?'':'🔒'}</td><td class="n">${FV&&has(c.spent)?money(c.spent):FV?'':'🔒'}</td></tr>`;};
   return `<div class="tw"><table class="pltab"><thead><tr><th></th><th>المشروع التخطيطي / المكوّن</th><th>التمويل</th><th>الجهة المستفيدة</th><th>القضاء</th><th>الحالة</th><th>الإنجاز الفني</th><th>مبلغ العقد</th><th>المصروف</th></tr></thead><tbody>
@@ -106,8 +118,8 @@ function tree(){const L=filtered(),mm=matchAll()||{byComp:{}},FV=finVis();const 
         <td colspan="3"></td><td class="n">${has(p.actPct)?num(p.actPct)+'%':''}</td><td class="n">${FV&&has(p.cost)?'<span title="الكلفة التخمينية">'+money(p.cost)+'</span>':''}</td><td class="n">${FV&&has(p.spent)?money(p.spent):''}</td></tr>${op?comps.map(comp).join(''):''}`;}).join('')}</tbody></table></div>
     ${L.length>shown.length?`<div style="text-align:center;margin:8px"><button class="btn" data-plmore="1">عرض المزيد (${L.length-shown.length})</button></div>`:''}`;}
 function render(){
-  const pg=$('pg-pl');if(!pg||pg.hidden)return;const m=model();
-  $('plState').innerHTML=!window.desktop||!window.desktop.plan?'غير متاح في هذه النسخة':m?`${m.clean?'«الملف المنظَّم»: ':'الملف: '}<b>${esc(R.file)}</b> — استُورد ${esc(dmy(String(R.importedAt||'').slice(0,10)))}${R.by?' بواسطة '+esc(R.by):''} — ${m.projects.length} مشروعاً تخطيطياً، ${m.comps.length} مكوّناً${R.hasSource?'':' — <span style="color:#b42318">الملف الأصلي ليس على هذه الحاسبة: سيُطلب عند التصدير</span>'}`:'لم يُستورد ملف التخطيط بعد. اضغط «📥 استيراد ملف التخطيط».';
+  const pg=$('pg-pl');if(!pg||pg.hidden)return;const m=view();
+  $('plState').innerHTML=!window.desktop||!window.desktop.plan?'غير متاح في هذه النسخة':m?`${m.clean?'«الملف المنظَّم»: ':'الملف: '}<b>${esc(R.file)}</b> — استُورد ${esc(dmy(String(R.importedAt||'').slice(0,10)))}${R.by?' بواسطة '+esc(R.by):''} — ${m.projects.length} مشروعاً تخطيطياً، ${m.comps.length} مكوّناً${(()=>{const mm=matchAll();const n=mm?Object.keys(mm.byComp).length:0;return n?` — <b style="color:#2563a8">${n} مكوّناً مرتبطاً بالموقف العام تُعرض قيمه من الموقف وتتحدث معه</b>`:'';})()}${R.hasSource?'':' — <span style="color:#b42318">الملف الأصلي ليس على هذه الحاسبة: سيُطلب عند التصدير</span>'}`:'لم يُستورد ملف التخطيط بعد. اضغط «📥 استيراد ملف التخطيط».';
   $('plExp').disabled=!m;
   if(!m){$('plKpis').innerHTML='';$('plCharts').innerHTML='';$('plTree').innerHTML='';return;}
   $('plKpis').innerHTML=kpis();$('plCharts').innerHTML=charts();
@@ -132,7 +144,7 @@ function updates(){const m=model(),mm=matchAll();if(!m||!mm)return [];const S=An
     if(L.co&&has(L.co.orders))put('coCount',num(L.co.orders));
     if(c.kind==='s2'&&has(p.total))put('contractAfter',num(p.total));
     if(c.kind==='main')put('updated',today);
-    out.push({sheet:c.sheet,row:c.row,label:`${c.name} (اضبارة ${fn})`,set});});
+    out.push({sheet:c.sheet,row:c.row,key:c.key,fn,label:`${c.name} (اضبارة ${fn})`,set});});
   return out;}
 /* مشاريع الموقف غير المرتبطة بملف التخطيط: السبب وأقرب مكوّن، وتوزيعها حسب نوع التمويل في الموقف */
 function gaps(){const mm=matchAll();if(!mm)return null;const S=AnbarReg.state();
@@ -201,6 +213,8 @@ function wire(){if(!$('plImp'))return;$('plImp').onclick=doImport;$('plExp').onc
 wire();
 const prev=window.onNav;window.onNav=function(s){try{if(prev)prev.apply(this,arguments);}finally{const pg=$('pg-pl');if(pg){pg.hidden=s.current!=='pl';if(s.current==='pl')load().then(render);}}};
 try{window.desktop&&window.desktop.onSyncData&&window.desktop.onSyncData(s=>{if(s&&s.ds==='pl')load().then(()=>{render();try{window.SitRender&&window.SitRender();}catch(_){} });});}catch(_){}
-window.PlanLink={load,apply,section,matchAll,updates,model,render,gaps,data:()=>R};
+/* تحديث تلقائي: إن تغيّر الموقف العام والصفحة ظاهرة تُعاد الرسوم بالقيم الجديدة */
+setInterval(()=>{try{const pg=$('pg-pl');if(!pg||pg.hidden||!model()||!V)return;const s=liveSig();if(s&&s!==vKey)render();}catch(_){}},4000);
+window.PlanLink={load,apply,section,matchAll,updates,model,view,render,gaps,data:()=>R};
 load().then(()=>{try{window.SitRender&&window.SitRender();}catch(_){}});
 })();

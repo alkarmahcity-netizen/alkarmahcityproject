@@ -52,6 +52,12 @@ const S2 = [['seq', /^ت$/], ['fund', /^نوع التمويل/], ['contractNo', 
 const DATES = new Set(['contractDate', 'start', 'end', 'updated']);
 const NUMS = new Set(['dur', 'ext', 'referral', 'contract', 'contractAfter', 'coSum', 'coCount', 'cost', 'advRaised', 'advPaid', 'planPct', 'tech', 'actPct', 'spent', 'supSpent', 'spentAll', 'commit', 'remain', 'advPromo']);
 const PCTS = ['planPct', 'actPct', 'tech'];
+/* ملف التخصيصات (ورقة Projects): عناوين بديلة — تُستعمل فقط للحقل الذي لم يُعثر على عنوانه الأصلي (فلا يتغير شيء في ملف الخطة العام) */
+const MAIN_ALT = [['ext', /^المدد الاضافيه/], ['contract', /^الكلفه الكليه \(مبلغ العقد\)/], ['cost', /^الكلفه المصادقه$|^الكلفه المقره$/], ['spent', /^المصروف التراكمي للعقد$/],
+  ['finPct', /^نسبه الانجار المالي|^نسبه الانجاز المالي/], ['alloc', /^التخصيص الكلي 2026/]];
+NUMS.add('finPct'); NUMS.add('alloc');
+/* أوراق السنوات السابقة (Pro2024، كانون اول 2024، الخلاصة…) لا تُقرأ إن وُجدت ورقة حالية */
+const oldSheet = n => { const y = (String(n).match(/20\d\d/g) || []).map(Number), cur = new Date().getFullYear(); return /كانون|الخلاصه|الخلاصة|^pro\s*20/i.test(RN(String(n))) && y.length > 0 || y.length > 0 && y.every(v => v < cur - 1); };
 function colsOf(head, spec) {
   const seen = {}, cols = {}; const ks = Object.keys(head).map(Number).sort((a, b) => a - b);
   for (const [key, re, nth] of spec) { let k = 0; for (const c of ks) { if (re.test(RN(head[c]))) { k++; if (k === (nth || 1)) { if (!seen[c]) { cols[key] = c; seen[c] = key; } break; } } } }
@@ -108,16 +114,31 @@ function parse(buf, label) {
   { const c = parseClean(book, label); if (c) return c; }
   const out = { file: label || '', sheets: {}, projects: [], comps: [] };
   const val = (I, r, c) => { if (!c) return { t: '', f: false }; const row = I.rows.get(r); const cell = row && row.cells.find(x => x.c === c); return { t: cell ? T(cellText(book, cell)) : '', f: !!(cell && cell.f) }; };
-  for (const sh of book.sheets) {
-    const I = sheetInfo(book, sh); if (I.hr == null) continue; const kind = kindOf(I); if (!kind || Object.values(out.sheets).some(s => s.kind === kind)) continue;
+  /* المرشّحات: لكل نوع تُختار الورقة التي فيها أكثر المكوّنات (ملف التخصيصات فيه عدة أوراق بالصيغة نفسها، والأولى AnnualAllocation بلا مكوّنات) */
+  const cands = [];
+  for (const sh of book.sheets) { let I; try { I = sheetInfo(book, sh); } catch (_) { continue; } if (!I || I.hr == null) continue; const kind = kindOf(I); if (kind) cands.push({ sh, I, kind }); }
+  const pick = {};
+  for (const kind of ['main', 's2']) {
+    const L = cands.filter(x => x.kind === kind); if (!L.length) continue;
+    const cur = L.filter(x => !oldSheet(x.sh.name)), use = cur.length ? cur : L;
+    if (use.length === 1) { pick[kind] = use[0]; continue; }
+    const score = x => { const cols = colsOf(x.I.head, kind === 'main' ? MAIN : S2); if (!cols.name) return -1; let n = 0; for (const r of x.I.data) { const row = x.I.rows.get(r); if (!row) continue; if (row.cells.some(c => (c.c === cols.company || c.c === cols.contractNo) && T(cellText(book, c)))) n++; } return n; };
+    pick[kind] = use.map(x => ({ x, n: score(x) })).sort((a, b) => b.n - a.n)[0].x;
+  }
+  for (const { sh, I, kind } of [pick.main, pick.s2].filter(Boolean)) {
     const spec = kind === 'main' ? MAIN : S2, cols = colsOf(I.head, spec);
+    if (kind === 'main') { const alt = colsOf(I.head, MAIN_ALT), used = new Set(Object.values(cols)); for (const [k, c] of Object.entries(alt)) if (cols[k] == null && !used.has(c)) cols[k] = c; }
     if (!cols.name) continue;
+    /* ملف التخصيصات: صف المكوّن يحمل ترميز المشروع أيضاً؛ فالمكوّن = صف فيه شركة أو رقم عقد، والمشروع التخطيطي = صف بلا شركة ولا رقم عقد */
+    let alloc = false;
+    if (kind === 'main') { let coded = 0, both = 0; for (const r of I.data) { const g = k => cols[k] ? val(I, r, cols[k]).t : ''; const cd = ['bab', 'qism', 'tasl'].some(k => { const v = T(g(k)); return v && v !== '0'; }); if (!cd || !g('name')) continue; coded++; if (g('company') || g('contractNo')) both++; } alloc = coded > 20 && both / coded > 0.3; }
     /* مقياس النسب في كل عمود: كسر (1 = 100%) أم مئوي */
     const scale = {};
     for (const k of PCTS) if (cols[k]) { let mx = 0, n = 0; for (const r of I.data) { const v = num(val(I, r, cols[k]).t); if (v != null) { n++; if (v <= 1.5) mx++; } } scale[k] = n ? (mx / n >= 0.9 ? 'frac' : 'pct') : ''; }
     /* عمود نسبة فارغ: بصيغة عمود النسبة الآخر في الورقة، وإلا كسر (1 = 100%) كما في ملفات الخطة */
     for (const k of PCTS) if (cols[k] && !scale[k]) scale[k] = PCTS.map(x => scale[x]).find(Boolean) || 'frac';
-    out.sheets[sh.name] = { kind, cols, scale, head: Object.fromEntries(Object.entries(cols).map(([k, c]) => [k, I.head[c]])) };
+    out.sheets[sh.name] = { kind, cols, scale, alloc, head: Object.fromEntries(Object.entries(cols).map(([k, c]) => [k, I.head[c]])) };
+    if (alloc) out.alloc = sh.name;
     let proj = null;
     const rowsSorted = [...I.rows.keys()].filter(r => r > I.hr).sort((a, b) => a - b);
     for (const r of rowsSorted) {
@@ -131,8 +152,8 @@ function parse(buf, label) {
       for (const k of PCTS) if (typeof rec[k] === 'number' && scale[k] === 'frac' && rec[k] <= 1.5) rec[k] = Math.round(rec[k] * 10000) / 100;
       if (kind === 'main') {
         const code = ['bab', 'qism', 'inv', 'fasl', 'madda', 'naw', 'tasl'].map(k => T(val(I, r, cols[k]).t));
-        if (code.some(x => x && x !== '0')) {   /* صف المشروع التخطيطي */
-          proj = { key: 'P' + r, row: r, code: code.join('-'), name, ministry: rec.ministry || '', plan: fundNorm(rec.plan), cost: rec.cost, contractAfter: rec.contractAfter, spent: rec.spent, spentAll: rec.spentAll, tech: rec.tech, actPct: rec.actPct, coSum: rec.coSum, comps: [] };
+        if (alloc ? !rec.company && !rec.contractNo : code.some(x => x && x !== '0')) {   /* صف المشروع التخطيطي */
+          proj = { key: 'P' + r, row: r, code: code.join('-'), name, ministry: rec.ministry || '', plan: fundNorm(rec.plan), cost: rec.cost, contractAfter: rec.contractAfter, spent: rec.spent, spentAll: rec.spentAll, tech: rec.tech, actPct: rec.actPct, coSum: rec.coSum, alloc: rec.alloc, finPct: rec.finPct, comps: [] };
           out.projects.push(proj); continue;
         }
         if (!proj) continue;

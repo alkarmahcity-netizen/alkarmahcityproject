@@ -1,7 +1,7 @@
 {
   "name": "anbar-unified",
   "productName": "نظام الشؤون الهندسية الموحد",
-  "version": "1.64.0",
+  "version": "1.65.0",
   "description": "نظام الشؤون الهندسية الموحد: أوامر التغيير، المدد والتوقف، لجنة تدقيق السلف، إطلاق التأمينات، شهادات الاستلام، والموقف الشهري - محافظة الأنبار",
   "author": "Engineering Affairs Department - Anbar",
   "main": "main.js",
@@ -45,11 +45,13 @@
           ]
         }
       ],
-      "icon": "build/icon.png"
+      "icon": "build/icon.png",
+      "signAndEditExecutable": false
     },
     "portable": {
       "artifactName": "AnbarEngineering-${version}-Windows-x64.exe"
     },
-    "executableName": "AnbarEngineering"
+    "executableName": "AnbarEngineering",
+    "compression": "maximum"
   }
 }

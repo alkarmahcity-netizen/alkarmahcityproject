@@ -40,7 +40,7 @@ const MAIN = [['seq', /^ت/], ['bab', /^الباب$/], ['qism', /^القسم$/],
   ['contractNo', /^رقم العقد/], ['contractDate', /^تاريخ العقد/], ['start', /^تاريخ المباشره/], ['end', /^تاريخ الانجاز$/], ['status', /^حاله المشروع$/], ['plan', /^اسم الخطه$/],
   ['name', /^اسم المشروع$/], ['ministry', /^الجهه المستفيده/], ['platform', /^منصه انجاز/], ['coords', /^الاحداثيات/], ['resident', /^المهندس المقيم/], ['phone', /^رقم الهاتف/],
   ['directorate', /^الجهه المستفيده/, 2], ['company', /^اسم الشركه/], ['dur', /^مده التنفيذ/], ['ext', /^المده المضافه/], ['referral', /^مبلغ الاحاله/], ['contract', /^مبلغ العقد$/],
-  ['contractAfter', /^مبلغ العقد بعد التغيير/], ['coSumH', /^مجموع اوامر التغيير/], ['coSum', /^س$/], ['coCount', /^عدد اوامر التغيير/], ['cost', /^الكلفه التخمينيه/],
+  ['contractAfter', /^مبلغ العقد بعد التغيير/], ['coSumH', /^مجموع اوامر التغيير/], ['coSum', /^س$/], ['coCount', /^عدد اوامر التغيير/], ['cost', /^الكلفه التخمينيه/], ['approved', /^الكلفه المصادقه$/],
   ['advRaised', /^السلف المرفوعه/], ['advPaid', /^السلف المصروفه/], ['planPct', /^نسبه الانجاز المخطط/], ['tech', /^نسبه الانجار الفني$/], ['actPct', /^نسبه الانجار الفني للجان/],
   ['spent', /^مجموع المصروف الكلي/], ['supSpent', /^مجموع مصروف الاشراف/], ['spentAll', /^المصروف الكلي \+ الاشراف/], ['commit', /^الالتزامات الواجبه/], ['remain', /^المبلغ المتبقي/],
   ['district', /^القضاء/], ['phys', /^موقف المادي للجان/], ['status2', /^حاله المشروع$/, 2], ['sector', /^القطاع/], ['updated', /^تاريخ اخر تحديث/], ['actions', /^الاجراءات المتخذه/]];
@@ -53,9 +53,9 @@ const DATES = new Set(['contractDate', 'start', 'end', 'updated']);
 const NUMS = new Set(['dur', 'ext', 'referral', 'contract', 'contractAfter', 'coSum', 'coCount', 'cost', 'advRaised', 'advPaid', 'planPct', 'tech', 'actPct', 'spent', 'supSpent', 'spentAll', 'commit', 'remain', 'advPromo']);
 const PCTS = ['planPct', 'actPct', 'tech'];
 /* ملف التخصيصات (ورقة Projects): عناوين بديلة — تُستعمل فقط للحقل الذي لم يُعثر على عنوانه الأصلي (فلا يتغير شيء في ملف الخطة العام) */
-const MAIN_ALT = [['ext', /^المدد الاضافيه/], ['contract', /^الكلفه الكليه \(مبلغ العقد\)/], ['cost', /^الكلفه المصادقه$|^الكلفه المقره$/], ['spent', /^المصروف التراكمي للعقد$/],
+const MAIN_ALT = [['ext', /^المدد الاضافيه/], ['contract', /^الكلفه الكليه \(مبلغ العقد\)/], ['cost', /^الكلفه المقره$/], ['spent', /^المصروف التراكمي للعقد$/],
   ['finPct', /^نسبه الانجار المالي|^نسبه الانجاز المالي/], ['alloc', /^التخصيص الكلي 2026/]];
-NUMS.add('finPct'); NUMS.add('alloc');
+NUMS.add('finPct'); NUMS.add('alloc'); NUMS.add('approved');
 /* أوراق السنوات السابقة (Pro2024، كانون اول 2024، الخلاصة…) لا تُقرأ إن وُجدت ورقة حالية */
 const oldSheet = n => { const y = (String(n).match(/20\d\d/g) || []).map(Number), cur = new Date().getFullYear(); return /كانون|الخلاصه|الخلاصة|^pro\s*20/i.test(RN(String(n))) && y.length > 0 || y.length > 0 && y.every(v => v < cur - 1); };
 function colsOf(head, spec) {
@@ -153,7 +153,7 @@ function parse(buf, label) {
       if (kind === 'main') {
         const code = ['bab', 'qism', 'inv', 'fasl', 'madda', 'naw', 'tasl'].map(k => T(val(I, r, cols[k]).t));
         if (alloc ? !rec.company && !rec.contractNo : code.some(x => x && x !== '0')) {   /* صف المشروع التخطيطي */
-          proj = { key: 'P' + r, row: r, code: code.join('-'), name, ministry: rec.ministry || '', plan: fundNorm(rec.plan), cost: rec.cost, contractAfter: rec.contractAfter, spent: rec.spent, spentAll: rec.spentAll, tech: rec.tech, actPct: rec.actPct, coSum: rec.coSum, alloc: rec.alloc, finPct: rec.finPct, comps: [] };
+          proj = { key: 'P' + r, row: r, code: code.join('-'), name, ministry: rec.ministry || '', plan: fundNorm(rec.plan), cost: rec.cost, contractAfter: rec.contractAfter, spent: rec.spent, spentAll: rec.spentAll, tech: rec.tech, actPct: rec.actPct, coSum: rec.coSum, alloc: rec.alloc, finPct: rec.finPct, approved: rec.approved, comps: [] };
           out.projects.push(proj); continue;
         }
         if (!proj) continue;

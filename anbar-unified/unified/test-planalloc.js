@@ -12,7 +12,8 @@ const R = []; const ok = (n, c, d = '') => R.push([c ? 'PASS' : 'FAIL', n, d]);
 (async () => {
   const P = require('./planning.js'), m = P.parse(fs.readFileSync(F), 'x');
   ok('parser picks the «Projects» sheet (not AnnualAllocation / old-year sheets) with its planning projects and components', Object.keys(m.sheets).includes('Projects') && m.projects.length > 100 && m.comps.length > 1000, Object.keys(m.sheets).join(',') + ' ' + m.projects.length + '/' + m.comps.length);
-  const c0 = m.comps.find(c => c.contractNo && c.company && /\S{3,}/.test(c.name) && c.actPct != null && c.actPct < 90);
+  const c0 = m.comps.find(c => c.contractNo && c.company && /\S{3,}/.test(c.name) && c.actPct != null && c.actPct < 90 && c.approved > 0);
+  ok('«الكلفة المصادقة» is read as its own field (approved), separate from the estimated cost', m.comps.filter(c => c.approved > 0).length > 500 && Object.values(m.sheets)[0].head.approved === 'الكلفة المصادقة', String(m.comps.filter(c => c.approved > 0).length));
   const RG = mk('r'); fs.writeFileSync(path.join(RG, 'registry.json'), JSON.stringify({ projects: [
     { fileNo: '9001', name: c0.name, contractor: c0.company, contractNo: c0.contractNo, actualPct: 77, planPct: 81, status: 'متلكئ', orig: 1000000, total: 1250000, changeCost: 250000, dur: 365 },
     { fileNo: '9002', name: 'مشروع غير موجود في التخطيط إطلاقاً', contractor: 'شركة س', contractNo: '999999' }], source: 'test', updated: '2026-11-19' }));
@@ -34,6 +35,11 @@ const R = []; const ok = (n, c, d = '') => R.push([c ? 'PASS' : 'FAIL', n, d]);
   await sleep(9000);
   const t2 = await pg.evaluate(() => document.getElementById('plTree').textContent);
   ok('after the general status changes (77 → 88) the planning page updates by itself, without re-importing', /88%/.test(t2) && !/77%/.test(t2), t2.slice(0, 300));
+  await pg.evaluate(() => { window.desktop.go('sit'); }); await sleep(1000); await pg.evaluate(() => window.SitOpen('9001')); await sleep(500);
+  const dt = await pg.evaluate(() => document.getElementById('drawer').textContent.replace(/\s+/g, ' '));
+  const apTxt = Math.round(c0.approved).toLocaleString('en-US');
+  ok('general status → project info shows «الكلفة المصادقة» from the planning file', dt.includes('الكلفة المصادقة' + apTxt) && /من ملف التخطيط/.test(dt), dt.slice(dt.indexOf('الكلفة والمدة'), dt.indexOf('الكلفة والمدة') + 250) + ' expected ' + apTxt);
+  await pg.evaluate(() => window.desktop.go('pl')); await sleep(600);
   const ex = await pg.evaluate(() => window.PlanLink.updates().find(u => u.fn === '9001'));
   ok('«⬇ تصدير ملف التخطيط المحدَّث» uses the same live values (actual 88)', ex && ex.set.actPct === 88, JSON.stringify(ex && ex.set));
   const e = await app.evaluate(() => (global.__uniErrors || []).slice()); ok('no JavaScript errors', e.length === 0, e.join(' | ').slice(0, 400));

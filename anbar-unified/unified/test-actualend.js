@@ -11,7 +11,7 @@ const R = []; const ok = (n, c, d = '') => R.push([c ? 'PASS' : 'FAIL', n, d]);
   const RG = mk('r'); fs.writeFileSync(path.join(RG, 'registry.json'), JSON.stringify({ projects: [
     { fileNo: '701', name: 'مدرسة منجزة بلا تاريخ', contractor: 'شركة أ', status: 'منجز', planEnd: '2026-01-10', actualPct: 100 },
     { fileNo: '702', name: 'طريق منجز بتاريخ من الملف', contractor: 'شركة ب', status: 'منجز', planEnd: '2026-02-01', actualEnd: '2026-03-03', actualPct: 100 },
-    { fileNo: '703', name: 'مشروع مستمر', contractor: 'شركة ج', status: 'مستمر', planEnd: '2026-12-01', actualPct: 40 }], source: 'test', updated: '2026-11-19' }));
+    { fileNo: '703', name: 'مشروع مستمر', contractor: 'شركة ج', status: 'مستمر', planEnd: '2026-12-01', actualPct: 40, approvedCost: 750000000 }], source: 'test', updated: '2026-11-19' }));
   const app = await electron.launch({ executablePath: require('electron'), args: ['--no-sandbox', __dirname], env: { ...process.env, UNI_MULTI: mk('u'), UNI_DATA_DIR: mk('d'), ANBAR_REG_DIR: RG, UNI_AC_PORT: '48443', UNI_NO_JSONSCAN: '1', UNI_NO_LINKREFRESH: '1' } });
   const pg = await app.firstWindow(); await pg.waitForLoadState('domcontentloaded'); await sleep(1500);
   ok('the status-file column «تاريخ الإنجاز الفعلي» is recognised (also «تاريخ الانجاز الفعلي»)', await pg.evaluate(() => window.AnbarReg.fieldOf('تاريخ الإنجاز الفعلي') === 'actualEnd' && window.AnbarReg.fieldOf('تاريخ الانجاز الفعلي') === 'actualEnd' && window.AnbarReg.fieldOf('تاريخ الإنجاز المخطط') === 'planEnd'));
@@ -28,6 +28,7 @@ const R = []; const ok = (n, c, d = '') => R.push([c ? 'PASS' : 'FAIL', n, d]);
   await pg.evaluate(() => { const i = document.getElementById('aeIn'); i.value = '2099-01-01'; document.querySelector('[data-aesave="701"]').click(); }); await sleep(400);
   ok('a future date is refused', (await pg.evaluate(() => window.AnbarReg.getMeta('701').actualEnd)) === '2026-01-05');
   const t3 = await dr('703');
+  ok('«الكلفة المصادقة» from the committee status file shows in project info (من ملف الموقف)', /الكلفة المصادقة750,000,000 \(من ملف الموقف\)/.test(t3) && await pg.evaluate(() => window.AnbarReg.fieldOf('الكلفة المصادقة') === 'approvedCost'), t3.slice(t3.indexOf('الكلفة والمدة'), t3.indexOf('الكلفة والمدة') + 200));
   ok('an ongoing project has no actual-completion field', !/تاريخ الإنجاز الفعلي/.test(t3) && !(await pg.evaluate(() => !!document.getElementById('aeIn'))));
   const e = await app.evaluate(() => (global.__uniErrors || []).slice()); ok('no JavaScript errors', e.length === 0, e.join(' | ').slice(0, 400));
   await app.close();

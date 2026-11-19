@@ -76,7 +76,7 @@ function apply(p){
   if(!p||!model())return p;const mm=matchAll();if(!mm)return p;if(acKey!==mKey){AC.clear();acKey=mKey;}
   const k=String(p.fileNo),hit=mm.byFn[k];if(!hit)return p;const c=AC.get(k);if(c&&c.src===p)return c.v;
   const pr=projOf(hit.c.proj)||{};
-  const v=Object.assign({},p,{fund:hit.c.fund||p.fund,sector:hit.c.directorate||p.sector,ministry:hit.c.ministry||pr.ministry||'',_orig:{fund:p.fund,sector:p.sector},_plan:{c:hit.c,p:pr,how:hit.how}});
+  const v=Object.assign({},p,{_approvedPl:has(hit.c.approved)?num(hit.c.approved):has(pr.approved)?num(pr.approved):null,fund:hit.c.fund||p.fund,sector:hit.c.directorate||p.sector,ministry:hit.c.ministry||pr.ministry||'',_orig:{fund:p.fund,sector:p.sector},_plan:{c:hit.c,p:pr,how:hit.how}});
   AC.set(k,{src:p,v});return v;}
 
 /* قسم بطاقة المشروع في الموقف العام */
@@ -84,7 +84,7 @@ function section(p){
   if(!p||!p._plan)return '';const c=p._plan.c,pr=p._plan.p,d=(l,v)=>v===''||v==null?'':`<div><small>${l}</small><b>${v}</b></div>`;const FV=finVis();
   return `<h5>📐 في خطة المحافظة (ملف لجنة تحديث الخطة)</h5><div class="hint">مطابق للمكوّن «${esc(c.name)}» <span class="co">(${esc(p._plan.how)} — الورقة «${esc(c.sheet)}»، الصف ${c.row})</span></div>
     <div class="dg">${d('المشروع التخطيطي',esc(pr.name||'—'))}${d('الترميز',esc(codeOf(pr)))}${d('نوع التمويل (ملف التخطيط)',esc(c.fund))}${d('الجهة المستفيدة (الدائرة)',esc(c.directorate||'—'))}${d('الوزارة',esc(c.ministry||pr.ministry||''))}
-    ${d('في موقف اللجنة',`التمويل: ${esc(p._orig.fund||'—')} — الجهة: ${esc(p._orig.sector||'—')}`)}${FV&&has(pr.cost)?d('الكلفة التخمينية للمشروع',money(pr.cost)):''}${FV&&has(c.spent)?d('مجموع المصروف (التخطيط)',money(c.spent)):''}${has(c.actPct)?d('الإنجاز الفني (التخطيط)',num(c.actPct)+'%'):''}${c.status?d('الحالة في ملف التخطيط',esc(c.status)):''}</div>`;}
+    ${d('في موقف اللجنة',`التمويل: ${esc(p._orig.fund||'—')} — الجهة: ${esc(p._orig.sector||'—')}`)}${FV&&has(pr.cost)?d('الكلفة التخمينية للمشروع',money(pr.cost)):''}${FV&&has(c.approved)?d('الكلفة المصادقة (المكوّن)',money(c.approved)):''}${FV&&has(pr.approved)?d('الكلفة المصادقة (المشروع التخطيطي)',money(pr.approved)):''}${FV&&has(c.spent)?d('مجموع المصروف (التخطيط)',money(c.spent)):''}${has(c.actPct)?d('الإنجاز الفني (التخطيط)',num(c.actPct)+'%'):''}${c.status?d('الحالة في ملف التخطيط',esc(c.status)):''}</div>`;}
 
 /* ---------- الصفحة ---------- */
 function filtered(){const m=view(),mm=matchAll()||{byComp:{}};const q=T(ui.q);
@@ -115,7 +115,7 @@ function tree(){const L=filtered(),mm=matchAll()||{byComp:{}},FV=finVis();const 
   return `<div class="tw"><table class="pltab"><thead><tr><th></th><th>المشروع التخطيطي / المكوّن</th><th>التمويل</th><th>الجهة المستفيدة</th><th>القضاء</th><th>الحالة</th><th>الإنجاز الفني</th><th>مبلغ العقد</th><th>المصروف</th></tr></thead><tbody>
     ${shown.map(({p,comps})=>{const op=ui.open.has(p.key)||!!ui.q||ui.ours;const nOurs=p.comps.filter(k=>mm.byComp[k]).length;
       return `<tr class="plp" data-plk="${esc(p.key)}"><td class="pk">${comps.length?(op?'▾':'▸'):''}</td><td colspan="2"><b>${esc(p.name)}</b><div class="co">${codeOf(p)?'الترميز '+esc(codeOf(p))+' — ':''}${esc(p.ministry||'')}${p.plan?' — '+esc(p.plan):''} — ${p.comps.length} مكوّن${nOurs?` — <b style="color:#2563a8">${nOurs} من لجاننا</b>`:''}</div></td>
-        <td colspan="3"></td><td class="n">${has(p.actPct)?num(p.actPct)+'%':''}</td><td class="n">${FV&&has(p.cost)?'<span title="الكلفة التخمينية">'+money(p.cost)+'</span>':''}</td><td class="n">${FV&&has(p.spent)?money(p.spent):''}</td></tr>${op?comps.map(comp).join(''):''}`;}).join('')}</tbody></table></div>
+        <td colspan="3"></td><td class="n">${has(p.actPct)?num(p.actPct)+'%':''}</td><td class="n">${FV&&has(p.cost)?'<span title="الكلفة التخمينية">'+money(p.cost)+'</span>':FV&&has(p.approved)?'<span title="الكلفة المصادقة">'+money(p.approved)+'</span>':''}</td><td class="n">${FV&&has(p.spent)?money(p.spent):''}</td></tr>${op?comps.map(comp).join(''):''}`;}).join('')}</tbody></table></div>
     ${L.length>shown.length?`<div style="text-align:center;margin:8px"><button class="btn" data-plmore="1">عرض المزيد (${L.length-shown.length})</button></div>`:''}`;}
 function render(){
   const pg=$('pg-pl');if(!pg||pg.hidden)return;const m=view();
@@ -138,7 +138,7 @@ function updates(){const m=model(),mm=matchAll();if(!m||!mm)return [];const S=An
     put('contractNo',String(p.contractNo||'').trim());put('start',iso(p.start));
     {const rs=String(p.resident||'').trim();if(rs.split(/\s+/).length>=2&&!/مديري|دائر|قسم|بلدي|طرق|جسور|الانبار|محافظ|وزار|شعب|هيئ|شرك/.test(rs))put('resident',rs);}
     {const ph=String(p.phone||'').replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/\D/g,'');if(/^0?7\d{9}$/.test(ph))put('phone',ph.replace(/^0/,''));}put('company',String(p.contractor||'').trim());
-    put('dur',num(p.dur)>0?num(p.dur):null);put('advRaised',num(p.advRaised)>0?num(p.advRaised):null);put('advPaid',num(p.advPaid)>0?num(p.advPaid):null);put('ext',num(p.extra)>0?num(p.extra):null);put('planPct',nn(p.planPct));put('actPct',nn(p.actualPct));put('district',String(p.district||'').trim());
+    put('dur',num(p.dur)>0?num(p.dur):null);put('approved',num(p.approvedCost)>0?num(p.approvedCost):null);put('advRaised',num(p.advRaised)>0?num(p.advRaised):null);put('advPaid',num(p.advPaid)>0?num(p.advPaid):null);put('ext',num(p.extra)>0?num(p.extra):null);put('planPct',nn(p.planPct));put('actPct',nn(p.actualPct));put('district',String(p.district||'').trim());
     if(k)put('status',(c.kind==='s2'?stS2:stMain)[k]);
     const la=num(p.lat),ln=num(p.lng);if(la>29&&la<38&&ln>38&&ln<49){if(c.kind==='s2'){put('lat',la);put('lng',ln);}else put('coords',`N${la} E${ln}`);}
     if(L.co&&has(L.co.orders))put('coCount',num(L.co.orders));

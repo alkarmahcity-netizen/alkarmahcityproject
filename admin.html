@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>إدارة صور المشاريع — لجنة متابعة مشاريع الكرمة</title>
+<title>إدارة المشاريع — لجنة متابعة مشاريع الكرمة</title>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#0c1826;--bg-2:#0a1420;--panel:#122236;--panel-2:#17293f;--line:#25384f;--line-soft:#1c2e44;--gold:#c9a24b;--gold-soft:#e3c777;--text:#eef1f6;--text-dim:#94a6bf;--text-faint:#5f7390;--ok:#4f9e74;--stop:#c15c4a;--warn:#d99a3e;}
@@ -52,12 +52,21 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold)}
 h2{font-size:15px;margin:0 0 12px;font-weight:700}
 .count{background:var(--panel-2);border:1px solid var(--line);border-radius:99px;padding:1px 9px;font-size:11px;color:var(--text-dim)}
 .hidden{display:none!important}
+.co-item{background:var(--bg-2);border:1px solid var(--line-soft);border-radius:10px;padding:10px 12px;margin-bottom:8px;font-size:13px}
+.co-item .t{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.co-item .t b{font-weight:700}
+.co-item .r{color:var(--text-dim);font-size:12.5px;margin-top:4px}
+.co-item .acts{display:flex;gap:8px;margin-top:8px}
+.co-item .acts button{padding:6px 12px;font-size:12.5px}
+.st{font-size:11px;padding:1px 8px;border-radius:99px;white-space:nowrap}
+.st.s-مصادق{background:#173226;color:#7fcaa2}.st.s-مقترح{background:#332612;color:#eab568}.st.s-مرفوض{background:#331813;color:#e58873}
+.num{direction:ltr;unicode-bidi:isolate}
 </style>
 </head>
 <body>
 <div class="wrap">
 <header>
-  <div><h1>إدارة صور المشاريع</h1><p>لجنة متابعة مشاريع قضاء الكرمة والنواحي التابعة لها</p></div>
+  <div><h1>إدارة المشاريع: الصور وأوامر التغيير</h1><p>لجنة متابعة مشاريع قضاء الكرمة والنواحي التابعة لها</p></div>
   <a class="back" href="index.html">← الموقع</a>
 </header>
 
@@ -104,6 +113,26 @@ h2{font-size:15px;margin:0 0 12px;font-weight:700}
   </div>
 </section>
 
+<section class="card hidden" id="co-card">
+  <h2>أوامر التغيير <span class="count" id="co-count">0</span></h2>
+  <div class="muted" id="co-sum" style="margin-bottom:10px"></div>
+  <div id="co-list"></div>
+  <h2 id="co-ftitle" style="margin-top:16px">إضافة أمر تغيير جديد</h2>
+  <div class="row">
+    <div><label>رقم أمر التغيير</label><input type="text" id="co-no" placeholder="مثال: 1"></div>
+    <div><label>تاريخ أمر التغيير</label><input type="date" id="co-d"></div>
+    <div><label>المبلغ (د.ع) — بالسالب إن كان تخفيضاً</label><input type="text" id="co-a" inputmode="numeric" placeholder="221,936,000"></div>
+    <div><label>المدة الإضافية (يوم)</label><input type="text" id="co-days" inputmode="numeric" placeholder="0"></div>
+    <div><label>الحالة</label><select id="co-s"><option>مقترح</option><option>مصادق</option><option>مرفوض</option></select></div>
+    <div><label>كتاب المصادقة (العدد والتاريخ)</label><input type="text" id="co-ref" placeholder="مثال: 1234 في 2026/05/10"></div>
+  </div>
+  <div style="margin-top:12px"><label>السبب / وصف التغيير</label><textarea id="co-r" rows="2" placeholder="مثال: إضافة كميات أعمال الحفر بسبب تغيير منسوب الأساس"></textarea></div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+    <button class="btn" id="co-save">حفظ أمر التغيير</button>
+    <button class="btn ghost hidden" id="co-cancel">إلغاء التعديل</button>
+  </div>
+</section>
+
 <section class="card">
   <h2>السجل</h2>
   <div class="log" id="log">—</div>
@@ -118,7 +147,7 @@ const API=`https://api.github.com/repos/${OWNER}/${REPO}`;
 const $=id=>document.getElementById(id);
 const log=(m,c='')=>{const el=$('log');el.innerHTML=(el.innerHTML==='—'?'':el.innerHTML)+`<div class="${c}">${new Date().toLocaleTimeString('ar-IQ')} · ${m}</div>`;el.scrollTop=el.scrollHeight;};
 const photoKey=p=>/^\d+$/.test(String(p.file_no))?String(p.file_no):'p'+p.id;
-let token=localStorage.getItem('gh_token')||'', selected=null, queue=[], photos={}, photosSha=null;
+let token=localStorage.getItem('gh_token')||'', selected=null, queue=[], photos={}, photosSha=null, cos={}, cosSha=null, coEdit=null;
 
 async function gh(path,opts={}){
   const r=await fetch(API+path,{...opts,headers:{'Authorization':'Bearer '+token,'Accept':'application/vnd.github+json','Content-Type':'application/json',...(opts.headers||{})}});
@@ -131,20 +160,24 @@ async function gh(path,opts={}){
 const b64=s=>btoa(unescape(encodeURIComponent(s)));
 const blobToB64=b=>new Promise(res=>{const fr=new FileReader();fr.onload=()=>res(fr.result.split(',')[1]);fr.readAsDataURL(b);});
 
-async function loadPhotos(){
-  const j=await gh(`/contents/photos.json?ref=${BRANCH}&t=${Date.now()}`,{allow404:true});
-  if(!j){photos={};photosSha=null;return;}
-  photosSha=j.sha; photos=JSON.parse(decodeURIComponent(escape(atob(j.content.replace(/\n/g,'')))));
+async function loadJson(path){
+  const j=await gh(`/contents/${path}?ref=${BRANCH}&t=${Date.now()}`,{allow404:true});
+  if(!j) return {data:{},sha:null};
+  return {data:JSON.parse(decodeURIComponent(escape(atob(j.content.replace(/\n/g,''))))),sha:j.sha};
 }
-async function savePhotos(msg){
-  const res=await gh('/contents/photos.json',{method:'PUT',body:JSON.stringify({message:msg,branch:BRANCH,content:b64(JSON.stringify(photos,null,1)),sha:photosSha||undefined})});
-  photosSha=res.content.sha;
+async function saveJson(path,data,sha,msg){
+  const res=await gh('/contents/'+path,{method:'PUT',body:JSON.stringify({message:msg,branch:BRANCH,content:b64(JSON.stringify(data,null,1)),sha:sha||undefined})});
+  return res.content.sha;
 }
+async function loadPhotos(){ ({data:photos,sha:photosSha}=await loadJson('photos.json')); }
+async function savePhotos(msg){ photosSha=await saveJson('photos.json',photos,photosSha,msg); }
+async function loadCos(){ ({data:cos,sha:cosSha}=await loadJson('change_orders.json')); }
+async function saveCos(msg){ cosSha=await saveJson('change_orders.json',cos,cosSha,msg); }
 
 /* ---- login ---- */
 async function tryLogin(){
   $('login-msg').textContent='جارٍ التحقق…';
-  try{ await loadPhotos(); $('login').classList.add('hidden'); $('app').classList.remove('hidden'); log('تم الدخول والاتصال بالمستودع بنجاح.','ok'); renderList(); }
+  try{ await loadPhotos(); await loadCos(); $('login').classList.add('hidden'); $('app').classList.remove('hidden'); log('تم الدخول والاتصال بالمستودع بنجاح.','ok'); renderList(); }
   catch(e){ $('login-msg').textContent='فشل الدخول: '+e.message; token=''; localStorage.removeItem('gh_token'); }
 }
 $('tok-save').onclick=()=>{token=$('tok').value.trim(); if(!token) return; localStorage.setItem('gh_token',token); tryLogin();};
@@ -155,7 +188,7 @@ if(token) tryLogin();
 function renderList(){
   const q=$('q').value.trim();
   const list=PROJECTS.filter(p=>!q||[p.name,p.contractor,String(p.file_no),p.sector].join(' ').includes(q));
-  $('plist').innerHTML=list.map(p=>`<div class="proj-item ${selected&&selected.id===p.id?'sel':''}" data-id="${p.id}"><span>${p.id}. ${p.name}</span><small>${(photos[photoKey(p)]||[]).length?'📷 '+photos[photoKey(p)].length:''} ${p.file_no??''}</small></div>`).join('')||'<div class="proj-item">لا نتائج</div>';
+  $('plist').innerHTML=list.map(p=>`<div class="proj-item ${selected&&selected.id===p.id?'sel':''}" data-id="${p.id}"><span>${p.id}. ${p.name}</span><small>${(cos[photoKey(p)]||[]).length?'📝 '+cos[photoKey(p)].length:''} ${(photos[photoKey(p)]||[]).length?'📷 '+photos[photoKey(p)].length:''} ${p.file_no??''}</small></div>`).join('')||'<div class="proj-item">لا نتائج</div>';
   $('plist').querySelectorAll('.proj-item[data-id]').forEach(el=>el.onclick=()=>selectProject(PROJECTS.find(p=>p.id==el.dataset.id)));
 }
 $('q').oninput=renderList;
@@ -163,7 +196,8 @@ function selectProject(p){
   selected=p; renderList();
   $('psel').classList.remove('hidden');
   $('psel').innerHTML=`<b>${p.name}</b><span>اضبارة ${p.file_no??'—'} · ${p.sector} · ${p.contractor??'—'} · مجلد الصور: photos/${photoKey(p)}/</span>`;
-  $('existing-card').classList.remove('hidden'); $('upload-card').classList.remove('hidden');
+  $('existing-card').classList.remove('hidden'); $('upload-card').classList.remove('hidden'); $('co-card').classList.remove('hidden');
+  coReset(); renderCos();
   if(!$('pdate').value) $('pdate').value=new Date().toISOString().slice(0,10);
   renderExisting();
 }
@@ -183,6 +217,72 @@ async function deletePhoto(i){
     await savePhotos(`تحديث فهرس الصور بعد حذف — ${selected.name}`);
     log('تم حذف الصورة.','ok'); renderExisting(); renderList();
   }catch(e){log('فشل الحذف: '+e.message,'err');}
+}
+
+/* ---- change orders ---- */
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt=n=>(n===null||n===undefined||n==='')?'—':Math.round(n).toLocaleString('en-US');
+// يقبل الأرقام العربية-الهندية والفواصل؛ يعيد null إن كان الحقل فارغاً وNaN إن كان غير صالح
+function parseNum(v){
+  v=String(v).trim().replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[,،٬\s]/g,'').replace('−','-');
+  if(!v) return null; return /^-?\d+(\.\d+)?$/.test(v)?Number(v):NaN;
+}
+function renderCos(){
+  const arr=(cos[photoKey(selected)]||[]).slice().sort((a,b)=>(a.d||'').localeCompare(b.d||''));
+  const appr=arr.filter(c=>c.s==='مصادق'), sumA=appr.reduce((t,c)=>t+(+c.a||0),0);
+  $('co-count').textContent=arr.length;
+  $('co-sum').innerHTML=`المعتمد في جدول المشاريع: <b class="num">${fmt(selected.co_cost)}</b> د.ع · مجموع المصادق عليه في السجل: <b class="num">${fmt(sumA)}</b> د.ع`+
+    (selected.co_cost&&arr.length&&Math.round(sumA)!==Math.round(selected.co_cost)?' <span style="color:var(--warn)">⚠ غير متطابق</span>':'');
+  $('co-list').innerHTML=arr.map(c=>`<div class="co-item"><div class="t"><b>أمر تغيير ${esc(c.no)||'—'} · ${esc(c.d)||'—'}</b><span class="st s-${esc(c.s)}">${esc(c.s)}</span></div>
+    <div class="r">المبلغ: <span class="num">${fmt(c.a)}</span> د.ع · المدة: ${c.days??'—'} يوم${c.ref?' · كتاب المصادقة: '+esc(c.ref):''}</div>
+    ${c.r?`<div class="r">${esc(c.r)}</div>`:''}
+    <div class="acts"><button class="btn ghost" data-e="${esc(c.id)}">تعديل</button><button class="btn danger" data-x="${esc(c.id)}">حذف</button></div></div>`).join('')||'<p class="muted">لا توجد أوامر تغيير مسجّلة لهذا المشروع.</p>';
+  $('co-list').querySelectorAll('[data-e]').forEach(b=>b.onclick=()=>coStartEdit(b.dataset.e));
+  $('co-list').querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>coDelete(b.dataset.x));
+}
+function coReset(){
+  coEdit=null; ['co-no','co-a','co-days','co-ref','co-r'].forEach(id=>$(id).value='');
+  $('co-d').value=new Date().toISOString().slice(0,10); $('co-s').value='مقترح';
+  $('co-ftitle').textContent='إضافة أمر تغيير جديد'; $('co-cancel').classList.add('hidden');
+}
+function coStartEdit(id){
+  const c=(cos[photoKey(selected)]||[]).find(x=>x.id===id); if(!c) return;
+  coEdit=id; $('co-no').value=c.no||''; $('co-d').value=c.d||''; $('co-a').value=c.a??''; $('co-days').value=c.days??'';
+  $('co-s').value=c.s||'مقترح'; $('co-ref').value=c.ref||''; $('co-r').value=c.r||'';
+  $('co-ftitle').textContent='تعديل أمر التغيير '+(c.no||''); $('co-cancel').classList.remove('hidden');
+  $('co-ftitle').scrollIntoView({behavior:'smooth',block:'center'});
+}
+$('co-cancel').onclick=coReset;
+$('co-save').onclick=async()=>{
+  if(!selected) return;
+  const a=parseNum($('co-a').value), days=parseNum($('co-days').value);
+  if(a===null||Number.isNaN(a)){ log('أدخل مبلغ أمر التغيير بالأرقام.','err'); $('co-a').focus(); return; }
+  if(Number.isNaN(days)){ log('المدة الإضافية يجب أن تكون رقماً.','err'); $('co-days').focus(); return; }
+  const rec={no:$('co-no').value.trim(),d:$('co-d').value,a,days,s:$('co-s').value,ref:$('co-ref').value.trim(),r:$('co-r').value.trim()};
+  const key=photoKey(selected); $('co-save').disabled=true;
+  try{
+    await loadCos(); // أحدث نسخة وsha قبل التعديل
+    cos[key]=cos[key]||[];
+    if(coEdit){
+      const i=cos[key].findIndex(x=>x.id===coEdit);
+      if(i<0) throw new Error('لم يُعثر على الأمر (ربما حُذف من جهاز آخر)');
+      cos[key][i]={...cos[key][i],...rec};
+    } else cos[key].push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),...rec});
+    await saveCos(`${coEdit?'تعديل':'إضافة'} أمر تغيير ${rec.no} — ${selected.name}`);
+    log(`تم حفظ أمر التغيير ${rec.no||''}. سيظهر في الموقع خلال دقيقة إلى ثلاث دقائق.`,'ok');
+    coReset(); renderCos(); renderList();
+  }catch(e){ log('تعذر حفظ أمر التغيير: '+e.message,'err'); }
+  finally{ $('co-save').disabled=false; }
+};
+async function coDelete(id){
+  if(!confirm('حذف أمر التغيير هذا من السجل؟')) return;
+  const key=photoKey(selected);
+  try{
+    await loadCos();
+    cos[key]=(cos[key]||[]).filter(x=>x.id!==id); if(!cos[key].length) delete cos[key];
+    await saveCos(`حذف أمر تغيير — ${selected.name}`);
+    log('تم حذف أمر التغيير.','ok'); if(coEdit===id) coReset(); renderCos(); renderList();
+  }catch(e){ log('تعذر الحذف: '+e.message,'err'); }
 }
 
 /* ---- queue & compress ---- */

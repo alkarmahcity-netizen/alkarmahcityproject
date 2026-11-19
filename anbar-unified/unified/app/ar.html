@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>الأرشيف والتوزيع</title>
+<style>
+:root{--bg:#030a14;--pn:rgba(6,20,42,.72);--bd:rgba(56,232,255,.28);--cy:#38e8ff;--gr:#3dffa8;--am:#ffc23d;--rd:#ff4d6a;--tx:#cfefff;--mu:#7f9fb8}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--tx);font-family:"Segoe UI",Tahoma,Arial,sans-serif;font-size:14px}
+body{background:radial-gradient(ellipse at 50% 30%,#0a2244 0%,#030a14 70%);min-height:100vh}
+body:before{content:"";position:fixed;inset:0;pointer-events:none;background:linear-gradient(rgba(56,232,255,.04) 1px,transparent 1px) 0 0/100% 34px,linear-gradient(90deg,rgba(56,232,255,.04) 1px,transparent 1px) 0 0/34px 100%}
+.wrap{position:relative;padding:12px 14px 20px}
+header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;border:1px solid var(--bd);background:linear-gradient(90deg,rgba(56,232,255,.10),rgba(56,232,255,.02));padding:8px 14px;border-radius:4px}
+header img{width:44px;height:44px;object-fit:contain;filter:drop-shadow(0 0 8px rgba(56,232,255,.55))}
+header h1{margin:0;font-size:19px;color:#e9fbff;text-shadow:0 0 12px rgba(56,232,255,.7)}header small{display:block;color:var(--mu);font-size:11px;letter-spacing:2px;font-family:Consolas,monospace;direction:ltr;text-align:right}
+.sp{flex:1}.clk{font-family:Consolas,monospace;font-size:19px;color:var(--cy);text-shadow:0 0 10px rgba(56,232,255,.8);direction:ltr}
+select,input,textarea,button{font:inherit;color:var(--tx)}
+select,input,textarea{background:rgba(3,10,20,.7);border:1px solid rgba(56,232,255,.3);border-radius:4px;padding:6px 8px}
+select option{background:#06142a}
+textarea{resize:vertical;min-height:54px}
+.b{background:rgba(56,232,255,.1);border:1px solid rgba(56,232,255,.4);border-radius:4px;padding:6px 12px;cursor:pointer}.b:hover{background:rgba(56,232,255,.2)}
+.b.pri{background:linear-gradient(180deg,#0fb5d6,#0a7f9b);border-color:#38e8ff;color:#fff;font-weight:700}.b.ok{border-color:var(--gr);color:var(--gr)}.b.bad{border-color:var(--rd);color:var(--rd)}.b:disabled{opacity:.45;cursor:default}
+.kpi{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:10px 0}
+.k{border:1px solid var(--bd);background:rgba(56,232,255,.06);padding:9px 12px;border-radius:4px}.k b{display:block;font-size:22px;color:#fff;font-family:Consolas,monospace;text-shadow:0 0 12px rgba(56,232,255,.6)}.k span{font-size:11.5px;color:var(--mu)}
+.g{display:grid;grid-template-columns:330px 1fr 360px;gap:10px;align-items:start}
+.p{border:1px solid var(--bd);background:var(--pn);border-radius:4px;padding:11px}
+.p h2{margin:0 0 9px;font-size:13px;color:var(--cy);display:flex;align-items:center;gap:8px}.p h2:after{content:"";flex:1;height:1px;background:linear-gradient(90deg,rgba(56,232,255,.3),transparent)}
+.f{display:flex;flex-direction:column;gap:3px;margin-bottom:7px;min-width:0}.f input,.f select,.f textarea{width:100%;min-width:0}.f>span{font-size:12px;color:var(--mu)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.drop{border:1.5px dashed rgba(56,232,255,.45);border-radius:6px;padding:12px;text-align:center;color:var(--mu);font-size:12.5px;cursor:pointer}.drop.on{background:rgba(56,232,255,.12);color:#fff}
+.files{display:flex;flex-direction:column;gap:4px;margin-top:6px}.fl{display:flex;gap:6px;align-items:center;font-size:12.5px;background:rgba(56,232,255,.06);padding:4px 7px;border-radius:4px}.fl span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.fl a{cursor:pointer;color:var(--cy)}
+.boxes{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px}
+.box{position:relative;border:1px solid rgba(56,232,255,.35);border-radius:8px;padding:12px 10px 10px;background:linear-gradient(180deg,rgba(14,111,143,.25),rgba(6,20,42,.8));cursor:pointer;transition:transform .15s,box-shadow .15s;min-height:128px;user-select:none}
+.box:hover{transform:translateY(-2px);box-shadow:0 0 16px rgba(56,232,255,.35)}
+.box.sel{border-color:var(--am);box-shadow:0 0 0 2px rgba(255,194,61,.5) inset}
+.box.over{border-color:var(--gr);box-shadow:0 0 22px rgba(61,255,168,.6);transform:scale(1.04)}
+.box.mine{border-color:var(--gr)}
+.box .ic{width:58px;height:46px;margin:0 auto 6px;position:relative}
+.box .ic .bx{position:absolute;inset:14px 4px 0;background:linear-gradient(180deg,#c99a55,#9b6b2d);border-radius:2px 2px 4px 4px;box-shadow:0 0 10px rgba(255,194,61,.25)}
+.box .ic .lid{position:absolute;left:0;right:0;top:6px;height:10px;background:linear-gradient(180deg,#e0b56d,#b4823f);border-radius:3px;transform-origin:right bottom;transition:transform .35s}
+.box .ic .tape{position:absolute;left:26px;width:6px;top:6px;bottom:0;background:rgba(255,255,255,.35)}
+.box.over .lid,.box.eat .lid{transform:rotate(-38deg) translateY(-4px)}
+.box h3{margin:0;font-size:13px;text-align:center;color:#e9fbff;line-height:1.35}
+.box .ct{display:flex;justify-content:center;gap:8px;margin-top:6px;font-size:11.5px;color:var(--mu)}
+.box .nw{position:absolute;top:6px;left:6px;background:var(--rd);color:#fff;border-radius:10px;padding:0 7px;font-size:12px;font-weight:700;box-shadow:0 0 10px rgba(255,77,106,.8);animation:pl 1.6s infinite}
+@keyframes pl{50%{box-shadow:0 0 2px rgba(255,77,106,.4)}}
+.box .me{position:absolute;top:6px;right:6px;font-size:10.5px;color:var(--gr);border:1px solid var(--gr);border-radius:8px;padding:0 6px}
+.dist-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0 0}
+.list{display:flex;flex-direction:column;gap:7px;max-height:calc(100vh - 310px);overflow:auto;padding-left:2px}
+.doc{border:1px solid rgba(56,232,255,.25);border-right:3px solid var(--cy);border-radius:5px;padding:8px 10px;background:rgba(3,10,20,.55);cursor:grab}
+.doc:hover{background:rgba(56,232,255,.08)}.doc.cur{border-color:var(--am);border-right-color:var(--am)}
+.doc .t{font-weight:700;color:#fff;font-size:13px;line-height:1.4}.doc .m{font-size:11.5px;color:var(--mu);display:flex;gap:8px;flex-wrap:wrap;margin-top:3px}
+.doc .chips{display:flex;gap:4px;flex-wrap:wrap;margin-top:5px}.chip{font-size:10.5px;padding:0 6px;border-radius:8px;border:1px solid rgba(56,232,255,.35);color:#bfe9f7}.chip.rc{border-color:var(--gr);color:var(--gr)}.chip.pd{border-color:var(--am);color:var(--am)}
+.kind{font-size:10.5px;padding:0 6px;border-radius:3px;background:rgba(56,232,255,.15);color:var(--cy)}
+.fly{position:fixed;z-index:50;pointer-events:none;transition:transform .7s cubic-bezier(.5,-.3,.6,1),opacity .7s;border:1px solid var(--cy);background:rgba(6,20,42,.95);color:#fff;padding:6px 10px;border-radius:5px;font-size:12px;box-shadow:0 0 18px rgba(56,232,255,.7)}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:flex-start;justify-content:center;z-index:40;padding:30px 12px;overflow:auto}
+.ov[hidden]{display:none}
+.dlg{width:min(860px,100%);border:1px solid var(--bd);background:#06142a;border-radius:6px;padding:16px;box-shadow:0 0 40px rgba(56,232,255,.25)}
+.dlg h3{margin:0 0 10px;color:var(--cy)}
+table{width:100%;border-collapse:collapse;font-size:12.5px}th{color:var(--mu);font-weight:400;text-align:right;border-bottom:1px solid var(--bd);padding:5px}td{padding:6px 5px;border-bottom:1px solid rgba(56,232,255,.1)}
+.mu{color:var(--mu)}.gr{color:var(--gr)}.am{color:var(--am)}
+#toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%) translateY(80px);background:#0a2a44;border:1px solid var(--cy);color:#fff;padding:9px 16px;border-radius:6px;transition:transform .3s;z-index:60}#toast.on{transform:translateX(-50%) translateY(0)}#toast.bad{border-color:var(--rd)}
+.fil{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}.fil input{flex:1;min-width:120px}
+@media (max-width:1250px){.g{grid-template-columns:1fr}.list{max-height:none}.kpi{grid-template-columns:repeat(2,1fr)}}
+@media print{body{background:#fff;color:#000}body:before,.wrap>*:not(#printArea){display:none!important}#printArea{display:block!important;color:#000}}
+#printArea{display:none}
+.login{position:fixed;inset:0;z-index:45;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 35%,#0a2244 0%,#030a14 75%)}.login[hidden]{display:none}
+.login .lg{width:min(420px,92vw);border:1px solid var(--bd);background:rgba(6,20,42,.9);border-radius:8px;padding:22px;text-align:center;box-shadow:0 0 40px rgba(56,232,255,.25)}
+.login img{width:72px;filter:drop-shadow(0 0 10px rgba(56,232,255,.6))}.login h2{margin:8px 0 4px;color:#e9fbff}.login .f{text-align:right}.err{color:var(--rd);min-height:1.2em;font-size:12.5px;margin:8px 0 0}
+.role{border:1px solid var(--gr);color:var(--gr);border-radius:12px;padding:2px 10px;font-size:12.5px}
+body.role-box .dept-only{display:none!important}body:not(.role-box) .box-only{display:none!important}body.role-box .g{display:block}
+#myP{margin-top:10px}
+.doc .fn{color:#1f4d33;font-weight:600}
+tr.grp td{background:#eef5f0;font-weight:700;color:#1f4d33;border-top:2px solid #b9d4c0}
+.mvov{position:fixed;inset:0;background:#0006;z-index:200;display:flex;align-items:center;justify-content:center}
+.mvbox{background:#fff;color:#14201a;border-radius:12px;padding:16px 20px;width:min(560px,94vw);box-shadow:0 10px 40px #0005}
+.mvbox h3{margin:0 0 6px}.mvbox label{display:flex;flex-direction:column;gap:3px;margin:8px 0;font-size:13.5px}
+.mvr{display:flex;gap:10px}.mvr label{flex:1}.mvinfo{margin:8px 0;padding:8px;border-radius:8px;background:#f4f8f5;min-height:20px}
+body.role-box #bMove,body.role-box #bDirSend{display:none}
+.mvbox .b:not(.pri){color:#14201a!important;background:#f3f6f8!important;border:1px solid #b9c6cf!important;opacity:1!important}.mvbox .b:disabled{opacity:.55!important}.mvbox select,.mvbox input:not([type=radio]){color:#14201a;background:#fff;border:1px solid #b9c6cf}
+.drlist{max-height:150px;overflow:auto;margin:6px 0;font-size:12.5px}.drlist .fl{display:flex;justify-content:space-between;gap:8px;padding:2px 0;border-bottom:1px dashed #ddd}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header><img src="../shell/logo.png" alt="شعار محافظة الأنبار">
+ <div><h1>الأرشيف الإلكتروني وتوزيع الكتب</h1><small>ENGINEERING AFFAIRS · DIGITAL ARCHIVE &amp; DISTRIBUTION</small></div>
+ <span class="sp"></span>
+ <span class="role" id="roleTag"></span><button class="b" id="bBoxes" title="إضافة صناديق وإدارة كلمات السر">⚙ الصناديق وكلمات السر</button><button class="b" id="bOut" title="قفل الأرشيف (تُطلب كلمة السر)">🔒 خروج</button>
+ <span class="clk" id="clk"></span>
+</header>
+<section class="kpi" id="kpi"></section>
+<div class="g">
+ <section class="p dept-only" id="formP"><h2>تسجيل كتاب في الأرشيف</h2>
+  <div class="f"><span>استيراد من «المخاطبات» (اختياري)</span><select id="fromLt"><option value="">— اختر كتاباً من المخاطبات —</option></select></div>
+  <div class="row2"><div class="f"><span>النوع</span><select id="fKind"></select></div><div class="f"><span>الاتجاه</span><select id="fDir"><option>صادر</option><option>وارد</option><option>داخلي</option></select></div></div>
+  <div class="row2"><div class="f"><span>العدد</span><input id="fNo" placeholder="مثال: 1234"></div><div class="f"><span>التاريخ</span><input id="fDate" type="date"></div></div>
+  <div class="f"><span>الموضوع</span><input id="fSub" placeholder="موضوع الكتاب"></div>
+  <div class="f"><span>رقم اضبارة المشروع (اختياري)</span><input id="fFile" list="projList" placeholder="مثال: 52" autocomplete="off"><small class="mu" id="fFileNm"></small></div><datalist id="projList"></datalist>
+  <div class="f"><span>الجهة (المرسِلة أو المرسَل إليها)</span><input id="fParty" list="parties"></div><datalist id="parties"></datalist>
+  <div class="f"><span>ملاحظات / هامش</span><textarea id="fNotes"></textarea></div>
+  <div class="drop" id="drop">📎 اسحب ملفات الكتاب هنا (PDF أو صور أو Word) أو انقر للاختيار</div>
+  <div class="files" id="fFiles"></div>
+  <div class="dist-bar"><button class="b pri" id="bSave">💾 حفظ في الأرشيف</button><button class="b" id="bClear">جديد</button></div>
+  <p class="mu" style="font-size:11.5px;margin:8px 0 0">بعد الحفظ اسحب بطاقة الكتاب إلى صندوق اللجنة، أو حدّد عدة صناديق ثم «توزيع على المحدد».</p>
+ </section>
+ <section class="dept-only" id="boxesP">
+  <div class="p"><h2>صناديق اللجان</h2><div class="boxes" id="boxes"></div>
+   <div class="dist-bar"><button class="b pri" id="bDist" disabled>📤 توزيع الكتاب المحدد على الصناديق المحددة</button><button class="b" id="bSelAll">تحديد الكل</button><button class="b" id="bSelNone">إلغاء التحديد</button><span class="mu" id="selInfo" style="font-size:12px"></span></div>
+   <p class="mu" style="font-size:11.5px;margin:6px 0 0">نقرة على الصندوق تفتح محتواه • Ctrl + نقرة (أو الزر الأيمن) لتحديد عدة صناديق • اسحب بطاقة الكتاب وأفلتها على الصندوق لتوزيعه.</p></div>
+ </section>
+ <section class="p dept-only" id="listP"><h2>الأرشيف</h2>
+  <div class="fil"><input id="q" placeholder="بحث: العدد، الموضوع، الجهة، رقم الأرشيف، رقم الاضبارة..."><button class="b" id="bMove" type="button" title="نقل كل كتب اضبارة مشروع (مع مرفقاتها) إلى رقم اضبارة آخر — للجنة واحدة أو لكل اللجان">📁 نقل اضبارة</button><button class="b" id="bDirSend" type="button" title="اختيار مجلد اضبارة من هذه الحاسبة وإرسال كل ملفاته إلى صندوق لجنة برقم اضبارة المشروع">📂 إرسال مجلد اضبارة</button><select id="qBox"><option value="">كل الصناديق</option></select><select id="qSt"><option value="">الكل</option><option value="nd">غير موزّع</option><option value="pd">بانتظار الاستلام</option><option value="rc">مستلم بالكامل</option></select></div>
+  <div class="list" id="list"></div>
+ </section>
+</div>
+</div>
+<section class="p box-only" id="myP"></section>
+<div class="ov" id="ov" hidden><div class="dlg" id="dlg"></div></div>
+<div class="login" id="login"><div class="lg">
+ <img src="../shell/logo.png" alt="شعار محافظة الأنبار"><h2>الأرشيف الإلكتروني وتوزيع الكتب</h2><p class="mu">اختر الصندوق وأدخل كلمة السر. حاسبة الأرشيف ترى كل الصناديق، وكل لجنة ترى صندوقها فقط.</p>
+ <div class="f"><span>الدخول إلى</span><select id="lgBox"></select></div>
+ <div id="lgIn"><div class="f"><span>كلمة السر</span><input id="lgPw" type="password" autocomplete="off"></div><button class="b pri" id="lgGo" style="width:100%">دخول</button></div>
+ <div id="lgNew" hidden><p class="am" style="font-size:12.5px;margin:0 0 6px" id="lgNewMsg"></p>
+  <div class="f"><span>كلمة السر الجديدة (8 أحرف على الأقل)</span><input id="lgN1" type="text" autocomplete="off" style="direction:ltr;text-align:center;font-family:Consolas,monospace"></div>
+  <div class="f"><span>تأكيد كلمة السر</span><input id="lgN2" type="text" autocomplete="off" style="direction:ltr;text-align:center;font-family:Consolas,monospace"></div>
+  <div class="dist-bar"><button class="b" id="lgGen">🎲 توليد كلمة سر</button><button class="b pri" id="lgSet">حفظ والدخول</button></div>
+  <p class="mu" style="font-size:11.5px">احفظ كلمة السر عند رئيس اللجنة. إن نُسيت يعيد تعيينها مسؤول الأرشيف من «الصناديق وكلمات السر».</p></div>
+ <p class="err" id="lgErr"></p></div></div>
+<div id="printArea"></div>
+<div id="toast" role="status"></div>
+<script>
+(function(){
+'use strict';
+const DESK=window.desktop||null,$=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
+const dmy=s=>{if(!s)return '';const p=String(s).slice(0,10).split('-');return p.length===3?`${+p[2]}/${+p[1]}/${p[0]}`:s;};
+const tm=t=>{if(!t)return '';const d=new Date(t);return d.toLocaleDateString('en-GB')+' '+d.toLocaleTimeString('en-GB').slice(0,5);};
+let tt=null;const flash=(m,bad)=>{const t=$('toast');t.textContent=m;t.className='on'+(bad?' bad':'');clearTimeout(tt);tt=setTimeout(()=>t.className='',bad?4500:2600);};
+/* اللجان (صناديق التوزيع) — المعرّفات ثابتة لتتطابق بين الأجهزة */
+const DEF_BOXES=[['madad','لجنة المدد'],['co','لجنة أوامر التغيير'],['adv','لجنة السلف'],['ramadi','لجنة الرمادي'],['falluja','لجنة الفلوجة والعامرية والصقلاوية'],['karma','لجنة الكرمة'],['qaim','لجنة القائم والرمانة'],['haditha','لجنة حديثة والبغدادي'],['ana','لجنة عنه وراوة'],['univ','لجنة الجامعات المستحدثة'],['rutba','لجنة الرطبة والنخيب'],['habbaniya','لجنة الحبانية']];
+let BOXES=DEF_BOXES.slice(),BN=Object.fromEntries(BOXES);
+/* صناديق يضيفها القسم: سجلات box تُزامَن إلى كل الأجهزة */
+function refreshBoxes(){const extra=DB.records.filter(r=>r&&r.type==='box'&&!r.removed).sort((a,b)=>(a.created||0)-(b.created||0)).map(r=>[r.key,r.name]);
+  BOXES=DEF_BOXES.concat(extra.filter(([k])=>!DEF_BOXES.some(d=>d[0]===k)));BN=Object.fromEntries(BOXES);BN.dept='القسم الهندسي (الأرشيف)';}
+const DOCS=()=>DB.records.filter(r=>r&&!r.type);
+const KINDS=['كتاب رسمي','أمر إداري','مطالعة','تعميم','محضر','أخرى'];
+const LS='anbar_archive_v1';
+let DB={app:'anbar-archive',version:1,records:[],settings:{}},cur=null,sel=new Set(),pendFiles=[],draftId=uid();
+function load(){try{let s=DESK?DESK.load():localStorage.getItem(LS);if(s){const d=JSON.parse(s);DB.records=Array.isArray(d.records)?d.records:[];DB.settings=d.settings||{};}}catch(_){}}
+let saveT=null;
+function persist(){const t=JSON.stringify({app:'anbar-archive',version:1,saved:new Date().toISOString(),records:DB.records,settings:DB.settings});try{if(DESK)DESK.save(t);else localStorage.setItem(LS,t);}catch(_){}}
+window.addEventListener('beforeunload',()=>{try{if(DESK&&DESK.saveSync)DESK.saveSync(JSON.stringify({app:'anbar-archive',version:1,saved:new Date().toISOString(),records:DB.records,settings:DB.settings}));}catch(_){}});
+const device=()=>{try{return DESK&&DESK.deviceName?DESK.deviceName():'';}catch(_){return '';}};
+let ROLE=null;const myBox=()=>ROLE||'none';
+/* ---------- كلمات السر: بصمة PBKDF2 (لا تُحفظ كلمة السر نفسها)، وسجل auth_<الصندوق> يُزامَن ليعمل الدخول على أي جهاز ---------- */
+const hex=b=>[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
+async function pwHash(pw,salt){const k=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveBits']);return hex(await crypto.subtle.deriveBits({name:'PBKDF2',salt:new TextEncoder().encode(salt),iterations:120000,hash:'SHA-256'},k,256));}
+const authOf=b=>DB.records.find(r=>r&&r.type==='auth'&&r.box===b&&!r.removed);
+function genPw(){const A='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';const v=new Uint32Array(10);crypto.getRandomValues(v);return [...v].map(x=>A[x%A.length]).join('').replace(/(.{5})/,'$1-');}
+let fails=0,waitUntil=0;
+function lgShow(){$('login').hidden=false;const s=$('lgBox'),cur=(DB.settings.dev&&DB.settings.dev.box)||'dept';
+  s.innerHTML=`<option value="dept">القسم الهندسي — حاسبة الأرشيف</option>`+BOXES.map(([k,n])=>`<option value="${k}">${esc(n)}</option>`).join('');s.value=BN[cur]||cur==='dept'?cur:'dept';lgMode();setTimeout(()=>($('lgIn').hidden?$('lgN1'):$('lgPw')).focus(),60);}
+function lgMode(){const b=$('lgBox').value,a=authOf(b);$('lgErr').textContent='';$('lgPw').value='';$('lgN1').value='';$('lgN2').value='';
+  $('lgIn').hidden=!a;$('lgNew').hidden=!!a;$('lgNewMsg').textContent=b==='dept'?'لم تُضبط كلمة سر حاسبة الأرشيف بعد: أنشئها الآن (يبقى الأرشيف مفتوحاً للجميع حتى تُضبط).':'لم تُضبط كلمة سر هذا الصندوق بعد: ينشئها رئيس اللجنة الآن.';}
+async function enter(b,hash){ROLE=b;DB.settings.dev={box:b,tok:hash};DB.settings.me=b;persist();$('login').hidden=true;applyRole();touchIdle();
+  if(b!=='dept'){try{if(DESK&&DESK.syncMode&&DESK.syncMode()==='client'){const keep=DOCS().filter(r=>r.dist&&r.dist[b]);const drop=DOCS().length-keep.length;if(drop){DB.records=DB.records.filter(r=>r.type||(r.dist&&r.dist[b]));persist();}if(DESK.archPurge)await DESK.archPurge(keep.map(r=>r.id));}}catch(_){}}
+  renderAll();flash('مرحباً — '+(BN[b]||b));}
+$('lgBox').onchange=lgMode;
+$('lgGo').onclick=async()=>{const b=$('lgBox').value,a=authOf(b),pw=$('lgPw').value;if(Date.now()<waitUntil){$('lgErr').textContent='محاولات كثيرة خاطئة، انتظر قليلاً';return;}if(!a||!pw)return;
+  const h=await pwHash(pw,a.salt);if(h!==a.hash){fails++;if(fails>=5){fails=0;waitUntil=Date.now()+30000;}$('lgErr').textContent='كلمة السر غير صحيحة';$('lgPw').value='';$('lgPw').focus();return;}fails=0;enter(b,h);};
+$('lgPw').addEventListener('keydown',e=>{if(e.key==='Enter')$('lgGo').click();});
+$('lgGen').onclick=()=>{const p=genPw();$('lgN1').value=p;$('lgN2').value=p;};
+$('lgSet').onclick=async()=>{const b=$('lgBox').value,p1=$('lgN1').value.trim(),p2=$('lgN2').value.trim();if(authOf(b)){lgMode();return;}
+  if(p1.length<8){$('lgErr').textContent='كلمة السر 8 أحرف على الأقل';return;}if(p1!==p2){$('lgErr').textContent='كلمتا السر غير متطابقتين';return;}
+  const salt=uid()+uid(),h=await pwHash(p1,salt),id='auth_'+b,now=Date.now();DB.records=DB.records.filter(r=>r.id!==id);DB.records.push({id,type:'auth',box:b,salt,hash:h,created:now,updated:now,by:device()});persist();enter(b,h);};
+function logout(){ROLE=null;sel.clear();cur=null;$('ov').hidden=true;document.body.classList.remove('role-box');lgShow();}
+let idleT=null;function touchIdle(){clearTimeout(idleT);idleT=setTimeout(()=>{if(ROLE){logout();flash('أُقفل الأرشيف بعد 15 دقيقة بلا استعمال');}},15*60*1000);}
+['mousedown','keydown','wheel'].forEach(ev=>document.addEventListener(ev,()=>{if(ROLE)touchIdle();},{passive:true}));
+function applyRole(){document.body.classList.toggle('role-box',ROLE&&ROLE!=='dept');$('roleTag').textContent=ROLE?(ROLE==='dept'?'🗄 حاسبة الأرشيف — كل الصناديق':'📦 '+(BN[ROLE]||ROLE)):'';$('bBoxes').hidden=ROLE!=='dept';}
+const R=id=>DB.records.find(r=>r.id===id&&!r.type);
+function serialNext(){const y=String(new Date().getFullYear());let m=0;DOCS().forEach(r=>{const s=String(r.serial||'');if(s.startsWith(y+'-'))m=Math.max(m,+s.slice(5)||0);});return y+'-'+String(m+1).padStart(4,'0');}
+function stOf(r){const ks=Object.keys(r.dist||{});if(!ks.length)return 'nd';return ks.every(k=>r.dist[k].recvAt)?'rc':'pd';}
+/* ---------- الواجهة ---------- */
+function renderKpi(){const rs=ROLE&&ROLE!=='dept'?DOCS().filter(r=>r.dist&&r.dist[ROLE]):DOCS(),t=today();let pend=0,rec=0;rs.forEach(r=>Object.values(r.dist||{}).forEach(d=>{if(d.recvAt)rec++;else pend++;}));
+  const mine=myBox()!=='dept'?rs.filter(r=>r.dist&&r.dist[myBox()]&&!r.dist[myBox()].recvAt).length:null;
+  const K=[[rs.length,'كتب في الأرشيف'],[rs.filter(r=>String(r.created?new Date(r.created).toISOString():'').slice(0,10)===t).length,'أُرشفت اليوم'],[pend,'توزيعات بانتظار الاستلام'],[rec,'توزيعات مستلمة'],[mine==null?rs.filter(r=>stOf(r)==='nd').length:mine,mine==null?'كتب لم توزّع بعد':'جديد في صندوقي']];
+  $('kpi').innerHTML=K.map(k=>`<div class="k"><b>${k[0]}</b><span>${k[1]}</span></div>`).join('');}
+function boxStats(k){let nw=0,all=0;DOCS().forEach(r=>{const d=r.dist&&r.dist[k];if(d){all++;if(!d.recvAt)nw++;}});return {nw,all};}
+function renderBoxes(){$('boxes').innerHTML=BOXES.map(([k,n])=>{const s=boxStats(k);return `<div class="box${sel.has(k)?' sel':''}${myBox()===k?' mine':''}" data-k="${k}" tabindex="0" role="button" aria-label="${esc(n)}">${s.nw?`<span class="nw" title="بانتظار الاستلام">${s.nw}</span>`:''}${myBox()===k?'<span class="me">صندوقي</span>':''}
+   <div class="ic"><div class="bx"></div><div class="lid"></div><div class="tape"></div></div><h3>${esc(n)}</h3><div class="ct"><span>الكل ${s.all}</span><span>${s.nw?'<b class="am">جديد '+s.nw+'</b>':'لا جديد'}</span></div></div>`;}).join('');
+  $('qBox').innerHTML='<option value="">كل الصناديق</option>'+BOXES.map(([k,n])=>`<option value="${k}">${esc(n)}</option>`).join('');$('qBox').value=window.__qBox||'';
+  updDistBtn();}
+function updDistBtn(){const r=cur&&R(cur);$('bDist').disabled=!(r&&sel.size);$('selInfo').textContent=sel.size?`محدد: ${sel.size} صندوق${r?' — الكتاب: '+(r.subject||r.no||r.serial):' — اختر كتاباً من الأرشيف'}`:'';}
+function docHtml(r){const ds=Object.entries(r.dist||{});return `<div class="doc${cur===r.id?' cur':''}" draggable="true" data-id="${r.id}"><div class="t">${esc(r.subject||'بلا موضوع')}</div>
+  <div class="m"><span class="kind">${esc(r.kind||'')} · ${esc(r.dir||'')}</span><span>العدد ${esc(r.no||'—')}</span><span>${dmy(r.date)}</span><span>أرشيف ${esc(r.serial||'')}</span>${(r.files||[]).length?`<span>📎 ${(r.files||[]).length}</span>`:''}</div>
+  ${r.party?`<div class="m"><span>${esc(r.party)}</span></div>`:''}${fnOf(r)?`<div class="m"><span class="fn">📁 ${esc(fnLabel(fnOf(r)))}</span></div>`:''}
+  <div class="chips">${ds.length?ds.map(([k,d])=>`<span class="chip ${d.recvAt?'rc':'pd'}" title="${d.recvAt?'استُلم '+tm(d.recvAt)+(d.recvBy?' — '+esc(d.recvBy):''):'أُرسل '+tm(d.at)}">${d.recvAt?'✔ ':'⏳ '}${esc((BN[k]||k).replace('لجنة ',''))}</span>`).join(''):'<span class="chip">غير موزّع</span>'}</div></div>`;}
+function renderList(){const q=($('q').value||'').trim().toLowerCase(),bx=$('qBox').value,st=$('qSt').value;
+  let L=DOCS().slice().sort((a,b)=>(b.created||0)-(a.created||0));
+  if(q)L=L.filter(r=>[r.no,r.subject,r.party,r.serial,r.notes,r.kind,r.fileNo?'اضبارة '+r.fileNo:'',r.fileNo||''].join(' ').toLowerCase().includes(q));
+  if(bx)L=L.filter(r=>r.dist&&r.dist[bx]);if(st)L=L.filter(r=>stOf(r)===st);
+  $('list').innerHTML=L.slice(0,300).map(docHtml).join('')||'<p class="mu">لا توجد كتب.</p>';}
+function renderAll(){refreshBoxes();if(!ROLE)return;renderKpi();if(ROLE==='dept'){renderBoxes();renderList();}else renderMy();}
+function renderMy(){$('myP').innerHTML=boxHtml(ROLE,true);}
+/* ---------- تسجيل كتاب ---------- */
+function fillLt(){const s=$('fromLt');let L=[];try{const t=DESK&&DESK.peek?DESK.peek('lt'):null;if(t)L=(JSON.parse(t).records||[]);}catch(_){}
+  L=L.filter(r=>r&&(r.subject||r.no)).sort((a,b)=>(b.updated||0)-(a.updated||0)).slice(0,150);window.__lt=L;
+  s.innerHTML='<option value="">— اختر كتاباً من المخاطبات —</option>'+L.map((r,i)=>`<option value="${i}">${esc((r.no?r.no+' — ':'')+(r.subject||r.to||'بلا موضوع'))}</option>`).join('');}
+function clearForm(){draftId=uid();pendFiles=[];['fNo','fSub','fParty','fNotes','fFile'].forEach(i=>{if($(i))$(i).value='';});if($('fFileNm'))$('fFileNm').textContent='';$('fDate').value=today();$('fKind').value=KINDS[0];$('fDir').value='صادر';$('fromLt').value='';renderPend();}
+function renderPend(){$('fFiles').innerHTML=pendFiles.map((f,i)=>`<div class="fl"><span>📄 ${esc(f.name)}</span><small class="mu">${Math.max(1,Math.round(f.size/1024))} ك.ب</small><a data-rm="${i}" title="حذف">✕</a></div>`).join('');}
+async function addFiles(list){for(const f of list){if(f.size>100*1024*1024){flash('الملف '+f.name+' أكبر من 100 ميغابايت',true);continue;}
+  if(DESK&&DESK.archPut){const r=await DESK.archPut(draftId,f.name,new Uint8Array(await f.arrayBuffer()));if(r&&!r.error)pendFiles.push(r);else flash('تعذّر إضافة '+f.name,true);}}renderPend();}
+$('drop').onclick=async()=>{if(!DESK||!DESK.archPick)return;const r=await DESK.archPick(draftId);(r||[]).forEach(x=>{if(x.error)flash(x.name+': '+x.error,true);else pendFiles.push(x);});renderPend();};
+$('drop').addEventListener('dragover',e=>{if([...(e.dataTransfer.types||[])].includes('Files')){e.preventDefault();$('drop').classList.add('on');}});
+$('drop').addEventListener('dragleave',()=>$('drop').classList.remove('on'));
+$('drop').addEventListener('drop',e=>{e.preventDefault();$('drop').classList.remove('on');addFiles([...e.dataTransfer.files]);});
+$('fFiles').onclick=e=>{const a=e.target.closest('[data-rm]');if(!a)return;const f=pendFiles.splice(+a.dataset.rm,1)[0];if(f&&DESK&&DESK.archDel)DESK.archDel(draftId,f.name);renderPend();};
+$('fromLt').onchange=()=>{const r=(window.__lt||[])[+$('fromLt').value];if(!r)return;$('fNo').value=r.no||'';$('fDate').value=r.date||today();$('fSub').value=r.subject||'';$('fParty').value=r.to||'';
+  $('fKind').value=r.type==='order'?'أمر إداري':r.type==='memo'?'مطالعة':'كتاب رسمي';$('fDir').value='صادر';flash('تم ملء البيانات من المخاطبات — أرفق نسخة الكتاب الموقّعة (PDF) ثم احفظ');};
+$('bClear').onclick=clearForm;
+$('bSave').onclick=()=>{const sub=$('fSub').value.trim(),no=$('fNo').value.trim();if(!sub&&!no){flash('اكتب العدد أو الموضوع',true);return;}
+  const now=Date.now(),r={id:draftId,serial:serialNext(),kind:$('fKind').value,dir:$('fDir').value,no,date:$('fDate').value,subject:sub,party:$('fParty').value.trim(),notes:$('fNotes').value.trim(),fileNo:normFn($('fFile').value),files:pendFiles.slice(),dist:{},created:now,updated:now,by:device()};
+  DB.records.push(r);const P=DB.settings.parties=(DB.settings.parties||[]);if(r.party&&!P.includes(r.party))P.unshift(r.party);DB.settings.parties=P.slice(0,200);
+  persist();cur=r.id;clearForm();fillParties();renderAll();flash('حُفظ في الأرشيف برقم '+r.serial+' — اسحبه الآن إلى صناديق اللجان');};
+/* ---------- رقم اضبارة المشروع، وعرض كتب كل لجنة حسب الاضبارة، ونقل اضبارة كاملة إلى رقم آخر ---------- */
+let PRJ=null;
+function projs(){if(PRJ)return PRJ;PRJ={};try{const t=DESK&&DESK.regLoad?DESK.regLoad():null;const st=t?JSON.parse(t):null;((st&&st.projects)||[]).forEach(p=>{if(p&&p.fileNo!=null&&String(p.fileNo).trim())PRJ[String(p.fileNo).trim()]=String(p.name||'');});}catch(_){}return PRJ;}
+const normFn=v=>String(v==null?'':v).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/\s*[—–-].*$/,'').trim().slice(0,30);
+const fnOf=r=>String(r&&r.fileNo||'').trim();
+const fnLabel=fn=>fn?('اضبارة '+fn+(projs()[fn]?' — '+projs()[fn]:'')):'';
+function fillProj(){const P=projs(),el=$('projList');if(el)el.innerHTML=Object.keys(P).slice(0,4000).map(k=>`<option value="${esc(k)}">${esc(P[k])}</option>`).join('');}
+/* كتب الصندوق مجمّعة حسب الاضبارة: المجموعة الأحدث أولاً، والكتب بلا رقم في آخرها */
+function groupByFn(L){if(!L.some(fnOf))return L;const ord=[],by={};L.forEach(r=>{const g=fnOf(r);if(!(g in by)){by[g]=[];ord.push(g);}by[g].push(r);});ord.sort((a,b)=>(a==='')-(b===''));return ord.flatMap(g=>by[g]);}
+function moveDlg(k){const isDept=ROLE==='dept';if(!isDept&&ROLE!==k){flash('لا تملك صلاحية النقل في هذا الصندوق',true);return;}
+  let ov=$('mvOv');if(ov)ov.remove();ov=document.createElement('div');ov.id='mvOv';ov.className='mvov';
+  const boxOpts=isDept?`<option value="">كل اللجان (كل الكتب)</option>`+BOXES.map(([b,n])=>`<option value="${b}"${b===k?' selected':''}>${esc(n)}</option>`).join(''):`<option value="${k}">${esc(BN[k]||k)}</option>`;
+  ov.innerHTML=`<div class="mvbox" role="dialog" aria-label="نقل اضبارة"><h3>📁 نقل اضبارة كاملة</h3>
+   <p class="mu">تُنقل كل كتب الاضبارة مع مرفقاتها وتوزيعها واستلامها كما هي، ويُسجّل النقل في تفاصيل كل كتاب. لا يُحذف شيء.</p>
+   <label>اللجنة <select id="mvBox">${boxOpts}</select></label>
+   <div class="mvr"><label>من الاضبارة <input id="mvFrom" list="projList" placeholder="مثال: 52" autocomplete="off"></label><label>إلى الاضبارة <input id="mvTo" list="projList" placeholder="مثال: 50" autocomplete="off"></label></div>
+   <div id="mvInfo" class="mvinfo mu">اكتب رقم الاضبارة الحالية والجديدة.</div>
+   <div class="dist-bar"><button class="b pri" id="mvGo" disabled>نقل</button><button class="b" id="mvNo">إلغاء</button></div></div>`;
+  document.body.appendChild(ov);fillProj();
+  const pick=()=>{const b=$('mvBox').value,f=normFn($('mvFrom').value);return DOCS().filter(r=>fnOf(r)===f&&f&&(!b||(r.dist&&r.dist[b])));};
+  const upd=()=>{const f=normFn($('mvFrom').value),t=normFn($('mvTo').value),L=pick(),nf=L.reduce((a,r)=>a+(r.files||[]).length,0);
+    $('mvInfo').innerHTML=!f?'اكتب رقم الاضبارة الحالية والجديدة.':`<b>${esc(fnLabel(f))}</b>: ${L.length} كتاب، ${nf} مرفق${t?` ← <b>${esc(fnLabel(t))}</b>${projs()[t]||!Object.keys(projs()).length?'':' <span class="am">(رقم غير موجود في الموقف)</span>'}`:''}${t&&t===f?' <span class="am">— الرقمان متطابقان</span>':''}`;
+    $('mvGo').disabled=!(L.length&&t&&t!==f);};
+  ov.addEventListener('input',upd);ov.addEventListener('change',upd);
+  $('mvNo').onclick=()=>ov.remove();ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
+  $('mvGo').onclick=()=>{const f=normFn($('mvFrom').value),t=normFn($('mvTo').value),b=$('mvBox').value,L=pick();if(!L.length||!t||t===f)return;
+    if(!confirm(`نقل ${L.length} كتاب من ${fnLabel(f)} إلى ${fnLabel(t)}${b?' في '+(BN[b]||b):' (كل اللجان)'}؟`))return;
+    const now=Date.now(),by=device();L.forEach(r=>{r.fileNo=t;r.moves=(r.moves||[]).concat([{from:f,to:t,at:now,by,box:b}]);r.updated=now;});
+    persist();ov.remove();renderAll();if(!$('ov').hidden&&b)openBox(b);flash(`نُقل ${L.length} كتاب إلى ${fnLabel(t)}`);};
+  setTimeout(()=>$('mvFrom').focus(),30);}
+/* إرسال مجلد اضبارة كامل من حاسبة الأرشيف إلى صندوق لجنة برقم اضبارة المشروع: كل ملف كتاباً مستقلاً (افتراضي) أو كل المجلد كتاباً واحداً */
+function dirDlg(k){if(ROLE!=='dept'){flash('إرسال المجلدات من حاسبة الأرشيف (القسم) فقط',true);return;}if(!DESK||!DESK.archPickDir){flash('متاح في برنامج الحاسبة فقط',true);return;}
+  let ov=$('dirOv');if(ov)ov.remove();ov=document.createElement('div');ov.id='dirOv';ov.className='mvov';let picked=null,busy=false;
+  ov.innerHTML=`<div class="mvbox" role="dialog" aria-label="إرسال مجلد اضبارة"><h3>📂 إرسال مجلد اضبارة إلى صندوق لجنة</h3>
+   <p class="mu">اختر مجلد الاضبارة من هذه الحاسبة (مثلاً مجلد «52»): تُنسخ كل ملفاته (PDF والصور وWord وExcel، والمجلدات الفرعية) إلى الأرشيف وتُرسل إلى صندوق اللجنة برقم الاضبارة. الملفات الأصلية لا تُمس.</p>
+   <div class="dist-bar" style="justify-content:flex-start"><button class="b pri" id="drPick">📂 اختيار المجلد…</button><span id="drName" class="mu"></span></div>
+   <div id="drList" class="drlist"></div>
+   <label>اللجنة (الصندوق) <select id="drBox">${BOXES.map(([b,n])=>`<option value="${b}"${b===k?' selected':''}>${esc(n)}</option>`).join('')}</select></label>
+   <div class="mvr"><label>رقم اضبارة المشروع <input id="drFn" list="projList" placeholder="مثال: 52" autocomplete="off"></label><label>نوع الكتب <select id="drKind">${KINDS.map(x=>`<option>${esc(x)}</option>`).join('')}</select></label></div>
+   <div class="mvr" style="flex-direction:column;gap:2px"><label style="flex-direction:row;align-items:center;gap:6px;margin:2px 0"><input type="radio" name="drMode" value="each" checked style="width:auto"> كل ملف كتاباً مستقلاً في الأرشيف (موضوعه اسم الملف)</label>
+     <label style="flex-direction:row;align-items:center;gap:6px;margin:2px 0"><input type="radio" name="drMode" value="one" style="width:auto"> كل المجلد كتاباً واحداً بكل ملفاته</label></div>
+   <div id="drInfo" class="mvinfo mu">اختر المجلد أولاً.</div>
+   <div class="dist-bar"><button class="b pri" id="drGo" disabled>إرسال إلى الصندوق</button><button class="b" id="drNo">إغلاق</button></div></div>`;
+  document.body.appendChild(ov);fillProj();
+  const kb=n=>n>1048576?(n/1048576).toFixed(1)+' م.ب':Math.max(1,Math.round(n/1024))+' ك.ب';
+  const upd=()=>{const fn=normFn($('drFn').value),ok=picked&&picked.files.filter(f=>!f.big);
+    $('drInfo').innerHTML=!picked?'اختر المجلد أولاً.':!ok.length?'<span class="am">لا ملفات صالحة في المجلد.</span>':`سيُرسل <b>${ok.length}</b> ملف (${kb(ok.reduce((a,f)=>a+f.size,0))}) إلى <b>${esc(BN[$('drBox').value]||'')}</b>${fn?' — '+esc(fnLabel(fn)):' — <span class="am">اكتب رقم الاضبارة</span>'}${picked.files.length>ok.length?` <span class="am">(${picked.files.length-ok.length} أكبر من 100 م.ب لن يُرسل)</span>`:''}`;
+    $('drGo').disabled=busy||!(ok&&ok.length&&fn);};
+  ov.addEventListener('input',upd);ov.addEventListener('change',upd);
+  $('drNo').onclick=()=>{if(!busy)ov.remove();};
+  $('drPick').onclick=async()=>{const r=await DESK.archPickDir();if(!r)return;picked=r;$('drName').textContent=`«${r.name}» — ${r.count} ملف${r.more?' (أول 500)':''}`;
+    $('drList').innerHTML=r.files.slice(0,8).map(f=>`<div class="fl"><span>📄 ${esc(f.rel)}</span><small class="mu">${kb(f.size)}${f.big?' — كبير جداً':''}</small></div>`).join('')+(r.files.length>8?`<div class="mu">… و${r.files.length-8} ملف آخر</div>`:'');
+    const m=String(r.name).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).match(/\d+/);if(m&&!$('drFn').value)$('drFn').value=m[0];upd();};
+  $('drGo').onclick=async()=>{const fn=normFn($('drFn').value),box=$('drBox').value,kind=$('drKind').value,one=ov.querySelector('[name=drMode]:checked').value==='one',L=picked.files.filter(f=>!f.big);if(!L.length||!fn)return;
+    if(!confirm(`إرسال ${L.length} ملف${one?' ككتاب واحد':' (كل ملف كتاباً)'} إلى ${BN[box]} — ${fnLabel(fn)}؟`))return;
+    busy=true;upd();const now=Date.now(),by=device(),made=[];let errs=0;
+    const mk=(sub,files)=>({id:uid(),serial:serialNext(),kind,dir:'وارد',no:'',date:today(),subject:sub,party:'',notes:'أُرسل من مجلد «'+picked.name+'» على حاسبة الأرشيف',fileNo:fn,files,dist:{[box]:{at:now,by}},created:now,updated:now,by});
+    if(one){const r=mk('اضبارة '+fn+(projs()[fn]?' — '+projs()[fn]:'')+' (مجلد «'+picked.name+'»)',[]);DB.records.push(r);made.push(r);
+      for(let i=0;i<L.length;i++){$('drInfo').textContent=`جارٍ النسخ ${i+1} / ${L.length}…`;const x=await DESK.archImportPicked(r.id,L[i].key);if(x&&!x.error)r.files.push(x);else errs++;}}
+    else for(let i=0;i<L.length;i++){$('drInfo').textContent=`جارٍ النسخ ${i+1} / ${L.length}…`;const r=mk(L[i].rel.replace(/\.[^.]+$/,'').replace(/[\\/]+/g,' — '),[]);DB.records.push(r);
+      const x=await DESK.archImportPicked(r.id,L[i].key);if(x&&!x.error){r.files.push(x);made.push(r);}else{errs++;DB.records.pop();}}
+    persist();busy=false;ov.remove();renderAll();if(!$('ov').hidden)openBox(box);
+    flash(`أُرسل ${one?'كتاب واحد بـ '+made[0].files.length+' ملف':made.length+' كتاب'} إلى ${BN[box]} — ${fnLabel(fn)}${errs?` (تعذّر ${errs} ملف)`:''}`,!!errs);};
+}
+function fillParties(){$('parties').innerHTML=(DB.settings.parties||[]).map(p=>`<option value="${esc(p)}">`).join('');}
+/* ---------- التوزيع ---------- */
+function distribute(id,keys,fromEl){const r=R(id);if(!r)return;const now=Date.now(),by=device();let n=0;r.dist=r.dist||{};
+  keys.forEach(k=>{if(!r.dist[k]){r.dist[k]={at:now,by};n++;}});if(r.distRemoved)r.distRemoved=r.distRemoved.filter(k=>!keys.includes(k));if(!n){flash('الكتاب موجود مسبقاً في الصندوق المحدد',true);return;}
+  r.updated=now;persist();keys.forEach((k,i)=>setTimeout(()=>flyTo(fromEl,k,r),i*120));setTimeout(renderAll,keys.length*120+750);flash(`وُزّع على ${n} صندوق`);}
+function flyTo(fromEl,k,r){const box=document.querySelector(`.box[data-k="${k}"]`);if(!box)return;const a=(fromEl||document.querySelector(`.doc[data-id="${r.id}"]`)||box).getBoundingClientRect(),b=box.getBoundingClientRect();
+  const f=document.createElement('div');f.className='fly';f.textContent='📄 '+(r.subject||r.no||'كتاب');f.style.left=a.left+'px';f.style.top=a.top+'px';document.body.appendChild(f);
+  box.classList.add('eat');requestAnimationFrame(()=>{f.style.transform=`translate(${b.left+b.width/2-a.left-40}px,${b.top+20-a.top}px) scale(.35)`;f.style.opacity='.2';});
+  setTimeout(()=>{f.remove();box.classList.remove('eat');},760);}
+$('list').addEventListener('dragstart',e=>{const d=e.target.closest('.doc');if(!d)return;e.dataTransfer.setData('text/anbar-doc',d.dataset.id);e.dataTransfer.effectAllowed='copy';});
+$('list').onclick=e=>{const d=e.target.closest('.doc');if(!d)return;cur=d.dataset.id;renderList();updDistBtn();openDoc(cur);};
+$('boxes').addEventListener('dragover',e=>{const b=e.target.closest('.box');if(!b||![...(e.dataTransfer.types||[])].includes('text/anbar-doc'))return;e.preventDefault();document.querySelectorAll('.box.over').forEach(x=>x!==b&&x.classList.remove('over'));b.classList.add('over');});
+$('boxes').addEventListener('dragleave',e=>{const b=e.target.closest('.box');if(b&&!b.contains(e.relatedTarget))b.classList.remove('over');});
+$('boxes').addEventListener('drop',e=>{const b=e.target.closest('.box');if(!b)return;e.preventDefault();b.classList.remove('over');const id=e.dataTransfer.getData('text/anbar-doc');if(id){cur=id;distribute(id,[b.dataset.k],document.querySelector(`.doc[data-id="${id}"]`));}});
+$('boxes').onclick=e=>{const b=e.target.closest('.box');if(!b)return;
+  if(e.ctrlKey||e.shiftKey){sel.has(b.dataset.k)?sel.delete(b.dataset.k):sel.add(b.dataset.k);renderBoxes();return;}openBox(b.dataset.k);};
+$('boxes').addEventListener('contextmenu',e=>{const b=e.target.closest('.box');if(!b)return;e.preventDefault();sel.has(b.dataset.k)?sel.delete(b.dataset.k):sel.add(b.dataset.k);renderBoxes();});
+$('bSelAll').onclick=()=>{BOXES.forEach(([k])=>sel.add(k));renderBoxes();};$('bSelNone').onclick=()=>{sel.clear();renderBoxes();};
+$('bDist').onclick=()=>{if(cur&&sel.size){distribute(cur,[...sel]);sel.clear();setTimeout(renderBoxes,900);}};
+/* ---------- صندوق لجنة ---------- */
+function openBox(k){if(ROLE!=='dept'&&ROLE!==k){flash('لا تملك صلاحية فتح هذا الصندوق',true);return;}$('dlg').innerHTML=boxHtml(k,false);$('ov').hidden=false;}
+/* صندوق اللجنة يُعرض أضابيرَ مرقّمة لا كتباً متفرقة: كل اضبارة ملف واحد برقمها، تُفتح فتُرى كتبها، وتُستلم كاملة بزر واحد.
+   البيانات نفسها (توزيع كل كتاب واستلامه) — فالمزامنة وحاسبة الأرشيف لا يتغير فيهما شيء */
+const FOPEN={},FQ={};
+const fnKey=g=>g===''?'—':g;
+function boxGroups(k){const L=DOCS().filter(r=>r.dist&&r.dist[k]),by={};
+  L.forEach(r=>{const g=fnOf(r);(by[g]=by[g]||[]).push(r);});
+  return Object.keys(by).map(g=>{const D=by[g].sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))||(a.created||0)-(b.created||0));
+    const last=Math.max(...D.map(r=>r.dist[k].at||0)),nw=D.filter(r=>!r.dist[k].recvAt).length,rc=D.filter(r=>r.dist[k].recvAt).map(r=>r.dist[k].recvAt);
+    return {g,docs:D,last,nw,nf:D.reduce((a,r)=>a+(r.files||[]).length,0),recvAt:rc.length?Math.max(...rc):0};})
+   .sort((a,b)=>(a.g==='')-(b.g==='')||(b.nw>0)-(a.nw>0)||b.last-a.last);}
+function boxHtml(k,inline){const mine=ROLE===k||ROLE==='dept',G=boxGroups(k),all=G.reduce((a,x)=>a+x.docs.length,0),nwAll=G.reduce((a,x)=>a+x.nw,0);
+  const foot=`<div class="dist-bar" style="justify-content:flex-start"><label class="mu">اسم المستلِم: <input id="rcvName" value="${esc(DB.settings.rcvName||'')}" placeholder="اسم من يستلم في اللجنة"></label><span class="sp"></span>${mine?`<button class="b" data-mv="${k}" title="نقل كل كتب اضبارة في هذا الصندوق إلى رقم اضبارة آخر">📁 نقل اضبارة</button>`:''}${ROLE==='dept'?`<button class="b" data-dirsend="${k}" title="إرسال مجلد اضبارة من هذه الحاسبة إلى هذا الصندوق">📂 إرسال مجلد اضبارة</button>`:''}${inline?'':'<button class="b" data-x>إغلاق</button>'}</div>`;
+  const of=FOPEN[k];
+  if(of!=null){const x=G.find(y=>y.g===of);if(!x){delete FOPEN[k];return boxHtml(k,inline);}
+    return `<h3>📁 ${x.g?esc(fnLabel(x.g)):'كتب بلا رقم اضبارة'} <small class="mu">— ${esc(BN[k])} (${x.docs.length} كتاب، ${x.nf} مرفق${x.nw?`، الجديد ${x.nw}`:''})</small></h3>
+     <div class="dist-bar" style="justify-content:flex-start;margin:4px 0 8px"><button class="b" data-fnback="${k}">→ كل الأضابير</button>
+      ${x.nw&&mine?`<button class="b ok" data-recvfn="${esc(fnKey(x.g))}" data-k="${k}">✔ استلام الاضبارة (${x.nw} كتاب جديد)</button>`:x.nw?'':`<span class="gr">✔ الاضبارة مستلمة كاملة${x.recvAt?' — آخر استلام '+tm(x.recvAt):''}</span>`}
+      <button class="b" data-fnslip="${esc(fnKey(x.g))}" data-k="${k}">🖨 وصل استلام الاضبارة</button>${DESK&&DESK.archExportFn?`<button class="b" data-fnsave="${esc(fnKey(x.g))}" data-k="${k}" title="نسخ كل ملفات الاضبارة إلى مجلد على هذه الحاسبة باسم «اضبارة ${esc(x.g||'')}» مرتبة بالتسلسل">💾 حفظ الاضبارة على الحاسبة</button>`:''}</div>
+     <table><thead><tr><th>ت</th><th>الكتاب</th><th>العدد والتاريخ</th><th>أُرسل</th><th>الاستلام</th><th></th></tr></thead><tbody>
+     ${x.docs.map((r,i)=>{const d=r.dist[k];return `<tr><td>${i+1}</td><td><b>${esc(r.subject||'')}</b><br><small class="mu">${esc(r.kind||'')} — أرشيف ${esc(r.serial)}</small></td><td>${esc(r.no||'—')}<br><small class="mu">${dmy(r.date)}</small></td><td><small>${tm(d.at)}</small></td>
+       <td>${d.recvAt?`<span class="gr">✔ ${tm(d.recvAt)}</span><br><small class="mu">${esc(d.recvBy||'')}</small>`:'<span class="am">⏳ جديد</span>'}</td>
+       <td style="white-space:nowrap">${(r.files||[]).map(f=>`<button class="b" data-open="${r.id}" data-f="${esc(f.name)}" title="${esc(f.name)}">📄</button>`).join(' ')} <button class="b" data-doc="${r.id}">التفاصيل</button></td></tr>`;}).join('')}</tbody></table>${foot}`;}
+  const q=String(FQ[k]||'').trim();
+  return `<h3>📦 ${esc(BN[k])} <small class="mu">(${G.filter(x=>x.g).length} اضبارة، ${all} كتاب${nwAll?`، الجديد ${nwAll}`:''})</small></h3>
+   <div class="dist-bar" style="justify-content:flex-start;margin:4px 0 8px"><input id="fnQ" data-fnq="${k}" value="${esc(q)}" placeholder="🔍 ابحث برقم الاضبارة أو اسم المشروع" style="min-width:260px"></div>
+   <table><thead><tr><th>الاضبارة</th><th>المشروع</th><th>الكتب</th><th>آخر إرسال</th><th>الاستلام</th><th></th></tr></thead><tbody id="fnRows">
+   ${G.map(x=>{const nm=x.g?(projs()[x.g]||''):'';return `<tr class="fnrow" data-q="${esc((x.g+' '+nm).toLowerCase())}"${q&&!(x.g+' '+nm).toLowerCase().includes(q.toLowerCase())?' hidden':''}><td><b>📁 ${x.g?esc(x.g):'بلا رقم'}</b></td><td>${esc(nm)||'<span class="mu">—</span>'}</td><td>${x.docs.length}<small class="mu"> كتاب، ${x.nf} مرفق</small></td><td><small>${tm(x.last)}</small></td>
+     <td>${x.nw?`<span class="am">⏳ ${x.nw} جديد</span>`:`<span class="gr">✔ مستلمة</span>`}</td>
+     <td style="white-space:nowrap"><button class="b" data-fnopen="${esc(fnKey(x.g))}" data-k="${k}">فتح الاضبارة</button>${x.nw&&mine?` <button class="b ok" data-recvfn="${esc(fnKey(x.g))}" data-k="${k}">✔ استلام الاضبارة</button>`:''}</td></tr>`;}).join('')||'<tr><td colspan="6" class="mu">الصندوق فارغ.</td></tr>'}</tbody></table>${foot}`;}
+const fnFrom=v=>v==='—'?'':v;
+function rerenderBox(k){if(!$('ov').hidden&&$('dlg').querySelector('[data-fnback],[data-fnq]'))openBox(k);if(ROLE===k)renderMy();}
+function receiveFn(fn,k){const g=fnFrom(fn),nm=($('rcvName')&&$('rcvName').value.trim())||'';if(!nm){flash('اكتب اسم المستلِم أولاً',true);$('rcvName')&&$('rcvName').focus();return;}
+  const L=DOCS().filter(r=>r.dist&&r.dist[k]&&!r.dist[k].recvAt&&fnOf(r)===g);if(!L.length)return;
+  const now=Date.now(),by=nm+(device()?' ('+device()+')':'');DB.settings.rcvName=nm;L.forEach(r=>{r.dist[k].recvAt=now;r.dist[k].recvBy=by;r.updated=now;});
+  persist();renderAll();rerenderBox(k);flash(`تم استلام ${g?fnLabel(g):'الكتب بلا رقم اضبارة'} — ${L.length} كتاب`);}
+/* حفظ الاضبارة على الحاسبة: مجلد باسم «اضبارة <رقم> — المشروع» فيه كل ملفات كتبها مرقّمة بالتسلسل (01 - الموضوع - اسم الملف) */
+async function fnSave(fn,k){const g=fnFrom(fn),x=boxGroups(k).find(y=>y.g===g);if(!x||!DESK||!DESK.archExportFn)return;
+  const items=[];x.docs.forEach((r,i)=>(r.files||[]).forEach(f=>items.push({rec:r.id,name:f.name,out:`${String(i+1).padStart(2,'0')} - ${String(r.subject||r.no||'كتاب').slice(0,60)} - ${f.name}`})));
+  if(!items.length){flash('لا توجد ملفات مرفقة في هذه الاضبارة',true);return;}
+  const res=await DESK.archExportFn(g?fnLabel(g):'كتب بلا رقم اضبارة',items);if(!res||res.canceled)return;
+  if(!res.ok){flash('تعذّر حفظ الاضبارة',true);return;}
+  flash(`حُفظت ${g?fnLabel(g):'الكتب بلا رقم اضبارة'}: ${res.n} ملف في «${res.dir}»${res.missing&&res.missing.length?` — ${res.missing.length} ملف لم يصل بعد إلى هذه الحاسبة (انتظر المزامنة ثم أعد الحفظ)`:''}`,!!(res.missing&&res.missing.length));}
+function fnSlip(fn,k){const g=fnFrom(fn),x=boxGroups(k).find(y=>y.g===g);if(!x)return;
+  $('printArea').innerHTML=`<div style="font-family:'Simplified Arabic',Arial;padding:20mm;direction:rtl"><h2 style="text-align:center">وصل استلام اضبارة — قسم الشؤون الهندسية</h2>
+   <p>الاضبارة: <b>${g?esc(fnLabel(g)):'كتب بلا رقم اضبارة'}</b></p><p>الصندوق: <b>${esc(BN[k]||k)}</b> — عدد الكتب: <b>${x.docs.length}</b> — عدد المرفقات: <b>${x.nf}</b></p>
+   <table style="width:100%;border-collapse:collapse" border="1" cellpadding="6"><tr><th>ت</th><th>رقم الأرشيف</th><th>العدد</th><th>التاريخ</th><th>الموضوع</th><th>تاريخ الاستلام</th><th>المستلِم</th></tr>${x.docs.map((r,i)=>{const d=r.dist[k];return `<tr><td>${i+1}</td><td>${esc(r.serial)}</td><td>${esc(r.no||'')}</td><td>${dmy(r.date)}</td><td>${esc(r.subject||'')}</td><td>${d.recvAt?tm(d.recvAt):'لم يُستلم'}</td><td>${esc(d.recvBy||'')}</td></tr>`;}).join('')}</table>
+   <p style="margin-top:18mm">توقيع المستلِم: ..............................</p></div>`;
+  setTimeout(()=>{try{window.print();}catch(_){}},60);}
+function receive(id,k){const r=R(id);if(!r||!r.dist||!r.dist[k])return;const nm=($('rcvName')&&$('rcvName').value.trim())||'';if(!nm){flash('اكتب اسم المستلِم أولاً',true);$('rcvName')&&$('rcvName').focus();return;}
+  DB.settings.rcvName=nm;r.dist[k].recvAt=Date.now();r.dist[k].recvBy=nm+(device()?' ('+device()+')':'');r.updated=Date.now();persist();renderAll();if(!$('ov').hidden)openBox(k);flash('تم تسجيل الاستلام');}
+/* ---------- تفاصيل كتاب ---------- */
+function openDoc(id){const r=R(id);if(!r)return;const ds=Object.entries(r.dist||{});
+  $('dlg').innerHTML=`<h3>📄 ${esc(r.subject||'كتاب')}</h3>
+   <table><tbody><tr><th>رقم الأرشيف</th><td>${esc(r.serial)}</td><th>النوع</th><td>${esc(r.kind)} — ${esc(r.dir)}</td></tr><tr><th>العدد</th><td>${esc(r.no||'—')}</td><th>التاريخ</th><td>${dmy(r.date)}</td></tr>
+   <tr><th>الجهة</th><td colspan="3">${esc(r.party||'—')}</td></tr><tr><th>الاضبارة</th><td colspan="3">${ROLE==='dept'?`<input id="dFn" list="projList" value="${esc(fnOf(r))}" placeholder="رقم الاضبارة" style="width:9em"> <button class="b" data-setfn="${r.id}">حفظ</button> `:''}<span class="mu">${esc(fnLabel(fnOf(r))||'—')}</span>${(r.moves||[]).length?`<br><small class="mu">نُقلت: ${(r.moves||[]).map(m=>esc(m.from+' ← '+m.to+' ('+tm(m.at)+')')).join('، ')}</small>`:''}</td></tr>${r.notes?`<tr><th>ملاحظات</th><td colspan="3">${esc(r.notes).replace(/\n/g,'<br>')}</td></tr>`:''}<tr><th>أُرشف</th><td colspan="3">${tm(r.created)}${r.by?' — '+esc(r.by):''}</td></tr></tbody></table>
+   <h3 style="margin-top:12px">المرفقات</h3><div class="files">${(r.files||[]).map(f=>{const has=DESK&&DESK.archHas?DESK.archHas(r.id,f.name):true;return `<div class="fl"><span>📄 ${esc(f.name)}</span>${has?`<a data-open="${r.id}" data-f="${esc(f.name)}">فتح</a> <a data-show="${r.id}" data-f="${esc(f.name)}">في المجلد</a>`:'<small class="am">يصل مع المزامنة...</small>'}</div>`;}).join('')||'<p class="mu">لا مرفقات.</p>'}</div>
+   ${ROLE==='dept'?`<div class="dist-bar"><button class="b" data-addf="${r.id}">📎 إضافة مرفق</button></div>`:''}
+   <h3 style="margin-top:12px">التوزيع</h3><table><thead><tr><th>الصندوق</th><th>أُرسل</th><th>الاستلام</th><th></th></tr></thead><tbody>${ds.map(([k,d])=>`<tr><td>${esc(BN[k]||k)}</td><td><small>${tm(d.at)}</small></td><td>${d.recvAt?`<span class="gr">✔ ${tm(d.recvAt)}</span> <small class="mu">${esc(d.recvBy||'')}</small>`:'<span class="am">⏳ لم يُستلم</span>'}</td><td>${!d.recvAt&&myBox()==='dept'?`<button class="b bad" data-undist="${r.id}" data-k="${k}">سحب</button>`:''}</td></tr>`).join('')||'<tr><td colspan="4" class="mu">لم يوزّع بعد — اسحب البطاقة إلى صندوق اللجنة.</td></tr>'}</tbody></table>
+   <div class="dist-bar"><button class="b" data-print="${r.id}">🖨 طباعة وصل التوزيع</button>${myBox()==='dept'?`<button class="b bad" data-delrec="${r.id}">حذف من الأرشيف</button>`:''}<span class="sp" style="flex:1"></span><button class="b" data-x>إغلاق</button></div>`;
+  $('ov').hidden=false;}
+function printSlip(id){const r=R(id);if(!r)return;const ds=Object.entries(r.dist||{});
+  $('printArea').innerHTML=`<div style="font-family:'Simplified Arabic',Arial;padding:20mm;direction:rtl"><h2 style="text-align:center">وصل توزيع كتاب — قسم الشؤون الهندسية</h2>
+   <p>رقم الأرشيف: <b>${esc(r.serial)}</b> — العدد: <b>${esc(r.no||'')}</b> — التاريخ: <b>${dmy(r.date)}</b></p><p>الموضوع: <b>${esc(r.subject||'')}</b></p><p>الجهة: ${esc(r.party||'')}</p>
+   <table style="width:100%;border-collapse:collapse" border="1" cellpadding="6"><tr><th>اللجنة</th><th>تاريخ الإرسال</th><th>تاريخ الاستلام</th><th>المستلِم</th></tr>${ds.map(([k,d])=>`<tr><td>${esc(BN[k]||k)}</td><td>${tm(d.at)}</td><td>${d.recvAt?tm(d.recvAt):''}</td><td>${esc(d.recvBy||'')}</td></tr>`).join('')}</table></div>`;
+  setTimeout(()=>{try{window.print();}catch(_){}},60);}
+const act=async e=>{const t=e.target.closest('button,a');if(!t)return;const D=t.dataset;
+  if('x' in D){$('ov').hidden=true;return;}
+  if(D.recv)return receive(D.recv,D.k);
+  if(D.fnopen!=null){FOPEN[D.k]=fnFrom(D.fnopen);ROLE===D.k&&$('ov').hidden?renderMy():openBox(D.k);return;}
+  if(D.fnback!=null){delete FOPEN[D.fnback];ROLE===D.fnback&&$('ov').hidden?renderMy():openBox(D.fnback);return;}
+  if(D.recvfn!=null)return receiveFn(D.recvfn,D.k);
+  if(D.fnslip!=null)return fnSlip(D.fnslip,D.k);
+  if(D.fnsave!=null)return fnSave(D.fnsave,D.k);
+  if(D.open){const r=DESK&&DESK.archOpen?await DESK.archOpen(D.open,D.f):'bad';if(r==='missing')flash('الملف لم يصل بعد إلى هذا الجهاز — انتظر المزامنة',true);else if(r!=='ok')flash('تعذّر فتح الملف: '+r,true);return;}
+  if(D.show){DESK&&DESK.archShow&&DESK.archShow(D.show,D.f);return;}
+  if(D.doc)return openDoc(D.doc);
+  if(D.mv!=null)return moveDlg(D.mv);
+  if(D.dirsend!=null)return dirDlg(D.dirsend);
+  if(D.setfn){const r=R(D.setfn);if(!r)return;const v=normFn($('dFn').value);if(v===fnOf(r))return;const old=fnOf(r);r.fileNo=v;if(old)r.moves=(r.moves||[]).concat([{from:old,to:v||'—',at:Date.now(),by:device(),box:''}]);r.updated=Date.now();persist();renderAll();openDoc(r.id);flash(v?'رُبط الكتاب بالاضبارة '+v:'أُزيل رقم الاضبارة');return;}
+  if(D.addf){const r=R(D.addf);const got=DESK&&DESK.archPick?await DESK.archPick(r.id):[];(got||[]).forEach(x=>{if(!x.error){r.files=(r.files||[]).concat([x]);}});r.updated=Date.now();persist();openDoc(r.id);renderList();return;}
+  if(D.undist){const r=R(D.undist);if(r&&r.dist&&confirm('سحب الكتاب من '+(BN[D.k]||D.k)+'؟')){delete r.dist[D.k];r.distRemoved=[...new Set([...(r.distRemoved||[]),D.k])];r.updated=Date.now();persist();renderAll();openDoc(r.id);}return;}
+  if(D.delrec){if(!confirm('حذف الكتاب من الأرشيف نهائياً؟'))return;DB.records=DB.records.filter(x=>x.id!==D.delrec);try{DESK&&DESK.tomb&&DESK.tomb(D.delrec);}catch(_){}persist();$('ov').hidden=true;cur=null;renderAll();return;}
+  if(D.print)return printSlip(D.print);
+  if(D.deptpw!=null){const r=$('deptPwRow');if(r){r.hidden=!r.hidden;$('dpOld').focus();}return;}
+  if(D.deptpwsave!=null){const a=authOf('dept'),o=$('dpOld').value,n1=$('dpN1').value,n2=$('dpN2').value;if(!a)return;
+    if(await pwHash(o,a.salt)!==a.hash){flash('كلمة السر الحالية غير صحيحة',true);return;}if(n1.length<8||n1!==n2){flash('الجديدة 8 أحرف على الأقل ومتطابقة مع التأكيد',true);return;}
+    const salt=uid()+uid(),h=await pwHash(n1,salt);a.salt=salt;a.hash=h;a.updated=Date.now();DB.settings.dev={box:'dept',tok:h};persist();boxesDlg();flash('تم تغيير كلمة سر حاسبة الأرشيف');return;}
+  if(D.boxadd!=null)return boxAdd();if(D.boxrst)return boxReset(D.boxrst);if(D.boxdel)return boxDel(D.boxdel);};
+$('dlg').onclick=act;$('myP').onclick=act;
+/* البحث برقم الاضبارة داخل الصندوق: إخفاء الصفوف دون إعادة رسم (يبقى المؤشر في الخانة) */
+const fnFilter=e=>{const t=e.target;if(!t||t.dataset.fnq==null)return;FQ[t.dataset.fnq]=t.value;const q=t.value.trim().toLowerCase();t.closest('div').parentElement.querySelectorAll('tr.fnrow').forEach(tr=>{tr.hidden=!!q&&!tr.dataset.q.includes(q);});};
+$('dlg').addEventListener('input',fnFilter);$('myP').addEventListener('input',fnFilter);
+$('ov').onclick=e=>{if(e.target===$('ov'))$('ov').hidden=true;};
+document.addEventListener('keydown',e=>{if(e.key==='Escape')$('ov').hidden=true;});
+/* ---------- إدارة الصناديق (حاسبة الأرشيف فقط) ---------- */
+function boxesDlg(){if(ROLE!=='dept')return;$('dlg').innerHTML=`<h3>⚙ الصناديق وكلمات السر</h3>
+  <table><thead><tr><th>الصندوق</th><th>كلمة السر</th><th>الكتب</th><th></th></tr></thead><tbody>
+  <tr><td><b>القسم الهندسي — حاسبة الأرشيف</b></td><td>${authOf('dept')?'<span class="gr">✔ مضبوطة</span>':'<span class="am">غير مضبوطة</span>'}</td><td>الكل</td><td><button class="b" data-deptpw>تغيير كلمة السر</button></td></tr>
+  <tr id="deptPwRow" hidden><td colspan="4"><div class="dist-bar"><input id="dpOld" type="password" placeholder="كلمة السر الحالية"><input id="dpN1" type="password" placeholder="الجديدة (8 أحرف على الأقل)"><input id="dpN2" type="password" placeholder="تأكيد الجديدة"><button class="b pri" data-deptpwsave>حفظ</button></div></td></tr>
+  ${BOXES.map(([k,n])=>{const st=boxStats(k),custom=!DEF_BOXES.some(d=>d[0]===k);return `<tr><td>${esc(n)}${custom?' <small class="mu">(مضاف)</small>':''}</td><td>${authOf(k)?'<span class="gr">✔ مضبوطة</span>':'<span class="am">لم يضعها رئيس اللجنة بعد</span>'}</td><td>${st.all}</td>
+   <td style="white-space:nowrap">${authOf(k)?`<button class="b" data-boxrst="${k}">إعادة تعيين</button>`:''} ${custom&&!st.all?`<button class="b bad" data-boxdel="${k}">حذف</button>`:''}</td></tr>`;}).join('')}</tbody></table>
+  <div class="dist-bar"><input id="nbName" placeholder="اسم الصندوق الجديد، مثلاً: لجنة الاستلام النهائي" style="flex:1"><button class="b pri" data-boxadd>＋ إضافة صندوق</button></div>
+  <p class="mu" style="font-size:11.5px">«إعادة تعيين» تمسح كلمة سر الصندوق، فيضع رئيس اللجنة كلمة جديدة عند الدخول التالي. الصندوق المضاف يظهر في كل الحاسبات بعد المزامنة.</p>
+  <div class="dist-bar"><span class="sp" style="flex:1"></span><button class="b" data-x>إغلاق</button></div>`;$('ov').hidden=false;}
+function boxAdd(){const n=($('nbName').value||'').trim();if(n.length<3){flash('اكتب اسم الصندوق',true);return;}if(BOXES.some(b=>b[1]===n)){flash('يوجد صندوق بهذا الاسم',true);return;}
+  const key='x'+uid().slice(-8),now=Date.now();DB.records.push({id:'box_'+key,type:'box',key,name:n,created:now,updated:now,by:device()});persist();refreshBoxes();renderAll();boxesDlg();flash('أُضيف الصندوق: '+n);}
+function boxReset(k){if(!confirm(k==='dept'?'تغيير كلمة سر حاسبة الأرشيف؟ ستُطلب كلمة جديدة الآن.':'مسح كلمة سر «'+(BN[k]||k)+'»؟ يضع رئيس اللجنة كلمة جديدة عند الدخول.'))return;
+  const a=authOf(k);if(a){a.removed=true;a.updated=Date.now();}persist();if(k==='dept'){logout();return;}boxesDlg();}
+function boxDel(k){const r=DB.records.find(x=>x.type==='box'&&x.key===k);if(!r||boxStats(k).all){flash('لا يُحذف صندوق فيه كتب',true);return;}if(!confirm('حذف الصندوق «'+r.name+'»؟'))return;r.removed=true;r.updated=Date.now();persist();refreshBoxes();renderAll();boxesDlg();}
+$('bBoxes').onclick=boxesDlg;$('bOut').onclick=()=>{logout();};
+/* ---------- عام ---------- */
+['q','qBox','qSt'].forEach(i=>$(i).addEventListener('input',()=>{if(i==='qBox')window.__qBox=$('qBox').value;renderList();}));
+$('fKind').innerHTML=KINDS.map(k=>`<option>${k}</option>`).join('');
+setInterval(()=>{$('clk').textContent=new Date().toLocaleTimeString('en-GB');},1000);
+/* المزامنة: يُعاد التحميل، ويُنبَّه إن وصل جديد إلى صندوق هذا الجهاز */
+window.__syncReload=function(){const k=myBox(),before=ROLE&&k!=='dept'?boxStats(k).nw:0;load();refreshBoxes();if(!ROLE&&!$('login').hidden)lgMode();renderAll();if($('ov').hidden===false){}
+  if(ROLE&&k!=='dept'){const n=boxStats(k).nw;if(n>before)flash(`📥 وصل ${n-before} كتاب جديد إلى صندوق ${BN[k]}`);}};
+window.__filesArrived=function(){if(!$('ov').hidden&&cur)openDoc(cur);};
+window.__openProject=function(){};
+load();refreshBoxes();$('fKind').value=KINDS[0];$('fDate').value=today();fillLt();fillParties();applyRole();lgShow();
+fillProj();$('bMove').onclick=()=>moveDlg(window.__qBox||'');$('bDirSend').onclick=()=>dirDlg(window.__qBox||(BOXES[0]||[])[0]);
+$('fFile').addEventListener('input',()=>{const v=normFn($('fFile').value);$('fFileNm').textContent=v&&projs()[v]?projs()[v]:'';});
+window.ARCH={DB:()=>DB,moveDlg,dirDlg,normFn,distribute,receive,openBox,openDoc,get BOXES(){return BOXES;},get ROLE(){return ROLE;},logout,boxesDlg};
+})();
+</script>
+</body>
+</html>

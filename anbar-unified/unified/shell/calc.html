@@ -1,0 +1,91 @@
+<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>حاسبة المدد — محافظة الأنبار</title>
+<style>
+:root{--navy:#1f3a5f;--bg:#fbe0a0;--line:#d6deea;--ok:#2f855a;--warn:#b7791f;--bad:#9b2c2c}
+*{box-sizing:border-box}body{margin:0;font-family:"Segoe UI",Tahoma,Arial,sans-serif;background:var(--bg);color:#1b2a3d}
+header{background:var(--navy);color:#fff;padding:16px 24px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+header h1{margin:0;font-size:20px}header a{color:#fff;text-decoration:none;border:1px solid rgba(255,255,255,.5);border-radius:8px;padding:6px 14px;font-size:13px}
+main{max-width:1100px;margin:0 auto;padding:20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:18px}
+.card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px;border-top:5px solid var(--c,#2b6cb0)}
+.card h2{margin:0 0 4px;font-size:17px;color:var(--navy)}.card p.d{margin:0 0 14px;font-size:12.5px;color:#5a6b80}
+label{display:block;font-size:13px;margin:8px 0 4px;color:#33475e}
+input,select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:7px;font:inherit;font-size:14px;background:#fbfcfe}
+input:focus,select:focus{outline:2px solid #90b4e0;border-color:#90b4e0}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.chk{display:flex;align-items:center;gap:6px;font-size:12.5px;margin-top:10px;color:#33475e}.chk input{width:auto}
+.res{margin-top:14px;background:#f4f7fb;border:1px solid var(--line);border-radius:9px;padding:12px 14px;font-size:14px;line-height:1.9;min-height:48px}
+.res b{color:var(--navy);font-size:16px}.big{font-size:22px !important}
+.tag{display:inline-block;padding:2px 10px;border-radius:12px;font-size:12.5px;font-weight:700;color:#fff}
+.t-ok{background:var(--ok)}.t-warn{background:var(--warn)}.t-bad{background:var(--bad)}
+.muted{color:#6b7a8d;font-size:12px}
+</style></head><body>
+<header><h1>حاسبة المدد</h1></header>
+<main>
+
+<section class="card" style="--c:#2b6cb0">
+<h2>١. تاريخ الانتهاء من مدة</h2><p class="d">تاريخ بداية + مدة بالأيام (مدة العقد، مدة الصيانة، المدد الإضافية…).</p>
+<label>تاريخ البداية (المباشرة / الاستلام الأولي)</label><input type="date" id="a_start">
+<div class="row"><div><label>المدة الأصلية (يوم)</label><input id="a_dur" inputmode="numeric" placeholder="مثال: 365"></div>
+<div><label>مدد إضافية/توقفات (يوم)</label><input id="a_ext" inputmode="numeric" placeholder="0"></div></div>
+<label class="chk"><input type="checkbox" id="a_incl"> احتساب يوم البداية ضمن المدة (الانتهاء = البداية + المدة − 1)</label>
+<div class="res" id="a_res"><span class="muted">أدخل تاريخ البداية والمدة.</span></div>
+</section>
+
+<section class="card" style="--c:#2f855a">
+<h2>٢. المدة بين تاريخين</h2><p class="d">عدد الأيام بين تاريخين، مع التحويل إلى سنوات وأشهر وأيام.</p>
+<div class="row"><div><label>من تاريخ</label><input type="date" id="b_from"></div><div><label>إلى تاريخ</label><input type="date" id="b_to"></div></div>
+<label class="chk"><input type="checkbox" id="b_incl"> احتساب اليومين الأول والأخير (+1)</label>
+<div class="res" id="b_res"><span class="muted">أدخل التاريخين.</span></div>
+</section>
+
+<section class="card" style="--c:#b7791f">
+<h2>٣. التأخير في الإنجاز</h2><p class="d">مقارنة تاريخ الإنجاز حسب العقد (بعد إضافة المدد) مع الإنجاز الفعلي.</p>
+<label>تاريخ المباشرة</label><input type="date" id="c_start">
+<div class="row"><div><label>مدة العقد (يوم)</label><input id="c_dur" inputmode="numeric"></div><div><label>المدد الإضافية المصادق عليها (يوم)</label><input id="c_ext" inputmode="numeric" placeholder="0"></div></div>
+<label>تاريخ الإنجاز الفعلي</label><input type="date" id="c_done">
+<div class="res" id="c_res"><span class="muted">أدخل البيانات.</span></div>
+</section>
+
+<section class="card" style="--c:#9b2c2c">
+<h2>٤. نسبة المدد الإضافية</h2><p class="d">نسبة المدد الإضافية التراكمية إلى مدة العقد وصلاحية اللجنة.</p>
+<label>التعليمات النافذة</label><select id="d_ins"><option value="2025">تعليمات تنفيذ العقود العامة 2025</option><option value="2014">تعليمات تنفيذ العقود الحكومية رقم 2 لسنة 2014</option></select>
+<div class="row"><div><label>مدة العقد الأصلية (يوم)</label><input id="d_dur" inputmode="numeric"></div><div><label>مجموع المدد الإضافية (يوم)</label><input id="d_ext" inputmode="numeric"></div></div>
+<div class="res" id="d_res"><span class="muted">أدخل المدتين.</span></div>
+</section>
+
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const AR="٠١٢٣٤٥٦٧٨٩";const ar=s=>String(s).replace(/\d/g,d=>AR[d]);
+const num=v=>{v=String(v||"").replace(/[٠-٩]/g,d=>AR.indexOf(d)).replace(/[^0-9.-]/g,"");return v===""?NaN:Number(v)};
+const D=v=>v?new Date(v+"T00:00:00Z"):null;
+const add=(d,n)=>{const x=new Date(d);x.setUTCDate(x.getUTCDate()+n);return x};
+const fmt=d=>ar(`${d.getUTCFullYear()}/${d.getUTCMonth()+1}/${d.getUTCDate()}`);
+const DAYS=["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
+const diff=(a,b)=>Math.round((b-a)/864e5);
+function ymd(a,b){if(b<a)[a,b]=[b,a];let y=b.getUTCFullYear()-a.getUTCFullYear(),m=b.getUTCMonth()-a.getUTCMonth(),d=b.getUTCDate()-a.getUTCDate();
+ if(d<0){m--;d+=new Date(Date.UTC(b.getUTCFullYear(),b.getUTCMonth(),0)).getUTCDate();}if(m<0){y--;m+=12;}
+ const p=[];if(y)p.push(ar(y)+" سنة");if(m)p.push(ar(m)+" شهر");if(d||!p.length)p.push(ar(d)+" يوم");return p.join(" و ");}
+function A(){const s=D($("a_start").value),n=num($("a_dur").value),e=num($("a_ext").value)||0;
+ if(!s||isNaN(n)){$("a_res").innerHTML='<span class="muted">أدخل تاريخ البداية والمدة.</span>';return}
+ const tot=n+e,end=add(s,tot-($("a_incl").checked?1:0));
+ $("a_res").innerHTML=`مجموع المدة: <b>${ar(tot)} يوم</b>${e?` <span class="muted">(${ar(n)} + ${ar(e)})</span>`:""}<br>تاريخ الانتهاء: <b class="big">${fmt(end)}</b> <span class="muted">— ${DAYS[end.getUTCDay()]}</span>`;}
+function B(){const a=D($("b_from").value),b=D($("b_to").value);if(!a||!b){$("b_res").innerHTML='<span class="muted">أدخل التاريخين.</span>';return}
+ let n=diff(a,b);const inc=$("b_incl").checked;if(inc)n+=n>=0?1:-1;
+ $("b_res").innerHTML=`عدد الأيام: <b class="big">${ar(Math.abs(n))} يوم</b>${n<0?' <span class="muted">(التاريخ الثاني قبل الأول)</span>':""}<br>ما يعادل: <b>${ymd(a,inc?add(b,n<0?-1:1):b)}</b>`;}
+function C(){const s=D($("c_start").value),n=num($("c_dur").value),e=num($("c_ext").value)||0,dn=D($("c_done").value);
+ if(!s||isNaN(n)){$("c_res").innerHTML='<span class="muted">أدخل البيانات.</span>';return}
+ const plan=add(s,n+e);let h=`الإنجاز حسب العقد (مع المدد): <b>${fmt(plan)}</b>`;
+ if(dn){const late=diff(plan,dn);h+=`<br>الإنجاز الفعلي: <b>${fmt(dn)}</b><br>`+(late>0?`<span class="tag t-bad">تأخير ${ar(late)} يوم</span>`:late<0?`<span class="tag t-ok">إنجاز مبكر بـ ${ar(-late)} يوم</span>`:`<span class="tag t-ok">ضمن الموعد تماماً</span>`);
+  const used=diff(s,dn);h+=`<br><span class="muted">المدة الفعلية المستغرقة: ${ar(used)} يوم (${ymd(s,dn)})</span>`;}
+ $("c_res").innerHTML=h;}
+function Dd(){const n=num($("d_dur").value),e=num($("d_ext").value);if(isNaN(n)||!n||isNaN(e)){$("d_res").innerHTML='<span class="muted">أدخل المدتين.</span>';return}
+ const p=e/n*100,ins=$("d_ins").value,lim25=Math.floor(n*.25),lim30=Math.floor(n*.30);let tag;
+ if(p<=25)tag='<span class="tag t-ok">ضمن صلاحية لجنة المدد (25%)</span>';
+ else if(ins==="2025")tag=p<=30?'<span class="tag t-warn">تتجاوز 25% — تُرفع إلى اللجنة المركزية للمصادقة (حتى 30%)</span>':'<span class="tag t-bad">تتجاوز 30% من مدة العقد</span>';
+ else tag='<span class="tag t-warn">تتجاوز 25% — يقدّم المهندس المقيم طلب مدة إضافية إلى اللجنة المركزية</span>';
+ $("d_res").innerHTML=`النسبة: <b class="big">${ar(p.toFixed(2))}%</b><br>${tag}<br><span class="muted">حد 25% = ${ar(lim25)} يوم${ins==="2025"?` &nbsp;|&nbsp; حد 30% = ${ar(lim30)} يوم`:""} &nbsp;|&nbsp; المدة الكلية = ${ar(n+e)} يوم</span>`;}
+[["a_",A],["b_",B],["c_",C],["d_",Dd]].forEach(([p,f])=>document.querySelectorAll(`[id^=${p}]`).forEach(el=>{if(el.classList.contains("res"))return;el.addEventListener("input",f);el.addEventListener("change",f);}));
+</script>
+<script>setInterval(function(){fetch("/__ping").catch(function(){})},20000);fetch("/__ping").catch(function(){});</script>
+</body></html>

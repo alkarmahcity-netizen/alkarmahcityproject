@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>نظام الشؤون الهندسية الموحد</title>
+<style>
+html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:"Segoe UI",Tahoma,Arial,sans-serif}
+video{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;background:#000}
+.bar{position:fixed;bottom:18px;left:18px;right:18px;display:flex;justify-content:space-between;align-items:center;gap:10px;opacity:0;transition:opacity .4s}
+body:hover .bar,.bar.on{opacity:1}
+button{font:inherit;font-size:14px;border:1px solid #c9a22799;background:#0009;color:#f3e2a8;border-radius:20px;padding:7px 16px;cursor:pointer}
+button:hover{background:#c9a22733}
+label{color:#d8c88f;font-size:13px;background:#0008;padding:6px 12px;border-radius:20px;cursor:pointer}
+</style></head>
+<body>
+<video id="v" src="intro.mp4" autoplay playsinline></video>
+<div class="bar on" id="bar"><label><input type="checkbox" id="off"> عدم عرض الفيديو عند التشغيل</label><button id="skip">تخطي ›</button></div>
+<script>
+/* فيديو البداية: يُغلق عند انتهائه، أو بـ«تخطي» أو Esc أو Enter أو الضغط على الفيديو؛ وخيار «عدم العرض» يُحفظ للحاسبة */
+const v=document.getElementById('v'),done=()=>{try{window.intro.done(document.getElementById('off').checked);}catch(_){window.close();}};
+v.addEventListener('ended',done);v.addEventListener('error',done);
+document.getElementById('skip').onclick=done;v.onclick=done;
+document.addEventListener('keydown',e=>{if(e.key==='Escape'||e.key==='Enter'||e.key===' ')done();});
+setTimeout(()=>document.getElementById('bar').classList.remove('on'),2500);
+v.play().catch(()=>{v.muted=true;v.play().catch(done);});   // إن مُنع التشغيل بالصوت يعمل بلا صوت
+</script>
+</body></html>

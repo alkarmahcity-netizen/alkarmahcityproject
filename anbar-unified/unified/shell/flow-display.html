@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: anbar-ann:; connect-src 'self'">
+<title>لوحة سير المعاملات</title>
+<style>
+html,body{margin:0;min-height:100%;background:#0b1220;font-family:"Segoe UI",Tahoma,Arial,sans-serif}
+body.light{background:#eef2f8}
+html,body{height:100%;overflow:hidden}
+#fb{padding:12px 16px;height:100vh;--fb-lh:none}
+#fb .fb-b{flex:1;min-height:0}
+@media (max-width:900px){html,body{overflow:auto}#fb{height:auto;--fb-lh:70vh}}
+.note{position:fixed;bottom:8px;left:12px;color:#94a3b8;font-size:11px}
+</style>
+</head>
+<body>
+<div id="fb"></div>
+<div class="note" id="note"></div>
+<script>/* إن لم تعمل اللوحة (متصفح قديم جداً): رسالة واضحة مع نسخة المتصفح بدل شاشة فارغة */
+window.onerror=function(m){var n=document.getElementById('note');if(n){n.style.cssText='position:fixed;left:0;right:0;bottom:0;padding:10px;background:#7f1d1d;color:#fff;font-size:15px;text-align:center';n.textContent='تعذّر تشغيل اللوحة في متصفح هذه الشاشة ('+m+') — المتصفح: '+navigator.userAgent+' — استعمل متصفحاً أحدث (Chrome) على الشاشة أو حاسبة موصولة بها.';}};</script>
+<script src="flow.js"></script>
+<script>
+(function(){
+  // داخل البرنامج (نافذة الشاشة الثانية) أو في متصفح القاعة (يقرأ /data من حاسبة البرنامج)
+  var desk = window.flowApi, cbs = [];
+  var api = desk ? { board: desk.board, onChange: desk.onChange } : {
+    board: function(){ return fetch('data', { cache: 'no-store' }).then(function(r){ if(!r.ok) throw 0; document.getElementById('note').textContent=''; return r.json(); }).catch(function(){ document.getElementById('note').textContent='تعذّر الاتصال بحاسبة البرنامج — ستُعاد المحاولة تلقائياً'; return null; }); },
+    onChange: function(cb){ cbs.push(cb); }
+  };
+  if (!desk) setInterval(function(){ cbs.forEach(function(f){ f(); }); }, 20000);
+  var B = FlowBoard.mount(document.getElementById('fb'), api, { imgBase: desk ? 'anbar-ann://f/' : 'ann/', header: true, logo: 'logo.png', dark: true, big: true, toggles: true,
+    onRender: function(){ document.body.classList.toggle('light', !document.getElementById('fb').classList.contains('dark')); } });
+  document.addEventListener('click', function(e){ if (e.target.closest('[data-fb=dark]')) setTimeout(function(){ B.render(); }, 0); });
+  document.addEventListener('keydown', function(e){ if (e.key === 'F11') { e.preventDefault(); document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen().catch(function(){}); } });
+})();
+</script>
+</body>
+</html>

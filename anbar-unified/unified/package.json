@@ -1,0 +1,55 @@
+{
+  "name": "anbar-unified",
+  "productName": "نظام الشؤون الهندسية الموحد",
+  "version": "1.64.0",
+  "description": "نظام الشؤون الهندسية الموحد: أوامر التغيير، المدد والتوقف، لجنة تدقيق السلف، إطلاق التأمينات، شهادات الاستلام، والموقف الشهري - محافظة الأنبار",
+  "author": "Engineering Affairs Department - Anbar",
+  "main": "main.js",
+  "dependencies": {
+    "nodemailer": "^6.9.16"
+  },
+  "scripts": {
+    "start": "electron .",
+    "build:win": "electron-builder --win portable --x64"
+  },
+  "devDependencies": {
+    "electron": "22.3.27",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "iq.anbar.engineering.unified",
+    "directories": {
+      "output": "dist",
+      "buildResources": "buildres"
+    },
+    "files": [
+      "**/*",
+      "!dist/**",
+      "!build/acceptance/**",
+      "!buildres/**",
+      "!test-*.js",
+      "!tests/**"
+    ],
+    "extraResources": [
+      {
+        "from": "build/acceptance",
+        "to": "acceptance"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png"
+    },
+    "portable": {
+      "artifactName": "AnbarEngineering-${version}-Windows-x64.exe"
+    },
+    "executableName": "AnbarEngineering"
+  }
+}

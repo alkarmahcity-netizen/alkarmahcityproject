@@ -45,7 +45,10 @@ const GPORT = 48478;
   await go('ad'); const ad = V('ad');
   if (await has('ad') && await ad(`!!document.querySelector('[data-act=demo]')`)) {
     await ad(`(()=>{document.querySelector('[data-act=demo]').click();return 1})()`); await sleep(1500);
-    await ad(`window.GdIssue.issue().then(()=>1)`); await sleep(500);
+    // محضر المثال ناقص (المحضر إلزامي): الرفض في رسالة التنبيه يوقف الإصدار، والمتابعة تُصدر وترفع كالسابق
+    await ad(`(()=>{window.__cf=0;window.confirm=()=>{window.__cf++;return false};return window.GdIssue.issue().then(()=>1)})()`); await sleep(500);
+    ok('advances: incomplete minutes → the auditor is warned before issuing, and refusing stops the upload', await ad(`window.__cf>0&&!(R().advances[R().printIdx].driveUrl)`));
+    await ad(`(()=>{window.confirm=()=>true;return window.GdIssue.issue().then(()=>1)})()`); await sleep(500);
     const adUrl = await ad(`(()=>{const r=R();return r.advances[r.printIdx].driveUrl||''})()`), adId = fileOf(adUrl);
     ok('advances: the advance\'s QR link is set and its form PDF uploaded (folder «لجنة تدقيق السلف»)', adId && G.uploads.some(u => u.id === adId) && /السلف/.test(G.files[G.files[adId].parents[0]].name), adUrl);
   } else ok('advances: open (password from UNI_TEST_AD_PW)', false, 'locked');

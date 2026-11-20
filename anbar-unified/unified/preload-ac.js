@@ -9,7 +9,10 @@ contextBridge.exposeInMainWorld('desktop', {
   flowGet: key => ipcRenderer.invoke('wf:get', key),
   flowSet: (key, patch) => ipcRenderer.invoke('wf:set', key, patch),
   onFlow: cb => ipcRenderer.on('wf:changed', () => cb()),
-  acFlowSnap: snap => ipcRenderer.invoke('ac:flowSnap', snap)
+  acFlowSnap: snap => ipcRenderer.invoke('ac:flowSnap', snap),
+  /* Google Drive لبريد القسم: إصدار الشهادة ورفع PDF تلقائياً */
+  gdStatus: () => ipcRenderer.invoke('gd:status'), gdSetApp: (id, sec) => ipcRenderer.invoke('gd:setApp', id, sec), gdConnect: hint => ipcRenderer.invoke('gd:connect', hint),
+  gdDisconnect: () => ipcRenderer.invoke('gd:disconnect'), gdReserve: name => ipcRenderer.invoke('gd:reserve', name), gdUpload: (id, name) => ipcRenderer.invoke('gd:upload', id, name)
 });
 
 /* نشاط المستخدم (الفأرة والتمرير واللمس، لا لوحة المفاتيح فقط) يمدّ مهلة القفل التلقائي */

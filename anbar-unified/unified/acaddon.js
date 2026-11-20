@@ -79,5 +79,71 @@
     setTimeout(push, 500);
   }, true);
   setTimeout(() => { bindNow(false); paint(); }, 300);
-  window.AcqCheck = { problems, paint, bindNow, snap };
+
+  /* ---------- 3) «☁ إصدار ورفع إلى Drive» (بريد القسم): رابط ثابت يُحجز قبل الطباعة ← رمز QR ← PDF ← يُرفع على الرابط نفسه ---------- */
+  const TNAME = { pac: 'محضر الاستلام الأولي', pap: 'الاستلام الأولي الجزئي', fac: 'الاستلام النهائي', fpa: 'الاستلام النهائي الجزئي' };
+  const GK = 'acq_gd_v1', gmap = () => { try { return JSON.parse(localStorage.getItem(GK) || '{}') || {}; } catch (_) { return {}; } };
+  const gput = (k, v) => { try { const m = gmap(); m[k] = v; localStorage.setItem(GK, JSON.stringify(m)); } catch (_) {} };
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const say = (m, bad) => { try { if (typeof toast === 'function') { toast(m); return; } } catch (_) {} if (bad) alert(m); };
+  const escH = x => String(x == null ? '' : x).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  let gdBusy = false;
+  async function gdIssue() {
+    if (gdBusy || !D.gdStatus) return; const st = await D.gdStatus(); if (!st || !st.connected) { gdDlg(); return; }
+    gdBusy = true; const btn = $('btnGd'), lbl = btn ? btn.textContent : '';
+    const step = t => { if (btn) btn.textContent = '⏳ ' + t; };
+    try {
+      if (!collect().serial) { $('btnSave').click(); await sleep(400); }
+      const o = collect(); if (!o.serial) { alert('احفظ الشهادة أولاً'); return; }
+      const P = problems().filter(x => !/نسخة قديمة/.test(x)); if (P.length && !confirm('⚠ ' + P.join('\n⚠ ') + '\n\nمتابعة الإصدار؟')) return;
+      const k = T + ':' + o.serial, name = `${TNAME[T]} ${o.serial}${o.pName ? ' — ' + String(o.pName).slice(0, 60) : ''}.pdf`.replace(/[\\/:*?"<>|]+/g, ' ');
+      let id = gmap()[k];
+      if (!id) { step('حجز رابط الملف في Drive…'); const r = await D.gdReserve(name); if (!r || r.error) { alert('تعذّر الحجز في Google Drive:\n' + ((r && r.error) || '')); return; } id = r.id; gput(k, id); if (!r.shared) alert('⚠ ' + r.shareError); }
+      const url = `https://drive.google.com/file/d/${id}/view`, f = $('pdfUrl');
+      if (f && f.value !== url) { f.value = url; f.dispatchEvent(new Event('input', { bubbles: true })); f.dispatchEvent(new Event('change', { bubbles: true })); }
+      try { render(); } catch (_) {}
+      await sleep(150); bindNow(true); $('btnSave').click(); await sleep(500);
+      step('إنشاء PDF ورفعه…'); const u = await D.gdUpload(id, name);
+      if (!u || u.error) { alert('تعذّر رفع PDF الشهادة:\n' + ((u && u.error) || '')); return; }
+      paint(); push(); say(`✔ صدرت الشهادة ورُفعت إلى Google Drive (${u.kb} ك.ب) — رمز QR يفتحها عند الجميع`);
+      window.__gdLast = { id, url, kb: u.kb };
+    } finally { gdBusy = false; if (btn) btn.textContent = lbl; }
+  }
+  async function gdDlg() {
+    let ov = $('gdOv'); if (ov) ov.remove(); ov = document.createElement('div'); ov.id = 'gdOv';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.45);display:flex;align-items:center;justify-content:center;font:14px Tahoma,Arial,sans-serif;direction:rtl';
+    const st = (D.gdStatus && await D.gdStatus()) || {};
+    ov.innerHTML = `<div style="background:#fff;border-radius:12px;padding:18px 20px;width:min(620px,94vw);max-height:90vh;overflow:auto;line-height:1.8">
+      <h3 style="margin:0 0 8px;color:#1f3a5f">☁ ربط الإصدار ببريد القسم (Google Drive)</h3>
+      <div id="gdSt" style="padding:6px 10px;border-radius:8px;background:${st.connected ? '#e8f5e9;color:#1b5e20' : '#fff4e5;color:#8a4b00'}">${st.connected ? '✔ مربوط بـ <b dir="ltr">' + escH(st.email || 'حساب Google') + '</b> — «☁ إصدار ورفع إلى Drive» جاهز' : st.configured ? 'أُدخل معرّف التطبيق — بقي «تسجيل الدخول ببريد القسم»' : 'غير مربوط بعد'}</div>
+      <details ${st.configured ? '' : 'open'} style="margin:8px 0"><summary style="cursor:pointer;font-weight:700">١) معرّف التطبيق من Google Cloud (مرة واحدة)</summary>
+        <ol style="margin:6px 0;padding-inline-start:22px;font-size:13px;color:#334">
+          <li>ادخل <b dir="ltr">console.cloud.google.com</b> ببريد القسم ← أنشئ مشروعاً (مثلاً: شهادات الاستلام).</li>
+          <li>APIs &amp; Services ← Library ← <b>Google Drive API</b> ← Enable.</li>
+          <li>OAuth consent screen ← نوع المستخدم <b>Internal</b> (إن ظهر) ← اسم التطبيق وبريد القسم ← حفظ.</li>
+          <li>Credentials ← Create credentials ← <b>OAuth client ID</b> ← النوع <b>Desktop app</b> ← انسخ <b>Client ID</b> و<b>Client secret</b> إلى الحقلين أدناه.</li></ol>
+        <label style="display:block">Client ID<input id="gdId" dir="ltr" style="width:100%;font:inherit;padding:5px" placeholder="....apps.googleusercontent.com"></label>
+        <label style="display:block">Client secret<input id="gdSec" type="password" dir="ltr" style="width:100%;font:inherit;padding:5px" autocomplete="off"></label>
+        <button id="gdSave" style="margin-top:6px">حفظ معرّف التطبيق</button> <small style="color:#667">يُحفظ مشفّراً على هذه الحاسبة فقط.</small></details>
+      <div style="margin:8px 0"><b>٢)</b> <button id="gdGo" ${st.configured ? '' : 'disabled'} style="background:#1f3a5f;color:#fff;border:0;border-radius:8px;padding:6px 14px">تسجيل الدخول ببريد القسم</button>
+        <small style="color:#667">يفتح المتصفح: اختر بريد القسم ووافق — البرنامج يرى ملفات الشهادات التي يرفعها هو فقط.</small></div>
+      <div id="gdMsg" style="color:#8b1a1a;min-height:1.4em"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-start;margin-top:6px">${st.connected ? '<button id="gdOff" style="color:#b42318">فصل البريد</button>' : ''}<span style="flex:1"></span><button id="gdX">إغلاق</button></div></div>`;
+    document.body.appendChild(ov);
+    const msg = t => { $('gdMsg').textContent = t || ''; };
+    ov.addEventListener('click', async e => { const t = e.target;
+      if (t === ov || t.id === 'gdX') { ov.remove(); return; }
+      if (t.id === 'gdSave') { const r = await D.gdSetApp($('gdId').value, $('gdSec').value); if (r && r.error) msg(r.error); else gdDlg(); return; }
+      if (t.id === 'gdGo') { t.disabled = true; t.textContent = '⏳ أكمل تسجيل الدخول في المتصفح…'; const r = await D.gdConnect('eng@anbar.iq'); if (r && r.error) { msg(r.error); t.disabled = false; t.textContent = 'تسجيل الدخول ببريد القسم'; } else gdDlg(); return; }
+      if (t.id === 'gdOff') { if (confirm('فصل بريد القسم عن هذه الحاسبة؟ (الملفات المرفوعة تبقى في Drive)')) { await D.gdDisconnect(); gdDlg(); } }
+    });
+  }
+  /* الزرّان بجانب «💾 حفظ PDF» */
+  { const pdfB = $('btnPdf'); if (pdfB && D.gdStatus && !$('btnGd')) {
+      const b = document.createElement('button'); b.id = 'btnGd'; b.className = 'primary'; b.type = 'button'; b.textContent = '☁ إصدار ورفع إلى Drive';
+      b.title = 'يحجز رابطاً في Google Drive لبريد القسم، ويضعه في رمز QR، وينشئ PDF الشهادة ويرفعه على الرابط نفسه — فيفتح الرمز الملف المطبوع نفسه عند الجميع';
+      const g = document.createElement('button'); g.id = 'btnGdSet'; g.type = 'button'; g.textContent = '⚙'; g.title = 'ربط بريد القسم (Google Drive)';
+      pdfB.insertAdjacentElement('afterend', g); pdfB.insertAdjacentElement('afterend', b);
+      b.addEventListener('click', e => { e.preventDefault(); gdIssue(); }); g.addEventListener('click', e => { e.preventDefault(); gdDlg(); }); } }
+  window.AcqCheck = { problems, paint, bindNow, snap, gdIssue, gdDlg };
 })();

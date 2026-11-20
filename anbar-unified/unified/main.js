@@ -1143,6 +1143,18 @@ ipcMain.handle('ac:flowSnap', async (e, snap) => { try {
   let old = ''; try { old = fs.readFileSync(f, 'utf8'); } catch (_) {} if (old && JSON.parse(old).recs && JSON.stringify(JSON.parse(old).recs) === JSON.stringify(snap.recs.slice(0, 5000))) return true;
   atomicWrite(f, t); if (first) { flow.seenAll('ac'); return true; }
   flowSoon('ac'); return true; } catch (err) { logError('ac:flowSnap', String(err && err.message || err)); return false; } });
+/* Google Drive لبريد القسم: إصدار شهادة الاستلام مع رفع PDF تلقائياً، ورمز QR يفتح الملف نفسه عند الجميع (gdrive.js) */
+let gd = null; const gdEnsure = () => (gd = gd || require('./gdrive')({ file: () => path.join(dataDir, 'gdrive-config.json'), safeStorage, openExternal: u => { if (process.env.UNI_GD_AUTH && /^http:\/\/127\.0\.0\.1:/.test(u)) require('http').get(u, r => r.resume()).on('error', () => {}); /* اختبار: خادم Google وهمي محلي */ else shell.openExternal(u); }, log: m => logError('gdrive', m) }));
+const gdFrom = e => (views.ac && e.sender === views.ac.webContents) || (win && e.sender === win.webContents);
+ipcMain.handle('gd:status', e => (gdFrom(e) ? gdEnsure().status() : null));
+ipcMain.handle('gd:setApp', (e, id, sec) => (gdFrom(e) ? gdEnsure().setApp(id, sec) : { error: 'غير مسموح' }));
+ipcMain.handle('gd:connect', async (e, hint) => { if (!gdFrom(e)) return { error: 'غير مسموح' }; const r = await gdEnsure().connect(hint); if (r.ok) audit.note('ac', 'gdrive', 'ربط البرنامج بـ Google Drive: ' + (r.email || '')).catch(() => {}); return r; });
+ipcMain.handle('gd:disconnect', e => (gdFrom(e) ? gdEnsure().disconnect() : { error: 'غير مسموح' }));
+ipcMain.handle('gd:reserve', async (e, name) => { if (!views.ac || e.sender !== views.ac.webContents || !isOpen('ac')) return { error: 'غير مسموح' }; try { return await gdEnsure().reserve(name); } catch (err) { return { error: String(err.message || err) }; } });
+ipcMain.handle('gd:upload', async (e, id, name) => { if (!views.ac || e.sender !== views.ac.webContents || !isOpen('ac')) return { error: 'غير مسموح' };
+  try { const buf = await e.sender.printToPDF({ printBackground: true, preferCSSPageSize: true, pageSize: 'A4', margins: { top: 0, bottom: 0, left: 0, right: 0 } });
+    const r = await gdEnsure().upload(id, buf, name); audit.note('ac', 'gdrive', `رفع شهادة «${name || id}» إلى Drive (${Math.round(buf.length / 1024)} ك.ب)`).catch(() => {}); return { ...r, kb: Math.round(buf.length / 1024) }; }
+  catch (err) { return { error: String(err.message || err) }; } });
 let FLOWPANEL_JS = null;
 const flowPanelJs = id => { if (FLOWPANEL_JS == null) { try { FLOWPANEL_JS = fs.readFileSync(path.join(__dirname, 'flowpanel.js'), 'utf8'); } catch (_) { FLOWPANEL_JS = ''; } } return FLOWPANEL_JS.replace("'__SYS__'", JSON.stringify(id)); };
 /* شاشة القاعة (تلفاز أو أي حاسبة): صفحة للقراءة فقط على الشبكة الداخلية، بلا مبالغ. معطّلة حتى تُفعَّل من اللوحة */

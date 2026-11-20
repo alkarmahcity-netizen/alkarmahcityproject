@@ -60,33 +60,18 @@ const R = []; const ok = (n, c, d = '') => R.push([c ? 'PASS' : 'FAIL', n, d]);
   ok('«↧ اعتماد المجاميع» puts the committee totals in the order amounts (after confirmation)', o1.del === 0 && o1.add === 4200000 && o1.nw === 500000 && JSON.parse(await co(`JSON.stringify(CoReview.last().tot.every(t=>t.ok))`)), JSON.stringify(o1));
   await co(`(()=>{document.querySelector('[data-rvx=no]').click();return 1})()`); await sleep(1200);
   const rid = await co(`R().id`);
-  // مطالعات أوامر التغيير: استدعاء الفقرات باسم الشركة/المشروع
-  await pg.evaluate(() => window.desktop.go('cm')); await sleep(2500);
+  // مطالعات أوامر التغيير كما في 1.68: لا زر استدعاء فقرات، و«مطالعة الموافقة الأصولية» تُبنى من الملف المختار (لا من الفقرات المحفوظة)
+  await co(`(()=>{window.__picked=0;const oc=HTMLInputElement.prototype.click;HTMLInputElement.prototype.click=function(){if(this.type==='file'){window.__picked=1;return;}return oc.call(this);};document.querySelector('[data-cmapp]').click();return 1})()`); await sleep(500);
+  ok('«📄 مطالعة الموافقة الأصولية» works as in 1.68: opens empty and asks for the Excel/Word file', (await co(`window.__picked`)) === 1 && (await co(`document.querySelectorAll('#apOv [data-api][data-k=on]').length`)) === 0);
+  const apn = JSON.parse(await co(`(async()=>{const b=Uint8Array.from(atob('${b64}'),c=>c.charCodeAt(0));const it=await apLoadXl(new File([b],'co-order.xlsx'));return JSON.stringify(it.map(x=>x.type+':'+x.q))})()`));
+  ok('the approval memo reads the file items as before (the row without a quantity is not taken)', apn.join() === 'del:20,add:20,new:10', apn.join());
+  await co(`(()=>{AP.items[0].on=false;document.querySelector('[data-apx=go]').click();return 1})()`); await sleep(3000);
   const cm = s => app.evaluate(async (_, s) => global.__uni.views.cm.webContents.executeJavaScript(s), s);
+  const full = await cm(`(R()||{}).body||''`);
+  ok('…and builds the memo in «مطالعات لجنة أوامر التغيير» with الإضافة / الاستحداثات sections; an unticked item is left out', /الإضافة:} صب خرسانة مسلحة للسقوف إضافة 20/.test(full) && /الاستحداثات:} تجهيز ونصب مقرنص حجري استحداث 10/.test(full) && !/حفريات/.test(full), full.slice(0, 900));
+  await cm(`(()=>{window.confirm=()=>true;document.querySelector('[data-act=back],[data-act=home]')&&document.querySelector('[data-act=back],[data-act=home]').click();return 1})()`); await sleep(800);
   await cm(`(()=>{window.confirm=()=>true;document.querySelector('[data-act=new][data-t=memo]').click();return 1})()`); await sleep(1500);
-  ok('the memo editor has «📥 فقرات أمر التغيير»', await cm(`!!document.getElementById('btnCoItems')`));
-  await cm(`(()=>{document.getElementById('btnCoItems').click();const q=document.getElementById('ciQ');q.value='الاختبار';q.dispatchEvent(new Event('input'));return 1})()`); await sleep(400);
-  const lst = await cm(`document.getElementById('ciL').textContent`);
-  ok('searching by project name finds the project and its order with 3 items', /مدرسة الاختبار/.test(lst) && /4 فقرة/.test(lst), lst.slice(0, 200));
-  await cm(`(()=>{document.querySelector('#ciL [data-ci]').click();return 1})()`); await sleep(800);
-  const mr = JSON.parse(await cm(`JSON.stringify((r=>({body:r.body,fn:r.fileNo,ev:r.ltEv,t:r.tables.map(t=>({src:t.src,rows:t.rows}))}))(R()))`));
-  const tb = (mr.t.find(t => t.src) || { rows: [] }).rows, flat = JSON.stringify(tb);
-  const cols = JSON.parse(await cm(`JSON.stringify(R().tables.find(t=>t.src).cols)`));
-  ok('the memo table: item, unit, original, change type, quantity, reason — no prices, no 20% split', cols.join('|') === 'ت|الفقرة|الوحدة|الكمية الأصلية|نوع التغيير|الكمية|السبب' && !/150,000|140,000|300,000|20%/.test(flat), cols.join('|') + ' ' + flat);
-  ok('rows: concrete 50 → إضافة 25 with the committee reason; doors 20 → إضافة 2; new 10; the item deleted by the committee is not listed', /"صب خرسانة مسلحة للسقوف","م3","50","إضافة","25","حسب الذرعة الموقعية"/.test(flat) && /"تجهيز ونصب أبواب حديد","عدد","20","إضافة","2"/.test(flat) && /"تجهيز ونصب مقرنص حجري","م.ط","—","استحداث","10"/.test(flat) && !/حفريات/.test(flat), flat);
-  ok('nothing is written in the memo text — only the table line [[جدول 1]]; linked to the project file and the order', /\[\[جدول 1\]\]/.test(mr.body) && !/إضافة 25|الاستحداثات|فقرات أمر التغيير رقم/.test(mr.body) && mr.fn === '7001' && mr.ev === 'order:0', mr.body.slice(0, 400));
-  await sleep(1500);
-  // تعديل جديد في أوامر التغيير ← تنبيه التحديث في المطالعة
-  await pg.evaluate(() => window.desktop.go('co')); await sleep(1500);
-  await co(`(()=>{CoReview.open();CoReview.edit(1,'q','30');document.querySelector('[data-rvx=no]').click();return 1})()`); await sleep(1500);
-  await pg.evaluate(() => window.desktop.go('cm')); await sleep(2000);
-  await cm(`(()=>{window.dispatchEvent(new Event('focus'));return 1})()`); await sleep(800);
-  ok('after the committee edits again in change orders, the memo shows «↻ تحديث فقرات أمر التغيير»', await cm(`!!document.getElementById('btnCoUpd')`));
-  await cm(`(()=>{document.getElementById('btnCoUpd').click();return 1})()`); await sleep(800);
-  const flat2 = await cm(`JSON.stringify(R().tables.find(t=>t.src).rows)`);
-  await cm(`(()=>{const s=document.getElementById('pages')||document.querySelector('.prev-col');if(s)s.scrollIntoView();return 1})()`);
-  if (process.env.UNI_TEST_SHOT) { await sleep(800); const b = await app.evaluate(async (_, v) => { const im = await global.__uni.views[v].webContents.capturePage(); return im.toPNG().toString('base64'); }, 'cm'); fs.writeFileSync(process.env.UNI_TEST_SHOT.replace('.png', '-memo.png'), Buffer.from(b, 'base64')); }
-  ok('updating refreshes the same table (added 25 → 30) without duplicating it', /"50","إضافة","30"/.test(flat2) && (await cm(`R().tables.filter(t=>t.src).length`)) === 1 && !(await cm(`!!document.getElementById('btnCoUpd')`)), flat2.slice(0, 300));
+  ok('the change-order memos editor is as in 1.68 (no «📥 فقرات أمر التغيير» button)', !(await cm(`!!document.getElementById('btnCoItems')`)) && (await cm(`!!document.querySelector('[data-act=savetpl]')`)));
   const e = await app.evaluate(() => (global.__uniErrors || []).slice()); ok('no JavaScript errors', e.length === 0, e.join(' | ').slice(0, 400));
   await app.close();
   R.forEach(x => console.log(x[0], x[1], x[2] ? '— ' + String(x[2]).slice(0, 600) : '')); console.log(`${R.filter(x => x[0] === 'PASS').length}/${R.length}`); process.exit(R.every(x => x[0] === 'PASS') ? 0 : 1);

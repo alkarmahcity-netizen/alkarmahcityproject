@@ -158,7 +158,7 @@ mark{background:#ffe066;color:inherit;border-radius:3px;padding:0 1px}
 .page .mrow{display:flex;justify-content:space-between;align-items:flex-start;gap:6mm;margin-top:1mm}
 .page .meta{font-family:var(--mtff,Arial);font-weight:700;font-size:calc(var(--mtFz,11)*1pt);line-height:1.55}   /* العدد والتاريخ: خط وحجم مستقلان (الافتراضي Arial 11) */
 .page .greet{font-weight:700;font-size:calc(var(--fz)*1pt*var(--k));line-height:1.5;margin:0 0 calc(2mm*var(--k));text-align:right}
-.page .rbox{border:1.6px solid #1f3c88;border-radius:2mm;padding:calc(2mm*var(--k)) 3.5mm;margin:calc(3mm*var(--k)) 0 calc(1mm*var(--k));color:#1f3c88;font-weight:700;font-size:calc(var(--fz)*1pt*var(--k));line-height:1.6;break-inside:avoid;-webkit-print-color-adjust:exact;print-color-adjust:exact}.page .rbox .rh{text-decoration:underline;text-underline-offset:.25em;margin-bottom:1mm}.page .rbox p{margin:0 0 .6mm;text-align:justify}   /* مستطيل المقترحات / التوصيات: خط غامق أزرق */
+.page .rbox{border:1.6px solid #1f3c88;border-radius:2mm;padding:calc(2mm*var(--k)) calc(3.5mm*var(--k));margin:calc(3mm*var(--k)) 0 calc(1mm*var(--k));color:#1f3c88;font-weight:700;font-size:calc(var(--fz)*1pt*var(--k));line-height:calc(var(--lh)*var(--lhk,1));break-inside:avoid;-webkit-print-color-adjust:exact;print-color-adjust:exact}.page .rbox .rh{text-decoration:underline;text-underline-offset:.25em;margin-bottom:calc(1mm*var(--k))}.page .rbox p{margin:0 0 calc(.6mm*var(--k));text-align:justify}   /* مستطيل المقترحات / التوصيات: خط غامق أزرق */
 .page .cmt{font-family:'PT Bold Heading','AnbarNaskh',serif;font-weight:700;color:#1f2a68;font-size:12pt;line-height:1.5;margin:-1mm 0 1mm}   /* عنوان اللجنة: خط ثابت PT Bold Heading بحجم 12 */
 .page .to.rt{display:flex;text-align:right;justify-content:flex-start}.page .to.rt .lb{white-space:nowrap;flex:none}.page .to.rt .ls{display:flex;flex-direction:column}.page.hasqr .to.rt{padding:0 0 0 22mm}
 .page .aft{margin-top:calc(6mm*var(--k));font-size:calc(var(--fz)*1pt*var(--k));line-height:1.5;font-weight:var(--bw);text-align:right;break-inside:avoid}.page .aft p{margin:0 0 1mm}
@@ -179,7 +179,7 @@ mark{background:#ffe066;color:inherit;border-radius:3px;padding:0 1px}
 .page .sig{text-align:center;font-family:var(--sgff);font-size:calc(var(--sgFz)*1pt*var(--k));font-weight:var(--sgw);line-height:1.55;grid-column:2}
 .page .sig .sp{height:calc(12mm*var(--k))}.page .sig .dt{direction:ltr;margin-top:1mm}
 .page .att .cc{margin-top:calc(12mm*var(--k))}
-.page .cc{font-size:calc(var(--ccFz)*1pt);line-height:var(--ccLh);break-inside:avoid;font-weight:400}.page .cc li{font-weight:var(--ccw,400)}
+.page .cc{font-size:calc(var(--ccFz)*1pt*var(--cck,1));line-height:var(--ccLh);break-inside:avoid;font-weight:400}.page .cc li{font-weight:var(--ccw,400)}
 .page .ccb{position:absolute;right:14mm;width:118mm;bottom:calc(12mm + var(--ccGap)*1mm);z-index:2}
 .page .att ul.al{list-style:none;margin:1mm 0 0;padding:0}
 .page .body table.tb{width:100%;border-collapse:collapse;margin:1.5mm 0 2.5mm;font-size:calc(.92em*var(--tz,1));line-height:1.45;text-align:center;break-inside:auto;table-layout:auto}
@@ -13059,7 +13059,7 @@ function overflows(p){p.style.minHeight='';const pageH=297*MM;if(p.scrollHeight>
 /* ملاءمة لعدد صفحات محدد (لكل كتاب: r.fitPages = 1..4): بحث ثنائي على مقياس واحد يكبّر/يصغّر الخطوط وتباعد أسطر المتن معاً،
    فيُختار أكبر حجم يملأ الصفحات المطلوبة ولا يزيد عنها، ثم — لصفحتين فأكثر — أكبر حجم يكون فيه جزء من المتن مع الخاتمة في الصفحة الأخيرة
    (لا تبقى التواقيع وحدها في صفحة). حساب دقيق للتخطيط نفسه (لا تقدير)، فيطابق ما يُطبع. */
-let FITL=1,FITMSG='';
+let FITL=1,FITMSG='',FITCC=1;
 /* عدد صفحات الطباعة الفعلي (قواعد webPdf نفسها): في كل صفحة تتكرر الترويسة العليا والسفلى، ولا يُقطع سطر ولا صورة ولا صف جدول
    ولا توقيع ولا مستطيل التوصية ولا الخاتمة؛ و«صورة عنه إلى» المنزّلة تحتاج مكانها أسفل الصفحة الأخيرة. مع هامش أمان 5 ملم في كل صفحة. */
 function printPages(p){const pr=p.getBoundingClientRect(),pt=pr.top,H=297*MM,SAFE=5*MM,rel=r=>[r.top-pt,r.bottom-pt];
@@ -13089,14 +13089,18 @@ function fitTarget(p,N){const setS=x=>{p.style.setProperty('--k',x.toFixed(3));p
     if(N===1&&s<0.7)FITMSG='صُغّرت الخطوط كثيراً لتبقى صفحة واحدة';}
   setS(s);FITK=+s.toFixed(3);FITL=lhOf(s);window.__fitTries=tries;return s;}
 function fitPage(p){const T0=performance.now();{const pg=p.closest('#pages');if(pg)pg.style.transform='';}   // القياس بلا تصغير المعاينة (كان تصغير معاينة سابقة يجعل الكتاب يبدو أقصر بنحو 3% فيُطبع أطول من المحسوب)
-  p.style.setProperty('--k',1);p.style.setProperty('--cgk',1);p.style.setProperty('--lhk',1);FITK=1;FITL=1;FITMSG='';
+  p.style.setProperty('--k',1);p.style.setProperty('--cgk',1);p.style.setProperty('--lhk',1);p.style.setProperty('--cck',1);FITK=1;FITL=1;FITMSG='';FITCC=1;
   const NT=(()=>{try{const r=R();return r?Math.min(4,Math.max(0,+r.fitPages||0)):0;}catch(_){return 0;}})();
   if(NT){fitTarget(p,NT);}else
   if(PO().fit){let k=1,g=1;const K=v=>p.style.setProperty('--k',(k=v).toFixed(2)),G=v=>p.style.setProperty('--cgk',(g=v).toFixed(2));
     while(overflows(p)&&k>0.88)K(k-0.02);while(overflows(p)&&g>0.5)G(g-0.1);while(overflows(p)&&k>0.7)K(k-0.02);while(overflows(p)&&g>0.25)G(g-0.05);
+    /* «صورة عنه إلى» تُصغَّر أيضاً (حتى 70%) قبل أن يُقسم الكتاب على صفحتين؛ والأمر الإداري صفحة واحدة دائماً: يُصغَّر خطه حتى 55% */
+    {let c=1;const C=v=>p.style.setProperty('--cck',(c=v).toFixed(2));while(overflows(p)&&c>0.7)C(c-0.05);
+      if(R()&&R().type==='order'){while(overflows(p)&&k>0.55)K(k-0.02);if(overflows(p))FITMSG='الأمر الإداري أطول من صفحة حتى بأصغر خط — قلّل جهات «صورة عنه إلى» أو اختصر المتن';else c=c;}
+      if(overflows(p)&&!(R()&&R().type==='order')){C(1);}FITCC=c;}
     /* لم يدخل صفحة واحدة حتى بأصغر خط: يُكتب على صفحات بحجمه الطبيعي (لا معنى لتصغيره)، ويُصغَّر قليلاً فقط (حتى 85%) إن بقيت
        التواقيع وحدها في الصفحة الأخيرة — بعدد صفحات الطباعة الفعلي (printPages) فتطابق المعاينةُ المطبوع */
-    if(overflows(p)){K(1);G(1);let ok=null;for(let x=1;x>=0.849;x-=0.01){K(x);if(bodyOnLast(p,printPages(p).n)){ok=x;break;}}
+    if(overflows(p)&&!(R()&&R().type==='order')){K(1);G(1);let ok=null;for(let x=1;x>=0.849;x-=0.01){K(x);if(bodyOnLast(p,printPages(p).n)){ok=x;break;}}
       if(ok==null){K(1);FITMSG='التواقيع وحدها في الصفحة الأخيرة — أضف سطراً إلى المتن أو اختر عدد الصفحات من «ملاءمة»';}else K(ok);}
     FITK=k;}
   /* إن بقي الكتاب أطول من صفحة: الصفحة بطول عدد صحيح من صفحات A4 لتنزل «صورة عنه إلى» إلى أسفل الصفحة الأخيرة */
@@ -13454,7 +13458,7 @@ function wpic(rid,id,w,h){return `<w:r><w:drawing><wp:inline distT="0" distB="0"
 /* نسخة باهتة من الشعار (الشفافية داخل الصورة نفسها) لملف Word: بعض البرامج تتجاهل إعداد الشفافية في Word */
 const WMF={};function wmPrep(a){if(WMF[a]||WMF[a]===0)return;WMF[a]=0;const im=new Image();im.onload=()=>{try{const c=document.createElement('canvas');c.width=im.naturalWidth;c.height=im.naturalHeight;const x=c.getContext('2d');x.globalAlpha=a;x.drawImage(im,0,0);WMF[a]=c.toDataURL('image/png');}catch(_){delete WMF[a];}};im.src=IMG_LOGO;}
 function wmAnchor(rid,id,alpha,baked){const w=126,h=126*820/791;return `<w:r><w:drawing><wp:anchor distT="0" distB="0" distL="0" distR="0" simplePos="0" relativeHeight="0" behindDoc="1" locked="1" layoutInCell="1" allowOverlap="1"><wp:simplePos x="0" y="0"/><wp:positionH relativeFrom="page"><wp:align>center</wp:align></wp:positionH><wp:positionV relativeFrom="page"><wp:align>center</wp:align></wp:positionV><wp:extent cx="${EMU(w)}" cy="${EMU(h)}"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:wrapNone/><wp:docPr id="${id}" name="wm${id}"/><wp:cNvGraphicFramePr/><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="${id}" name="wm${id}"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${rid}">${baked?'':`<a:alphaModFix amt="${Math.round(alpha*100000)}"/>`}</a:blip><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${EMU(w)}" cy="${EMU(h)}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:anchor></w:drawing></w:r>`;}
-function buildDocx(r){const o=Object.assign({},PO()),K=FITK;o.lh=Math.round(o.lh*FITL);for(const k of ['fz','toFz','sjFz','sgFz','ccFz'])o[k]=Math.round(o[k]*K*2)/2;const FN=X(o.ff==='Noto Naskh Arabic'?'Noto Naskh Arabic':o.ff),dig=s=>o.digits?A(s):String(s);
+function buildDocx(r){const o=Object.assign({},PO()),K=FITK;o.lh=Math.round(o.lh*FITL);for(const k of ['fz','toFz','sjFz','sgFz','ccFz'])o[k]=Math.round(o[k]*K*2)/2;o.ccFz=Math.round(o.ccFz*(FITCC||1)*2)/2;const FN=X(o.ff==='Noto Naskh Arabic'?'Noto Naskh Arabic':o.ff),dig=s=>o.digits?A(s):String(s);
   const SGF=X(o.sgFf);
   const run=(t,ro={})=>{const F=ro.f||FN,rp=`<w:rPr><w:rFonts w:ascii="${F}" w:hAnsi="${F}" w:eastAsia="${F}" w:cs="${F}"/>${ro.b?'<w:b/><w:bCs/>':''}${ro.u?'<w:u w:val="single"/>':''}${ro.c?`<w:color w:val="${ro.c}"/>`:''}${ro.hl?`<w:shd w:val="clear" w:color="auto" w:fill="${ro.hl}"/>`:''}<w:sz w:val="${Math.round(ro.sz*2)}"/><w:szCs w:val="${Math.round(ro.sz*2)}"/><w:rtl/><w:lang w:bidi="ar-IQ"/></w:rPr>`;
     return `<w:r>${rp}<w:t xml:space="preserve">${X(dig(t))}</w:t></w:r>`;};

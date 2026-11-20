@@ -1,0 +1,107 @@
+<style id="fvAddonCss">
+/* «تقرير زيارة مشاريع التنفيذ أمانة» داخل البرنامج الموحد: حفظ التقارير + لوحة معلومات (إضافة فوق صفحة البرنامج الأصلية دون تغييرها) */
+body{padding-top:46px}
+#fvBar{position:fixed;top:0;right:0;left:0;z-index:50;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:6px 12px;background:#1f4d2a;color:#fff;font:14px Tahoma,Arial,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.18)}
+#fvBar b{font-size:15px}#fvBar .cur{opacity:.9;max-width:40vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#fvBar button{font:inherit;font-size:13px;border:1px solid rgba(255,255,255,.5);background:rgba(255,255,255,.12);color:#fff;border-radius:7px;padding:4px 10px;cursor:pointer}
+#fvBar button:hover{background:rgba(255,255,255,.25)}#fvBar .st{font-size:12px;opacity:.85;margin-inline-start:auto}
+#fvDash{position:fixed;inset:46px 0 0 0;z-index:49;background:#f4f7f5;overflow:auto;padding:14px 18px;font:14px Tahoma,Arial,sans-serif;color:#1e2b22}
+#fvDash[hidden]{display:none}
+#fvDash h3{margin:4px 0 10px;color:#1f4d2a}
+.fvk{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px}
+.fvk div{background:#fff;border:1px solid #d5e2d9;border-radius:10px;padding:10px 12px}.fvk b{display:block;font-size:22px;color:#1f4d2a}.fvk span{font-size:12px;color:#5b6b60}
+.fvg{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;margin-bottom:12px}
+.fvg .card{background:#fff;border:1px solid #d5e2d9;border-radius:10px;padding:10px 12px}.fvg h4{margin:0 0 8px;font-size:14px}
+.fvbar{display:flex;align-items:center;gap:6px;margin:4px 0;font-size:13px}.fvbar i{display:block;height:12px;border-radius:6px;background:#2f8a45}.fvbar span{min-width:110px}
+#fvDash table{width:100%;border-collapse:collapse;background:#fff;border:1px solid #d5e2d9;border-radius:10px;font-size:13px}
+#fvDash th,#fvDash td{padding:6px 8px;border-bottom:1px solid #e6eee9;text-align:start;vertical-align:top}#fvDash th{background:#eaf3ed}
+#fvDash tr.r:hover{background:#f0f7f2;cursor:pointer}
+#fvDash .tools{display:flex;gap:8px;align-items:center;margin:8px 0}#fvDash input[type=search]{flex:1;max-width:360px;padding:6px 10px;font:inherit;border:1px solid #b8c9bd;border-radius:8px}
+#fvDash .btn{font:inherit;font-size:12px;border:1px solid #b8c9bd;background:#fff;border-radius:7px;padding:3px 8px;cursor:pointer}#fvDash .btn.d{color:#b42318;border-color:#e5b7b2}
+.chip{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12px}.chip.ok{background:#e3f4e8;color:#1f6b3a}.chip.no{background:#fbe5e3;color:#b42318}.chip.n{background:#eef1f4;color:#5b6670}
+@media print{#fvBar,#fvDash{display:none!important}body{padding-top:0!important}}
+</style>
+<script id="fvAddonJs">
+(function(){
+  'use strict';
+  const D = window.desktop || null, LSK = 'anbar_fieldvisit_v1';
+  const $ = id => document.getElementById(id);
+  const esc2 = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const uid = () => 'fv' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  const GROUPS = ['quality', 'quant', 'conf', 'rec'];
+  let DB = { app: 'anbar-fieldvisit', version: 1, records: [] }, curId = null, dirty = false, t = null, loading = false;
+  function loadDB(){ let txt = null; try { txt = D && D.load ? D.load() : localStorage.getItem(LSK); } catch (_) {}
+    try { const o = txt ? JSON.parse(txt) : null; if (o && Array.isArray(o.records)) DB = o; } catch (_) {} }
+  function persist(){ const txt = JSON.stringify(DB); try { if (D && D.save) D.save(txt); else localStorage.setItem(LSK, txt); } catch (_) {} }
+  /* حالة النموذج: كل حقول f_ والخيارات والأعضاء */
+  function collect(){ const d = {};
+    document.querySelectorAll('.panel [id^="f_"]').forEach(e => { d[e.id] = e.value; });
+    GROUPS.forEach(g => { const e = document.querySelector('input[name="' + g + '"]:checked'); d['g_' + g] = e ? e.value : ''; });
+    try { d.members = getMembers(); } catch (_) {}
+    return d; }
+  function restore(d){ loading = true; d = d || {};
+    document.querySelectorAll('.panel [id^="f_"]').forEach(e => { e.value = d[e.id] != null ? d[e.id] : ''; });
+    if (!d.f_vyear) { try { $('f_vyear').value = currentYear(); } catch (_) {} }
+    GROUPS.forEach(g => document.querySelectorAll('input[name="' + g + '"]').forEach(r => { r.checked = r.value === d['g_' + g]; }));
+    try { setMembers(Array.isArray(d.members) && d.members.length ? d.members : DEFAULT_MEMBERS); } catch (_) {}
+    try { render(); } catch (_) {} loading = false; }
+  const titleOf = r => (r && r.d && String(r.d.f_project || '').trim()) || 'تقرير بلا اسم مشروع';
+  const filled = d => Object.keys(d).some(k => k !== 'f_vyear' && k !== 'members' && String(d[k] || '').trim());
+  function status(txt){ const s = $('fvSt'); if (s) s.textContent = txt; }
+  function bar(){ const r = DB.records.find(x => x.id === curId);
+    $('fvCur').textContent = r ? '— ' + titleOf(r) : '— تقرير جديد (يُحفظ تلقائياً عند الكتابة)'; }
+  function saveNow(){ clearTimeout(t); if (!dirty) return; dirty = false; const d = collect();
+    let r = DB.records.find(x => x.id === curId);
+    if (!r) { if (!filled(d)) return; r = { id: uid(), created: Date.now(), by: '', d: {} }; DB.records.push(r); curId = r.id; }
+    r.d = d; r.updated = Date.now(); try { r.by = (D && D.who && D.who()) || r.by || ''; } catch (_) {}
+    persist(); bar(); status('✔ حُفظ ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })); }
+  function touch(){ if (loading) return; dirty = true; status('… جارٍ الحفظ'); clearTimeout(t); t = setTimeout(saveNow, 700); }
+  document.addEventListener('input', e => { if (e.target.closest && e.target.closest('.panel') && !/^s_|^sheetId$|^rowNo$/.test(e.target.id || '')) touch(); }, true);
+  document.addEventListener('change', e => { if (e.target.closest && e.target.closest('.panel') && !/^s_|^sheetId$|^rowNo$/.test(e.target.id || '')) touch(); }, true);
+  /* إضافة/حذف عضو (أزرار الصفحة الأصلية) تُعدّ تعديلاً */
+  document.addEventListener('click', e => { if (e.target.closest && e.target.closest('#memRows .x, .panel button.alt')) setTimeout(touch, 0); }, true);
+  window.addEventListener('beforeunload', saveNow);
+  function openRec(id){ saveNow(); const r = DB.records.find(x => x.id === id); curId = r ? r.id : null; restore(r ? r.d : {}); bar(); $('fvDash').hidden = true; status(r ? 'فُتح التقرير' : ''); window.scrollTo(0, 0); }
+  function newRec(){ saveNow(); curId = null; restore({}); bar(); $('fvDash').hidden = true; status('تقرير جديد'); }
+  function delRec(id){ const r = DB.records.find(x => x.id === id); if (!r) return; if (!confirm('حذف تقرير «' + titleOf(r) + '» نهائياً؟')) return;
+    DB.records = DB.records.filter(x => x.id !== id); try { if (D && D.tomb) D.tomb(id); } catch (_) {} persist(); if (curId === id) { curId = null; restore({}); bar(); } dash(); }
+  function dup(id){ saveNow(); const r = DB.records.find(x => x.id === id); if (!r) return; const n = JSON.parse(JSON.stringify(r)); n.id = uid(); n.created = n.updated = Date.now();
+    n.d.f_project = (n.d.f_project || '') + ' (نسخة)'; DB.records.push(n); persist(); openRec(n.id); }
+  /* ---------- لوحة المعلومات ---------- */
+  let q = '';
+  const pct = v => { const n = parseFloat(String(v || '').replace(/[٠-٩]/g, x => '٠١٢٣٤٥٦٧٨٩'.indexOf(x))); return isFinite(n) ? n : null; };
+  const vdate = d => [d.f_vday, d.f_vmonth, d.f_vyear].filter(x => String(x || '').trim()).join('/');
+  function bars(title, obj){ const tot = Object.values(obj).reduce((a, b) => a + b, 0) || 1; const L = Object.entries(obj).sort((a, b) => b[1] - a[1]);
+    return '<div class="card"><h4>' + title + '</h4>' + (L.length ? L.map(([k, n]) => '<div class="fvbar"><span>' + esc2(k) + '</span><i style="width:' + Math.max(4, Math.round(n / tot * 160)) + 'px"></i><b>' + n + '</b></div>').join('') : '<div style="color:#889">لا بيانات</div>') + '</div>'; }
+  function dash(){ const el = $('fvDash'); const R = DB.records.slice().sort((a, b) => (b.updated || 0) - (a.updated || 0));
+    const cnt = f => { const o = {}; R.forEach(r => { const k = f(r.d) || 'غير محدد'; o[k] = (o[k] || 0) + 1; }); return o; };
+    const P = R.map(r => pct(r.d.f_progress)).filter(x => x != null), avg = P.length ? Math.round(P.reduce((a, b) => a + b, 0) / P.length) : null;
+    const acc = R.filter(r => r.d.g_rec === 'قبول').length, rej = R.filter(r => r.d.g_rec === 'رفض').length;
+    const T = s => String(s || '').toLowerCase(), list = R.filter(r => !q || T([r.d.f_project, r.d.f_followup, r.d.f_beneficiary, r.d.f_letterNo, r.d.f_order].join(' ')).includes(T(q)));
+    el.innerHTML = '<h3>📊 لوحة تقارير زيارة مشاريع التنفيذ أمانة</h3>' +
+      '<div class="fvk"><div><b>' + R.length + '</b><span>تقرير محفوظ</span></div><div><b>' + acc + '</b><span>توصية بالقبول (صرف السلفة)</span></div><div><b>' + rej + '</b><span>توصية بالرفض</span></div><div><b>' + (avg == null ? '—' : avg + '%') + '</b><span>متوسط نسبة الإنجاز</span></div><div><b>' + R.filter(r => !r.d.g_rec).length + '</b><span>بلا توصية بعد</span></div></div>' +
+      '<div class="fvg">' + bars('جودة العمل المنفذ', cnt(d => d.g_quality)) + bars('المطابقة لجدول الكميات', cnt(d => d.g_conf)) + bars('حسب لجنة المتابعة', cnt(d => String(d.f_followup || '').trim())) + bars('حسب الجهة المستفيدة', cnt(d => String(d.f_beneficiary || '').trim())) + '</div>' +
+      '<div class="tools"><input type="search" id="fvQ" placeholder="بحث: اسم المشروع، اللجنة، الجهة، العدد…" value="' + esc2(q) + '"><button class="btn" data-fv="new">＋ تقرير جديد</button></div>' +
+      '<table><thead><tr><th>المشروع</th><th>لجنة المتابعة</th><th>تاريخ الزيارة</th><th>الإنجاز</th><th>الجودة</th><th>التوصية</th><th>آخر حفظ</th><th></th></tr></thead><tbody>' +
+      (list.length ? list.map(r => { const d = r.d, rc = d.g_rec; return '<tr class="r" data-open="' + r.id + '"><td>' + esc2(titleOf(r)) + '</td><td>' + esc2(d.f_followup || '') + '</td><td>' + esc2(vdate(d)) + '</td><td>' + (pct(d.f_progress) == null ? '' : pct(d.f_progress) + '%') + '</td><td>' + esc2(d.g_quality || '') + '</td><td>' + (rc ? '<span class="chip ' + (rc === 'قبول' ? 'ok' : 'no') + '">' + esc2(rc) + '</span>' : '<span class="chip n">—</span>') + '</td><td>' + (r.updated ? new Date(r.updated).toLocaleDateString('en-GB') : '') + (r.by ? ' — ' + esc2(r.by) : '') + '</td><td><button class="btn" data-dup="' + r.id + '">نسخ</button> <button class="btn d" data-del="' + r.id + '">حذف</button></td></tr>'; }).join('')
+        : '<tr><td colspan="8" style="color:#778">' + (R.length ? 'لا نتائج للبحث' : 'لا توجد تقارير محفوظة بعد — اضغط «＋ تقرير جديد» واملأ الحقول، يُحفظ التقرير تلقائياً') + '</td></tr>') + '</tbody></table>'; }
+  document.addEventListener('input', e => { if (e.target.id === 'fvQ') { q = e.target.value; const p = e.target.selectionStart; dash(); const n = $('fvQ'); n.focus(); try { n.setSelectionRange(p, p); } catch (_) {} } });
+  document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('[data-fv],[data-open],[data-del],[data-dup]'); if (!b) return;
+    if (b.dataset.del) { e.stopPropagation(); delRec(b.dataset.del); return; } if (b.dataset.dup) { e.stopPropagation(); dup(b.dataset.dup); return; }
+    if (b.dataset.open) { openRec(b.dataset.open); return; }
+    const k = b.dataset.fv; if (k === 'dash') { saveNow(); const v = $('fvDash'); v.hidden = !v.hidden; if (!v.hidden) dash(); } else if (k === 'new') newRec(); else if (k === 'save') { dirty = true; saveNow(); } });
+  /* ---------- الشريط ---------- */
+  const barEl = document.createElement('div'); barEl.id = 'fvBar';
+  barEl.innerHTML = '<b>تقرير زيارة مشاريع التنفيذ أمانة</b><span class="cur" id="fvCur"></span><button data-fv="dash">📊 لوحة التقارير</button><button data-fv="new">＋ تقرير جديد</button><button data-fv="save">💾 حفظ</button><span class="st" id="fvSt"></span>';
+  const dashEl = document.createElement('div'); dashEl.id = 'fvDash'; dashEl.hidden = true;
+  document.body.prepend(dashEl); document.body.prepend(barEl);
+  /* المزامنة: وصلت تقارير من حاسبة أخرى */
+  window.__syncReload = function(){ saveNow(); loadDB(); if (curId && !DB.records.find(x => x.id === curId)) { curId = null; restore({}); } else if (curId) restore(DB.records.find(x => x.id === curId).d); bar(); if (!$('fvDash').hidden) dash(); };
+  loadDB(); const last = DB.records.slice().sort((a, b) => (b.updated || 0) - (a.updated || 0))[0];
+  if (last) { curId = last.id; restore(last.d); } bar();
+  if (DB.records.length) { $('fvDash').hidden = false; dash(); }
+  /* «تحديث من Google Drive» في الصفحة الأصلية يملأ الحقول دون أحداث كتابة: يُحفظ بعده */
+  if (typeof window.loadSheet === 'function') { const ol = window.loadSheet; window.loadSheet = async function(){ const r = await ol.apply(this, arguments); dirty = true; saveNow(); return r; }; }
+  window.FieldVisit = { db: () => DB, open: openRec, newRec, save: () => { dirty = true; saveNow(); }, dash: () => { $('fvDash').hidden = false; dash(); } };
+})();
+</script>

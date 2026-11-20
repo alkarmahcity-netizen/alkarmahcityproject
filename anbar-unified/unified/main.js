@@ -30,6 +30,8 @@ const APPS = {
   lt: { title: 'المخاطبات والمطالعات', file: 'app/lt.html', data: 'Letters-Data.json' },
   fu: { title: 'مطالعات أوامر التغيير', file: 'app/fu.html', data: 'FollowUp-Data.json' },
   ar: { title: 'الأرشيف والتوزيع', file: 'app/ar.html', data: 'Archive-Data.json' },
+  /* تقرير زيارة مشاريع التنفيذ أمانة (برنامج FieldVisitReport مدمجاً): التقارير تُحفظ وتُزامن، مع لوحة معلومات */
+  fv: { title: 'تقرير زيارة مشاريع التنفيذ أمانة', file: 'app/fv.html', data: 'FieldVisit-Data.json' },
   /* مطالعات اللجنة داخل المدد وداخل أوامر التغيير: محرر مطالعة المخاطبات نفسه (app/lt.html بوضع اللجنة) بملف بيانات مستقل،
      ويُفتح بكلمة سر اللجنة الأم (parent) لا بكلمة سر مستقلة */
   dm: { title: 'مطالعات لجنة المدد', file: 'app/lt.html', query: { ltm: 'dm' }, data: 'DurationsMemos-Data.json', parent: 'du' },
@@ -93,7 +95,7 @@ function dailyBackup() {
   try {
     const bdir = path.join(dataDir, 'backups'); fs.mkdirSync(bdir, { recursive: true });
     const day = new Date().toISOString().slice(0, 10);
-    for (const id of ['co', 'du', 'ad', 'in', 'lt', 'fu', 'ar', 'wf', 'dm', 'cm']) {
+    for (const id of ['co', 'du', 'ad', 'in', 'lt', 'fu', 'ar', 'wf', 'dm', 'cm', 'fv']) {
       const f = dataFile(id); if (!fs.existsSync(f)) continue;
       const base = APPS[id].data.replace(/\.json$/, '');
       const target = path.join(bdir, `${base}_${day}.json`);
@@ -269,7 +271,7 @@ setInterval(async () => {
 }, +process.env.UNI_AC_POLL_MS || 4000);
 
 /* ---------------- IPC ---------------- */
-const okId = id => ['co', 'du', 'ad', 'in', 'lt', 'fu', 'ar', 'dm', 'cm'].includes(id);
+const okId = id => ['co', 'du', 'ad', 'in', 'lt', 'fu', 'ar', 'dm', 'cm', 'fv'].includes(id);
 ipcMain.on('data:load', (e, id) => { e.returnValue = okId(id) ? readData(id) : null; });
 ipcMain.on('data:path', (e, id) => { e.returnValue = okId(id) ? dataFile(id) : ''; });
 ipcMain.on('data:dir', e => { e.returnValue = dataDir; });
@@ -931,7 +933,7 @@ async function go(id, fileNo) {
    ويُعاد تحميله من ملف بياناته عند الرجوع إليه (أقل من ثانية). لا يشمل النظام المعروض، ولا الاستلام، ولا نظاماً يكتب الآن.
    الحفظ قبل التفريغ بالمسار نفسه الذي يحفظ به كل نظام عند إغلاق البرنامج (beforeunload ← حفظ متزامن). */
 const UNLOAD_MS = +process.env.UNI_UNLOAD_MS || 15 * 60 * 1000;
-const UNLOADABLE = new Set(['co', 'du', 'ad', 'in', 'lt', 'fu', 'ar', 'dm', 'cm']);
+const UNLOADABLE = new Set(['co', 'du', 'ad', 'in', 'lt', 'fu', 'ar', 'dm', 'cm', 'fv']);
 const viewLeft = {};
 const unloadOn = () => !prefs().unloadOff;
 /* ---------------- ملخص الموقف من السلف وأوامر التغيير ----------------
@@ -991,7 +993,7 @@ async function acEval(code) {
 }
 function appliedHook(ds) {
   try {
-    if (['co', 'du', 'ad', 'in', 'lt', 'fu', 'ar', 'dm', 'cm'].includes(ds) && views[ds]) views[ds].webContents.executeJavaScript('window.__syncReload&&window.__syncReload()').catch(() => {});
+    if (['co', 'du', 'ad', 'in', 'lt', 'fu', 'ar', 'dm', 'cm', 'fv'].includes(ds) && views[ds]) views[ds].webContents.executeJavaScript('window.__syncReload&&window.__syncReload()').catch(() => {});
     if (LINK_SYS.includes(ds) && !views[ds]) refreshLinksSoon(ds);   /* بيانات وصلت والنظام غير محمّل: يُحدَّث ملخص الموقف في الخلفية */
     if (ds === 'ac' && views.ac && current !== 'ac') views.ac.webContents.reload();
     if (ds === 'arf' && views.ar) views.ar.webContents.executeJavaScript('window.__filesArrived&&window.__filesArrived()').catch(() => {});

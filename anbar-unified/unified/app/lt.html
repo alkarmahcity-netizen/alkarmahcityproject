@@ -73,7 +73,8 @@ main{flex:1;min-height:0;display:flex;flex-direction:column;overflow:auto}
 .list{display:flex;flex-direction:column;gap:10px}
 .rec{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 16px;display:grid;grid-template-columns:1.5fr 1fr auto;gap:8px 22px;align-items:center;cursor:pointer}.rec:hover{border-color:var(--green-2)}
 .rec h3{margin:0;font-size:16px}.rec .meta{color:var(--muted);font-size:13px}.rec .acts{display:flex;gap:6px}
-.chip{display:inline-block;font-size:12px;padding:1px 9px;border-radius:20px;border:1px solid var(--line);margin-inline-start:6px;vertical-align:middle}.chip.ok{color:var(--green-2);border-color:var(--green-2)}.chip.memo{color:#2563a8;border-color:#2563a8}.chip.tpl{color:var(--gold);border-color:var(--gold)}
+.chip{display:inline-block;font-size:12px;padding:1px 9px;border-radius:20px;border:1px solid var(--line);margin-inline-start:6px;vertical-align:middle}.chip.ok{color:var(--green-2);border-color:var(--green-2)}.chip.memo{color:#2563a8;border-color:#2563a8}.tplbox{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin:12px 0 14px;padding:8px 12px;border:1.5px solid var(--line);border-radius:12px;background:var(--card,#fff)}.tplbox select{min-width:260px;max-width:100%;flex:1 1 260px;font:inherit;padding:4px 8px}
+.chip.tpl{color:var(--gold);border-color:var(--gold)}
 .empty{background:var(--surface);border:1px dashed var(--line);border-radius:10px;padding:30px;text-align:center;color:var(--muted)}
 .hint{color:var(--muted);font-size:12.5px;margin:4px 0}
 .ed-bar{display:flex;align-items:center;gap:8px;padding:8px 16px;background:var(--surface);border-bottom:1px solid var(--line);flex-wrap:wrap}
@@ -12695,7 +12696,7 @@ async function loadSavedFonts(collect){if(!DESK||!DESK.fontsList)return 0;
 const PO_DEF={ff:'Simplified Arabic',sgFf:'PT Bold Heading',toFf:'',sjFf:'',orFf:'',sgGap:20,mtFf:'Arial',mtFz:11,fz:15,toFz:16,sjFz:16,sgFz:15,ccFz:10,ccLh:150,ccB:0,wm:1,wmO:8,ccBottom:1,ccGap:5,lh:165,bodyBold:1,signBold:1,hk:100,cg:2,kash:1,digits:1,fit:1,qr:1,sjU:1,toU:0,orU:0};
 const PO=()=>{const o=Object.assign({},PO_DEF,DB.settings.po||{});try{if(LTM&&!(DB.settings.po&&DB.settings.po.hk!=null))o.hk=85;}catch(_){}   /* مطالعات اللجان (طويلة): ترويسة أصغر افتراضياً لتتسع الصفحة — تتغير من «حجم الترويسة» */
   o.cgMm=Math.min(10,Math.max(1,+o.cgMm||10));o.kashP=Math.min(100,Math.max(0,o.kashP!=null&&o.kashP!==''?+o.kashP:(o.kash?100:0)));o.kash=o.kashP>0?1:0;
-  o.sgMm=Math.min(25,Math.max(2,+(o.sgMm!=null?o.sgMm:o.sgCm!=null?o.sgCm*10:(+o.sgGap||20))||20));o.sgGap=o.sgMm;   /* المتن/الخاتمة ← التوقيع: 2–25 ملم */
+  o.sgMm=Math.min(50,Math.max(3,+(o.sgMm!=null?o.sgMm:o.sgCm!=null?o.sgCm*10:(+o.sgGap||20))||20));o.sgGap=o.sgMm;   /* المتن/الخاتمة ← التوقيع: 3–50 ملم */
   o.toMm=Math.min(30,Math.max(3,+(o.toMm!=null?o.toMm:5)||5));return o;};   /* «الى /» أو «(أمر إداري)» ← تحت العدد والتاريخ والترويسة: 3–30 ملم */
 const _fi={};function fontInstalled(name){if(EMB[name]||SAVED.has(name))return true;if(name in _fi)return _fi[name];const c=document.createElement('canvas').getContext('2d'),t='جاسم محمد عسل نائب المحافظ';
   const w=f=>{c.font='700 40px '+f;return c.measureText(t).width;};return (_fi[name]=['serif','monospace','sans-serif'].some(b=>Math.abs(w(`'${name}',${b}`)-w(b))>0.5));}
@@ -13095,7 +13096,7 @@ function fitPage(p){const T0=performance.now();{const pg=p.closest('#pages');if(
     while(overflows(p)&&k>0.88)K(k-0.02);while(overflows(p)&&g>0.5)G(g-0.1);while(overflows(p)&&k>0.7)K(k-0.02);while(overflows(p)&&g>0.25)G(g-0.05);FITK=k;}
   /* إن بقي الكتاب أطول من صفحة: الصفحة بطول عدد صحيح من صفحات A4 لتنزل «صورة عنه إلى» إلى أسفل الصفحة الأخيرة */
   let n=1;if(NT){n=printPages(p).n;}else if(overflows(p)){const cb=p.querySelector('.ccb'),extra=cb?cb.getBoundingClientRect().height+(PO().ccGap+4)*MM:0;n=Math.max(2,Math.ceil((p.querySelector('table.flow').getBoundingClientRect().height+extra-2)/(297*MM)));}
-  p.style.minHeight=(n*297)+'mm';LASTN=n;window.__fit={k:FITK,l:+FITL.toFixed(2),msg:FITMSG,n,target:NT,tries:NT?window.__fitTries||0:0,last:bodyOnLast(p,n),ms:Math.round(performance.now()-T0)};{const fi=document.getElementById('fitInfo');if(fi)fi.textContent=NT?(FITMSG?'⚠':`${A(Math.round(FITK*100))}%`):'';fi.title=NT?(FITMSG||`${n===1?'صفحة واحدة':n===2?'صفحتان':A(n)+' صفحات'} — الخط ${A(Math.round(FITK*100))}% وتباعد الأسطر ${A(Math.round(FITL*100))}%`):'';if(NT&&FITMSG&&FITMSG!==window.__lastFitMsg)flash(FITMSG,true);window.__lastFitMsg=NT?FITMSG:"";if(fi)fi.classList.toggle('warn',!!FITMSG);}
+  p.style.minHeight=(n*297)+'mm';LASTN=n;window.__fit={k:FITK,l:+FITL.toFixed(2),msg:FITMSG,n,target:NT,tries:NT?window.__fitTries||0:0,last:bodyOnLast(p,n),ms:Math.round(performance.now()-T0)};{const fi=document.getElementById('fitInfo');if(fi){fi.textContent=NT?(FITMSG?'⚠':`${A(Math.round(FITK*100))}%`):'';fi.title=NT?(FITMSG||`${n===1?'صفحة واحدة':n===2?'صفحتان':A(n)+' صفحات'} — الخط ${A(Math.round(FITK*100))}% وتباعد الأسطر ${A(Math.round(FITL*100))}%`):'';if(NT&&FITMSG&&FITMSG!==window.__lastFitMsg)flash(FITMSG,true);window.__lastFitMsg=NT?FITMSG:"";if(fi)fi.classList.toggle('warn',!!FITMSG);}}
   p.querySelectorAll('.wm.c').forEach(x=>x.remove());const wm=p.querySelector('.wm');if(wm)for(let i=1;i<n;i++){const c=wm.cloneNode();c.classList.add('c');c.style.setProperty('--wmy',(i*297+148.5)+'mm');p.appendChild(c);}}
 function markBreaks(p){p.querySelectorAll('.pbreak').forEach(x=>x.remove());const n=Math.round(p.getBoundingClientRect().height/(297*MM));for(let i=1;i<n;i++){const d=document.createElement('div');d.className='pbreak';d.style.top=(i*297)+'mm';d.innerHTML=`<span>نهاية الصفحة ${A(i)} — يكمل في صفحة ثانية بالترويسة نفسها</span>`;p.appendChild(d);}}
 function fitPreview(){const pg=document.getElementById('pages'),col=document.querySelector('.prev-col');if(!pg||!col)return;const k=Math.min(1,(col.clientWidth-24)/(210*MM));pg.style.transform=`scale(${k})`;pg.style.height=(pg.scrollHeight*k)+'px';}
@@ -13194,9 +13195,17 @@ function mergeSettings(src){if(!src||typeof src!=='object')return;const S=settin
   uniq(S.dict,src.dict,x=>x.w+'→'+x.r);uniq(S.cc,src.cc,x=>x);uniq(S.signs,src.signs,x=>x.name+'|'+x.title);uniq(S.to,src.to,x=>x);uniq(S.ignore,src.ignore,x=>x);
   if(src.po&&!DB.settings.po)DB.settings.po=src.po;}
 /* القوالب تحت مربع البحث، وتُصفّى بالبحث نفسه */
+/* القوالب: مستطيل مستقل بقائمة منسدلة (لا تُعرض قائمةً فوق الكتب فتزيحها)، ولكل قالب «تسمية مرجعية» (tplName)، مجمّعة حسب النوع */
+function tplLabel(r){return String(r.tplName||'').trim()||String(r.subject||'').trim()||'قالب بلا تسمية';}
 function paintTpls(){const box=document.getElementById('hTpls');if(!box)return;const terms=parseQuery(homeQ);
-  const tpls=DB.records.filter(r=>r.tpl).filter(r=>!terms.length||matchRec(r,terms).score>0).sort((a,b)=>(b.updated||0)-(a.updated||0));
-  box.innerHTML=tpls.length?`<h3 style="margin:14px 0 8px">القوالب${terms.length?` <small style="font-weight:400;color:var(--muted)">(${A(tpls.length)} مطابقة للبحث)</small>`:''}</h3><div class="list" style="margin-bottom:18px">${tpls.map(r=>`<div class="rec" data-act="fromtpl" data-id="${r.id}"><div><h3>${esc(r.subject)||'قالب بلا عنوان'}<span class="chip tpl">قالب</span></h3><div class="meta">${esc(r.to)}</div></div><div class="meta">اضغط لإنشاء كتاب جديد منه</div><div class="acts"><button class="btn sm" data-act="open" data-id="${r.id}">تعديل القالب</button><button class="btn sm danger" data-act="delrec" data-id="${r.id}">حذف</button></div></div>`).join('')}</div>`:'';}
+  const all=DB.records.filter(r=>r.tpl),tpls=all.filter(r=>!terms.length||matchRec(r,terms).score>0||String(r.tplName||'').toLowerCase().includes(String(homeQ||'').trim().toLowerCase()));
+  if(!all.length){box.innerHTML='';return;}
+  const cur=tpls.find(r=>r.id===window.__tplSel)||tpls[0];
+  const groups=Object.keys(TYPE_AR).map(k=>[TYPE_AR[k],tpls.filter(r=>(r.type||'letter')===k).sort((a,b)=>tplLabel(a).localeCompare(tplLabel(b),'ar'))]).filter(g=>g[1].length);
+  box.innerHTML=`<div class="tplbox"><b>📁 القوالب</b> <small style="color:var(--muted)">(${A(tpls.length)}${terms.length&&tpls.length!==all.length?' من '+A(all.length)+' مطابقة للبحث':''})</small>
+   ${tpls.length?`<select id="tplSel" title="اختر قالباً بتسميته">${groups.map(([g,L])=>`<optgroup label="${esc(g)}">${L.map(r=>`<option value="${r.id}" ${cur&&cur.id===r.id?'selected':''}>${esc(tplLabel(r))}${r.tplName&&r.subject?' — '+esc(String(r.subject).slice(0,40)):''}</option>`).join('')}</optgroup>`).join('')}</select>
+   <button class="btn sm primary" data-act="fromtpl" data-id="${cur?cur.id:''}" data-tplb="1">إنشاء كتاب منه</button><button class="btn sm" data-act="open" data-id="${cur?cur.id:''}" data-tplb="1">تعديل القالب</button><button class="btn sm" data-act="tplname" data-id="${cur?cur.id:''}" data-tplb="1">✏ التسمية</button><button class="btn sm danger" data-act="delrec" data-id="${cur?cur.id:''}" data-tplb="1">حذف</button>`:'<span style="color:var(--muted)">لا قالب يطابق البحث</span>'}</div>`;}
+
 let HLIM=100;   // تُعرض أول 100 نتيجة، و«عرض المزيد» يضيف 200
 function paintList(){const box=document.getElementById('hList');if(!box)return;const total=DB.records.filter(r=>!r.tpl).length,{res,terms}=searchRecords(homeQ),shown=res.slice(0,HLIM);
   const filtered=terms.length||HF.type||HF.status||HF.from||HF.to;
@@ -13295,7 +13304,7 @@ function renderForm(){const r=R(),S=settings();if(!r)return;try{paintOutBanner()
     <div class="fld full fontbox"><span>الخطوط داخل البرنامج</span><div class="hint" style="margin:0">مضمّنة (تعمل على أي حاسبة): ${Object.keys(EMB).join('، ')}.${DESK&&DESK.fontsList?`<br>محفوظة في مجلد البرنامج «خطوط»: ${SAVED.size?[...SAVED].join('، '):'لا شيء بعد'}.`:''}</div>
      ${DESK&&DESK.fontsImport?`<div class="addrow"><button class="btn sm primary" data-act="fntcollect" title="ينسخ خطوط الكتب الرسمية الموجودة في ويندوز إلى مجلد البرنامج">⟳ حفظ خطوط ويندوز داخل البرنامج</button><button class="btn sm" data-act="fntimport">＋ إضافة خط من ملف (.ttf / .otf)</button></div>`:''}</div>
     ${po('حجم خط المتن','fz',11,20,0.5,' pt')}${po('حجم «الى /»','toFz',12,22,0.5,' pt')}${po('حجم «م /»','sjFz',12,22,0.5,' pt')}${po('حجم خط التوقيع','sgFz',11,24,0.5,' pt')}
-    ${po('تباعد الأسطر','lh',110,250,5,'%')}${po('حجم الترويسة','hk',70,110,5,'%')}${po('المسافة بين المتن والخاتمة','cgMm',1,10,0.5,' ملم')}${po('المسافة بين المتن وصاحب التوقيع','sgMm',2,25,0.5,' ملم')}${po('المسافة فوق «الى /» أو «(أمر إداري)» (من الترويسة العليا)','toMm',3,30,0.5,' ملم')}
+    ${po('تباعد الأسطر','lh',110,250,5,'%')}${po('حجم الترويسة','hk',70,110,5,'%')}${po('المسافة بين المتن والخاتمة','cgMm',1,10,0.5,' ملم')}${po('المسافة بين المتن وصاحب التوقيع','sgMm',3,50,0.5,' ملم')}${po('المسافة فوق «الى /» أو «(أمر إداري)» (من الترويسة العليا)','toMm',3,30,0.5,' ملم')}
     <div class="full" style="border-top:1px solid var(--line);margin-top:4px;padding-top:6px;font-weight:600">«صورة عنه إلى»</div>
     <label class="fld"><span>خط الجهات في «صورة عنه إلى»</span><select data-po="ccB"><option value="0" ${+PO().ccB?'':'selected'}>فاتح (عادي)</option><option value="1" ${+PO().ccB?'selected':''}>غامق</option></select></label><span></span>
     ${po('حجم خطها','ccFz',7,14,0.5,' pt')}${po('تباعد أسطرها','ccLh',100,220,5,'%')}
@@ -13662,7 +13671,9 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-act]
       if(v==='ok'){renderForm();flash('فُتح العدد والتاريخ حتى «قفل الكل»');}else if(er)er.textContent=v==='wait'?'محاولات كثيرة — انتظر دقيقة':'كلمة السر غير صحيحة';break;}
     case 'hfclear':Object.assign(HF,{type:'',status:'',from:'',to:'',sort:'rel'});homeQ='';renderHome();break;
     case 'findnext':findNext();break;
-    case 'savetpl':r.tpl=!r.tpl;touch();b.textContent=r.tpl?'قالب ✓':'حفظ كقالب';flash(r.tpl?'حُفظ كقالب: يظهر في «القوالب» لإنشاء كتب جديدة منه':'أُلغي القالب');break;
+    case 'savetpl':{if(!r.tpl){const nm=prompt('تسمية مرجعية للقالب (تظهر في قائمة القوالب) — مثال: مطالعة توقف بسبب الأمطار',r.tplName||r.subject||'');if(nm===null)break;r.tplName=String(nm).trim();}
+      r.tpl=!r.tpl;touch();b.textContent=r.tpl?'قالب ✓':'حفظ كقالب';flash(r.tpl?'حُفظ كقالب «'+tplLabel(r)+'»: يظهر في «📁 القوالب» لإنشاء كتب جديدة منه':'أُلغي القالب');break;}
+    case 'tplname':{const t=DB.records.find(x=>x.id===b.dataset.id);if(!t)break;const nm=prompt('التسمية المرجعية للقالب',t.tplName||t.subject||'');if(nm===null)break;t.tplName=String(nm).trim();t.updated=Date.now();persist();window.__tplSel=t.id;paintTpls();flash('سُمّي القالب «'+tplLabel(t)+'»');break;}
     case 'tbnew':{const nr=Math.max(1,Math.min(60,+document.getElementById('tbR').value||3)),nc=Math.max(1,Math.min(12,+document.getElementById('tbC').value||3));
       const ta=document.querySelector('textarea[data-b=body]'),pos=ta?ta.selectionStart:r.body.length;
       /* الجداول تُرقَّم حسب موضعها في النص: الجديد يأخذ رقمه ويُزاح ما بعده */
@@ -14089,5 +14100,7 @@ setInterval(()=>{if(view==='edit'&&R()){clearTimeout(saveT);persist();LASTAUTO=n
 document.fonts.ready.then(()=>{for(const k in _fi)delete _fi[k];if(view==='edit'&&R())renderPreview();});
 loadSavedFonts().then(n=>{if(n)rerender();});
 </script>
+<script>/* القائمة المنسدلة للقوالب: الأزرار تعمل على القالب المختار */
+document.addEventListener('change',e=>{if(e.target&&e.target.id==='tplSel'){window.__tplSel=e.target.value;document.querySelectorAll('[data-tplb]').forEach(b=>{b.dataset.id=e.target.value;});}});</script>
 </body>
 </html>

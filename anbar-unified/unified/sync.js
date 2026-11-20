@@ -11,8 +11,8 @@ const os = require('os');
 const crypto = require('crypto');
 const dgram = require('dgram');
 
-const JSON_KEYS = { co: 'records', ad: 'records', du: 'recs', in: 'records', lt: 'records', fu: 'records', dm: 'records', cm: 'records', ar: 'records', wf: 'records', pl: 'records', wfa: 'records' };
-const ALL = ['co', 'du', 'ad', 'in', 'lt', 'fu', 'dm', 'cm', 'ar', 'arf', 'reg', 'ac', 'wf', 'pl', 'wfa'];   // wf: لوحة سير المعاملات
+const JSON_KEYS = { fv: 'records', co: 'records', ad: 'records', du: 'recs', in: 'records', lt: 'records', fu: 'records', dm: 'records', cm: 'records', ar: 'records', wf: 'records', pl: 'records', wfa: 'records' };
+const ALL = ['co', 'du', 'ad', 'in', 'lt', 'fu', 'dm', 'cm', 'fv', 'ar', 'arf', 'reg', 'ac', 'wf', 'pl', 'wfa'];   // wf: لوحة سير المعاملات
 const AC_TYPES = { pac: ['pac_records_v1', 'pac_counter_v1'], pap: ['pap_records_v1', 'pap_counter_v1'], fac: ['fac_records_v1', 'fac_counter_v1'], fpa: ['fpa_records_v1', 'fpa_counter_v1'] };
 const DEFAULT_PORT = +process.env.UNI_SYNC_PORT || 47900;   // للاختبار فقط: منفذ بديل إن كان 47900 مشغولاً في بيئة الاختبار
 const DISC_PORT = +process.env.UNI_DISC_PORT || 47901;   // الاكتشاف التلقائي (UDP): حاسبة القسم تجيب من يسأل عنها برمز القسم
@@ -404,7 +404,7 @@ module.exports = function createSync(ctx) {
       try { ping = await call('/sync/ping', {}); } catch (e) { if (!isAuto() || /مفتاح/.test(e.message)) throw e; if (!(await ensureFound(true))) throw new Error('لم يُعثر على حاسبة القسم في الشبكة — تأكد أنها مشغّلة وأن رمز القسم نفسه'); ping = await call('/sync/ping', {}); } state.skew = Math.round((ping.time - Date.now() + (Date.now() - t0) / 2) / 1000); state.peers = 1; state.serverVer = String(ping.ver || ''); state.serverName = String(ping.name || '');
       for (const ds of ALL) {
         if (ds === 'ac' && !ctx.acAvailable()) continue;
-        if (['in', 'lt', 'fu', 'dm', 'cm', 'ar', 'arf', 'wf', 'pl', 'wfa'].includes(ds) && !(ping.sets || []).includes(ds)) continue;   // خادم أقدم لا يعرف هذه المجموعة   // خادم أو سحابة بإصدار أقدم لا يعرف «إطلاق التأمينات»
+        if (['in', 'lt', 'fu', 'dm', 'cm', 'fv', 'ar', 'arf', 'wf', 'pl', 'wfa'].includes(ds) && !(ping.sets || []).includes(ds)) continue;   // خادم أقدم لا يعرف هذه المجموعة   // خادم أو سحابة بإصدار أقدم لا يعرف «إطلاق التأمينات»
         const rv = ping.revs ? (ping.revs[ds] || 0) : undefined;
         // مرفقات الأرشيف: تتكرر الجولة ما دام هناك ما يُنقل (أجزاء ملف كبير أو دفعات متتالية)، حتى 40 جولة
         for (let round = 0; round < (ds === 'arf' ? 40 : 1); round++) {

@@ -251,7 +251,8 @@ td.n{white-space:nowrap;font-variant-numeric:tabular-nums}
 
 /* الشريط العلوي: التبويبات تتحرك أفقياً (عجلة الفأرة أو السحب) والأدوات أيقونات صغيرة؛ والأوامر كاملة في قائمة «أدوات» */
 .bar .tabs{display:flex;align-items:stretch;gap:2px;flex:1;min-width:0;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;scroll-behavior:smooth}
-.bar .tabs::-webkit-scrollbar{height:4px}.bar .tabs::-webkit-scrollbar-thumb{background:#b9c7bd;border-radius:3px}
+/* شريط تمرير التبويبات أسمك (كان 4px فيصعب الإمساك به عند الانتقال بين الأنظمة) — شريط الأنظمة العلوي فقط */
+.bar .tabs::-webkit-scrollbar{height:12px}.bar .tabs::-webkit-scrollbar-track{background:rgba(0,0,0,.06);border-radius:6px}.bar .tabs::-webkit-scrollbar-thumb{background:#8fa898;border-radius:6px;border:2px solid transparent;background-clip:padding-box;min-width:40px}.bar .tabs::-webkit-scrollbar-thumb:hover{background:#5f7d69;background-clip:padding-box}
 .bar .brand{flex:none}.bar .tools{flex:none;padding-inline-start:6px}
 .btn.ic{min-width:34px;padding:4px 7px;font-size:15px;line-height:1}
 body.ccfs .bar,body.ccfs .foot{display:none!important}body.mapfs .bar,body.mapfs .foot{display:none!important}body.mapfs{overflow:hidden}body.mapfs .mapx{position:fixed;inset:0;width:auto;height:auto!important;min-height:0;z-index:900;border-radius:0;border:0}body.ccfs #pg-cc{inset:0!important}
@@ -313,6 +314,7 @@ body.ccfs .bar,body.ccfs .foot{display:none!important}body.mapfs .bar,body.mapfs
   <button class="tab" data-go="ac">الاستلام</button>
   <button class="tab" data-go="lt">المخاطبات</button>
   <button class="tab" data-go="fu">مطالعات الأوامر</button>
+  <button class="tab" data-go="fv">تقرير زيارة مشاريع التنفيذ أمانة</button>
   <button class="tab" data-go="ar">📥 الأرشيف</button>
   <button class="tab" data-go="log">📝 سجل التعديلات</button>
   </nav>

@@ -1,7 +1,7 @@
 {
   "name": "anbar-unified",
   "productName": "نظام الشؤون الهندسية الموحد",
-  "version": "1.92.0",
+  "version": "1.93.0",
   "description": "نظام الشؤون الهندسية الموحد: أوامر التغيير، المدد والتوقف، لجنة تدقيق السلف، إطلاق التأمينات، شهادات الاستلام، والموقف الشهري - محافظة الأنبار",
   "author": "Engineering Affairs Department - Anbar",
   "main": "main.js",
@@ -28,17 +28,12 @@
       "!build/acceptance/**",
       "!buildres/**",
       "!test-*.js",
-      "!tests/**",
-      "!build/manual/**"
+      "!tests/**"
     ],
     "extraResources": [
       {
         "from": "build/acceptance",
         "to": "acceptance"
-      },
-      {
-        "from": "build/manual",
-        "to": "manual"
       }
     ],
     "win": {

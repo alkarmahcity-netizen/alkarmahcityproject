@@ -552,14 +552,44 @@ ipcMain.handle('report:data', async () => {
   return out;
 });
 ipcMain.handle('ac:final', async () => { try { return await acEval("JSON.stringify({fac:localStorage.getItem('fac_records_v1'),fpa:localStorage.getItem('fpa_records_v1')})"); } catch (_) { return '{}'; } });
-// دليل الاستخدام (كتالوج PDF) — يُعرض داخل البرنامج بعارض PDF المدمج؛ الملف خارج asar (extraResources/manual)
+// دليل الاستخدام (كتالوج PDF) — يُعرض داخل البرنامج بعارض PDF المدمج.
+// يُبحث عن الملف في: الموارد بجانب البرنامج (manual)، ثم داخل البرنامج نفسه (asar)، ثم مجلد البيانات (دليل-الاستخدام.pdf)، ثم بجانب ملف البرنامج.
+// الملف المأخوذ من داخل البرنامج يُنسخ أولاً إلى مجلد المستخدم (عارض PDF لا يقرأ من داخل asar).
+// إن لم يوجد في أي مكان: يُعرض اختيار الملف يدوياً (الملف الذي أرسله المسؤول) ويُحفظ نسخة في مجلد البيانات فيعمل بعدها دائماً.
 let manualWin = null;
-function manualPath() { return app.isPackaged ? path.join(process.resourcesPath, 'manual', 'user-guide.pdf') : path.join(__dirname, 'build', 'manual', 'user-guide.pdf'); }
-function openManual() {
-  const f = manualPath();
-  if (!fs.existsSync(f)) { dialog.showMessageBox(win, { type: 'info', title: 'دليل الاستخدام', message: 'ملف دليل الاستخدام غير موجود في هذه النسخة.' }); return false; }
+const MANUAL_NAME = 'دليل-الاستخدام.pdf';
+const isPdf = f => { try { const fd = fs.openSync(f, 'r'), b = Buffer.alloc(5); fs.readSync(fd, b, 0, 5, 0); fs.closeSync(fd); return b.toString() === '%PDF-'; } catch (_) { return false; } };
+function manualPath() {
+  const cands = [];
+  if (process.resourcesPath) cands.push(path.join(process.resourcesPath, 'manual', 'user-guide.pdf'));
+  cands.push(path.join(__dirname, 'build', 'manual', 'user-guide.pdf'));
+  if (dataDir) cands.push(path.join(dataDir, MANUAL_NAME));
+  for (const d of [process.env.PORTABLE_EXECUTABLE_DIR, app.isPackaged && path.dirname(app.getPath('exe'))].filter(Boolean)) cands.push(path.join(d, MANUAL_NAME));
+  for (const f of cands) {
+    if (!f || !fs.existsSync(f)) continue;
+    if (/\.asar[\\/]/.test(f)) {   // من داخل البرنامج: نسخة خارجية مرة واحدة لكل إصدار
+      try { const out = path.join(app.getPath('userData'), 'manual', 'user-guide-' + APP_VER() + '.pdf');
+        if (!fs.existsSync(out) || fs.statSync(out).size !== fs.statSync(f).size) { fs.mkdirSync(path.dirname(out), { recursive: true }); fs.writeFileSync(out, fs.readFileSync(f)); }
+        if (isPdf(out)) return out; } catch (_) { continue; }
+    } else if (isPdf(f)) return f;
+  }
+  return null;
+}
+async function locateManual() {
+  const r = await dialog.showMessageBox(win, { type: 'warning', title: 'دليل الاستخدام', buttons: ['اختيار ملف الدليل…', 'إلغاء'], defaultId: 0, cancelId: 1,
+    message: 'ملف دليل الاستخدام غير موجود على هذه الحاسبة.', detail: 'اختر ملف الدليل (PDF) الذي أرسله المسؤول، فيُحفظ نسخة في مجلد بيانات البرنامج ويفتح بعدها دائماً من زر 📘.' });
+  if (r.response !== 0) return null;
+  const p = await dialog.showOpenDialog(win, { title: 'اختر ملف دليل الاستخدام', properties: ['openFile'], filters: [{ name: 'PDF', extensions: ['pdf'] }] });
+  if (p.canceled || !p.filePaths[0]) return null;
+  if (!isPdf(p.filePaths[0])) { dialog.showMessageBox(win, { type: 'error', title: 'دليل الاستخدام', message: 'الملف المختار ليس ملف PDF.' }); return null; }
+  const out = path.join(dataDir, MANUAL_NAME);
+  try { fs.copyFileSync(p.filePaths[0], out); return out; } catch (_) { return p.filePaths[0]; }
+}
+async function openManual() {
   if (manualWin && !manualWin.isDestroyed()) { if (manualWin.isMinimized()) manualWin.restore(); manualWin.focus(); return true; }
-  manualWin = new BrowserWindow({ width: 1100, height: 850, parent: undefined, title: 'دليل الاستخدام — نظام الشؤون الهندسية الموحد', icon: path.join(__dirname, 'build', 'icon.png'), autoHideMenuBar: true, webPreferences: { plugins: true, contextIsolation: true, sandbox: true, nodeIntegration: false } });
+  const f = manualPath() || await locateManual();
+  if (!f) return false;
+  manualWin = new BrowserWindow({ width: 1100, height: 850, title: 'دليل الاستخدام — نظام الشؤون الهندسية الموحد', icon: path.join(__dirname, 'build', 'icon.png'), autoHideMenuBar: true, webPreferences: { plugins: true, contextIsolation: true, sandbox: true, nodeIntegration: false } });
   manualWin.setMenuBarVisibility(false);
   manualWin.on('page-title-updated', e => e.preventDefault());
   manualWin.loadURL(require('url').pathToFileURL(f).href);
@@ -1363,7 +1393,7 @@ else {
     startSync();
     try { flow.init(); } catch (e) { logError('flow', String(e && e.message || e)); }
     if (prefs().wfWeb) flowWebStart();
-    global.__uni = { manualWin: () => manualWin, openManual, sync: () => sync, go, views, flow, unloadView, refreshLinks, linksAt, get viewLeft() { return viewLeft; }, get flowWin() { return flowWin; }, get win() { return win; }, APPS, layout, get current() { return current; } };
+    global.__uni = { manualWin: () => manualWin, openManual, manualPath, sync: () => sync, go, views, flow, unloadView, refreshLinks, linksAt, get viewLeft() { return viewLeft; }, get flowWin() { return flowWin; }, get win() { return win; }, APPS, layout, get current() { return current; } };
   });
   app.on('before-quit', () => { try { if (sync) sync.stop(); } catch (_) {} flowWebStop(); stopAcceptance(); });
   app.on('window-all-closed', () => app.quit());

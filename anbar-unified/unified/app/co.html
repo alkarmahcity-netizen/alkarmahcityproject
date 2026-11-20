@@ -12932,7 +12932,7 @@ main{flex:1;min-height:0;display:flex;flex-direction:column;overflow:auto}
 .gauge.over .g-lab,.gauge.over .g-lab b{color:var(--red)}
 
 .ed-bar{display:flex;align-items:center;gap:8px;padding:8px 16px;background:var(--surface);border-bottom:1px solid var(--line);flex-wrap:wrap}
-.rv-box{width:min(1350px,97vw)!important}.rv-old{font-size:11px;color:#8a4b00;text-decoration:line-through}.rv-cut td{color:#999}.rv-fix{background:#f5f3ff}
+.rv-box{width:min(1350px,97vw)!important}.rv-old{font-size:11px;color:#8a4b00;text-decoration:line-through}.rv-cut td{color:#999}.rv-sp{font-size:11px;color:#5b21b6;white-space:nowrap}.rv-fix{background:#f5f3ff}
 .ap-ov{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center;padding:14px}
 .ap-box{background:var(--surface);color:inherit;border-radius:12px;max-width:1150px;width:100%;max-height:94vh;overflow:auto;padding:14px 16px;box-shadow:0 10px 40px rgba(0,0,0,.35)}
 .ap-box h3{margin:0 0 6px;color:#6d28d9}.ap-hint{margin:0 0 8px;font-size:13px;opacity:.85}.ap-f{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px 10px;margin-bottom:8px}
@@ -13996,7 +13996,7 @@ function apRole(h0){const h=APN(String(h0||'').replace('\u0000','')).replace(/\(
 const apIsNum=c=>{const t=String(c||'').trim();return !!t&&/^[\s\d٠-٩.,٬٫\-()]+$/.test(t)&&/[\d٠-٩]/.test(t);};
 /* يقرأ فقرات أمر التغيير: صف عنوان (وقد يكون له صف ثانٍ تحته أو فوقه، وقد يتكرر عنوان جديد في وسط الورقة لقسم آخر)،
    ويصنف كل فقرة حذف / إضافة / استحداث بحسب القسم أو الكميات. المبلغ من عمود المبلغ المناسب، وإلا الكمية × السعر */
-function apParse(tables){const items=[];
+function apParse(tables,withMissing){const items=[];
   for(const T of tables){const rows=Array.from(T.rows||[],r=>Array.from(r||[],c=>String(c==null?'':c)));if(rows.length<2)continue;
     const score=r=>r.filter(c=>apRole(c)).length,isHead=r=>score(r)>=3&&r.filter(apIsNum).length<=1&&!r.some(c=>String(c).length>60);
     const heads=[];rows.forEach((r,i)=>{if(isHead(r))heads.push(i);});if(!heads.length)continue;
@@ -14024,10 +14024,13 @@ function apParse(tables){const items=[];
         if(sec==='new'||(nq>0)||((orig==null||orig===0)&&((after||0)>0||(inc||0)>0))){type='new';q=nq||after||inc||null;}
         else if((dec||0)>0||(sec==='del'&&!(inc>0))||(after!=null&&orig!=null&&after<orig)){type='del';q=dec||(orig!=null&&after!=null?orig-after:null);full=after===0||(orig!=null&&q!=null&&q===orig)||(sec==='del'&&q==null&&orig>0);if(full&&q==null)q=orig;}
         else if((inc||0)>0||(sec==='add')||(after!=null&&orig!=null&&after>orig)){type='add';q=inc||(after!=null&&orig!=null?after-orig:null);}
-        if(!type||!(q>0))continue;   // عنوان مجموعة أو سطر بلا كمية
+        let missing=false;
+        if(!type||!(q>0)){   // عنوان مجموعة أو سطر بلا كمية — في المراجعة فقط: فقرة لها سعر أو مبلغ أو كمية أصلية بلا كمية تغيير تُدرج لتُكمل كميتها
+          const pr0=multi.price.length?apNum(r[multi.price[0].c]):null,am0=multi.amount.map(x=>apNum(r[x.c])).find(v=>v>0);
+          if(!withMissing||!(pr0>0||am0>0||orig>0))continue;missing=true;type=type||sec||'add';q=null;}
         const am=multi.amount.filter(x=>x.kind===type),am2=am.length?am:multi.amount.filter(x=>!x.kind);let amt=am2.map(x=>apNum(r[x.c])).filter(v=>v!=null).reduce((a,b)=>a+b,0)||null;
-        if(amt==null&&multi.price.length){const pr=apNum(r[multi.price[0].c]);if(pr>0)amt=Math.round(pr*q);}
-        items.push({on:true,type,full,no,desc,sum:apShort(g('desc'))||desc.split(/\s+/).slice(0,7).join(' '),q:String(+(+q).toFixed(3)),orig:orig==null?'':String(orig),unit,amt,note:String(g('note')||'').replace(/\s+/g,' ').trim(),pr:multi.price.length?apNum(r[multi.price[0].c]):null,after:after==null?null:after});}});}
+        if(amt==null&&multi.price.length&&q>0){const pr=apNum(r[multi.price[0].c]);if(pr>0)amt=Math.round(pr*q);}
+        items.push({on:true,type,full,no,desc,missing,sum:apShort(g('desc'))||desc.split(/\s+/).slice(0,7).join(' '),q:q==null?'':String(+(+q).toFixed(3)),orig:orig==null?'':String(orig),unit,amt,note:String(g('note')||'').replace(/\s+/g,' ').trim(),pr:multi.price.length?apNum(r[multi.price[0].c]):null,after:after==null?null:after});}});}
   return items;}
 /* بيانات المشروع في رأس الملف: اسم المشروع، الشركة، رقم أمر التغيير، مبلغ المقاولة، المدة، تاريخ المباشرة */
 function apMeta(tables){const txt=tables.map(T=>[T.title||''].concat(Array.from(T.rows||[]).slice(0,14).map(r=>Array.from(r||[],c=>String(c==null?'':c)).join(' | '))).join('\n')).join('\n'),o={};
@@ -14099,7 +14102,7 @@ document.addEventListener('input',e=>{const t=e.target;if(!AP)return;if(t.datase
   if(pv)pv.innerHTML='<b>المعاينة:</b>'+['del','add','new'].map(tt=>{const X=AP.items.filter(y=>y.on&&y.type===tt);return X.length?`<div><b class="ap-lab">${{del:'الحذف',add:'الإضافة',new:'الاستحداثات'}[tt]}:</b> ${esc(X.map(apLine).join(AP_SEP))}</div>`:'';}).join('');});
 document.addEventListener('change',e=>{const t=e.target;if(!AP||t.dataset.api==null)return;if(t.dataset.k==='type'||t.dataset.k==='on'||t.dataset.k==='full'){const x=AP.items[+t.dataset.api];x[t.dataset.k]=t.type==='checkbox'?t.checked:t.value;apDraw();}});
 document.addEventListener('click',e=>{const b=e.target.closest('[data-apx],[data-apdel],[data-cmapp]');if(!b)return;
-  if(b.dataset.cmapp){const r=R();if(!r)return;if(!String(r.project&&r.project.fileNo||'').trim()){flash('اكتب رقم الاضبارة في بيانات المشروع أولاً — المطالعة تُربط بالمشروع برقم الاضبارة.',true);return;}AP=null;{const o=r.orders[Math.max(0,Math.min(+r.printOrder||0,r.orders.length-1))]||{};if((o.items||[]).length){apOpen(o.items.map(x=>({on:x.st!=='cut',type:x.type,full:!!x.full,no:x.no,desc:x.desc,sum:x.sum,q:String(apNum(x.q)),orig:x.orig,unit:x.unit,amt:rvAmt(x)})),'فقرات الأمر المحفوظة'+(o.itemsFile?' ('+o.itemsFile+')':''));return;}}apOpen([],'');apPick();return;}
+  if(b.dataset.cmapp){const r=R();if(!r)return;if(!String(r.project&&r.project.fileNo||'').trim()){flash('اكتب رقم الاضبارة في بيانات المشروع أولاً — المطالعة تُربط بالمشروع برقم الاضبارة.',true);return;}AP=null;{const o=r.orders[Math.max(0,Math.min(+r.printOrder||0,r.orders.length-1))]||{};if((o.items||[]).length){apOpen(o.items.filter(x=>apNum(x.q)>0||x.st==='cut').map(x=>({on:x.st!=='cut',type:x.type,full:!!x.full,no:x.no,desc:x.desc,sum:x.sum,q:String(apNum(x.q)),orig:x.orig,unit:x.unit,amt:rvAmt(x)})),'فقرات الأمر المحفوظة'+(o.itemsFile?' ('+o.itemsFile+')':''));return;}}apOpen([],'');apPick();return;}
   if(b.dataset.apdel!=null){AP.items.splice(+b.dataset.apdel,1);apDraw();return;}
   const a=b.dataset.apx,close=()=>{const ov=document.getElementById('apOv');if(ov)ov.remove();AP=null;};
   if(a==='no')return close();if(a==='word')return apPick();
@@ -14119,9 +14122,13 @@ const RVT={del:'حذف',add:'إضافة',new:'استحداث'},RVS={file:'كما
 const rvOi=r=>Math.max(0,Math.min(+r.printOrder||0,(r.orders||[]).length-1));
 /* القيم الفعلية للفقرة (بعد تعديل اللجنة) */
 const rvQ=x=>{const v=apNum(x.q);return v==null?0:v;};
-const rvAmt=x=>{if(x.st==='cut')return 0;if(x.st!=='fix'&&x.amt0!=null)return +x.amt0;const q=rvQ(x),pr=x.pr!=null&&x.pr!==''?+x.pr:null;if(pr>0)return Math.round(q*pr);const q0=apNum(x.q0);if(x.amt0!=null&&q0>0)return Math.round(+x.amt0*q/q0);return x.amt0!=null?+x.amt0:0;};
+/* الكمية المضافة: ما كان ضمن 20% من الكمية الأصلية بسعر العقد الثابت، وما زاد على 20% بالسعر الذي تقرره اللجنة (pr2) */
+const rvSplit=x=>{const q=rvQ(x),og=apNum(x.orig);if(x.type!=='add'||!(og>0))return {w:q,a:0,og};const lim=+(og*0.2).toFixed(3),w=Math.min(q,lim);return {w,a:+Math.max(0,q-lim).toFixed(3),og};};
+const rvAmt=x=>{if(x.st==='cut')return 0;if(x.st!=='fix'&&x.amt0!=null)return +x.amt0;const q=rvQ(x),pr=x.pr!=null&&x.pr!==''?+x.pr:null;
+  if(pr>0&&x.type==='add'){const sp=rvSplit(x),p2=x.pr2!=null&&x.pr2!==''?+x.pr2:pr;return Math.round(sp.w*pr+sp.a*p2);}
+  if(pr>0)return Math.round(q*pr);const q0=apNum(x.q0);if(x.amt0!=null&&q0>0)return Math.round(+x.amt0*q/q0);return x.amt0!=null?+x.amt0:0;};
 function rvItemsFrom(items){return items.map((x,i)=>({id:'i'+Date.now().toString(36)+i,type:x.type,no:x.no||'',desc:x.desc||'',sum:x.sum||'',unit:x.unit||'',orig:x.orig||'',full:!!x.full,after:x.after==null?null:x.after,
-  q0:String(x.q),pr0:x.pr==null?null:+x.pr,amt0:x.amt==null?null:+x.amt,q:String(x.q),pr:x.pr==null?null:+x.pr,st:'file',cnote:'',note:x.note||''}));}
+  q0:String(x.q),pr0:x.pr==null?null:+x.pr,amt0:x.amt==null?null:+x.amt,q:String(x.q),pr:x.pr==null?null:+x.pr,pr2:null,missing:!!x.missing,st:'file',cnote:'',note:x.note||''}));}
 function rvChip(r){try{const o=(r.orders||[])[rvOi(r)]||{},v=o.review,n=(o.items||[]).length;let h='';
   if(n)h+=`<button type="button" class="btn sm cm-add" data-rvshow="1" title="فقرات الأمر المحفوظة (${esc(o.itemsFile||'')}) — للجنة تعديل الكمية والسعر أو حذف الفقرة">📋 فقرات الأمر (${n})${v?(v.bad?' — ⚠ '+v.bad:' — ✓'):''}</button>`;
   else if(v)h+=`<button type="button" class="btn sm cm-add" data-rvshow="1" style="${v.bad?'color:#b42318':'color:#15803d'}">${v.bad?'⚠ '+v.bad+' ملاحظة':'✓ مطابق'} — آخر مراجعة</button>`;
@@ -14135,7 +14142,10 @@ function rvCalc(){const r=R(),o=r.orders[RV.oi],F={del:0,add:0,new:0},C={del:0,a
     if(pr>0&&q>0&&am!=null&&!rvEq(q*pr,am))iss.push(`في الملف: الكمية × السعر = ${apFmt(Math.round(q*pr))} والمبلغ ${apFmt(am)} (فرق ${apFmt(Math.round(Math.abs(q*pr-am)))})`);
     const og=apNum(x.orig);if(x.type!=='new'&&og!=null&&x.after!=null&&q!=null&&Math.abs(Math.abs(x.after-og)-q)>0.001)iss.push(`في الملف: الكمية بعد التغيير (${apFmt(x.after)}) − الأصلية (${apFmt(og)}) = ${apFmt(+Math.abs(x.after-og).toFixed(3))} وليست ${apFmt(q)}`);
     if(x.type==='del'&&og!=null&&rvQ(x)>og+0.001&&x.st!=='cut')iss.push(`الكمية المحذوفة (${apFmt(rvQ(x))}) أكبر من الكمية الأصلية (${apFmt(og)})`);
-    if(am==null&&!(x.pr>0))iss.push('لا يوجد مبلغ للفقرة');
+    if(x.missing&&!(apNum(x.q)>0))iss.push('الكمية غير موجودة في جدول أمر التغيير — أدخلها هنا لتُصحَّح');
+    else if(am==null&&!(x.pr>0))iss.push('لا يوجد مبلغ للفقرة');
+    if(x.type==='add'&&x.st!=='cut'){const sp=rvSplit(x);if(!(sp.og>0)&&rvQ(x)>0)iss.push('الكمية الأصلية غير موجودة — لا تُحسب نسبة 20% للكمية المضافة');
+      else if(sp.a>0&&(x.pr2==null||x.pr2===''))iss.push(`الكمية المضافة تتجاوز 20% من الأصلية بـ ${apFmt(sp.a)}${x.unit?' '+x.unit:''} — يُحدَّد سعرها بقرار اللجنة (سعر ما زاد على 20%)`);}
     if(am!=null)F[x.type]+=am;C[x.type]+=rvAmt(x);N[x.type]++;
     const open=iss.filter(t=>!(x.st!=='file'&&/^في الملف/.test(t)));bad+=open.length;return {x,iss,open};});
   const sys={del:+o.del||0,add:+o.add||0,new:+o.nw||0},tot=[];
@@ -14167,41 +14177,44 @@ function rvDraw(){if(!RV)return;let ov=document.getElementById('rvOv');if(!ov){o
    <table class="ap-t"><thead><tr><th></th><th>البند</th><th>في الملف</th><th>بعد تعديل اللجنة</th><th>في النظام (مبالغ الأمر)</th><th>الفرق</th></tr></thead><tbody>${RV.tot.map(t=>`<tr${t.net?' style="font-weight:700"':''}><td>${ck(t.ok)}</td><td>${t.l}${t.n?` <small>(${t.n} فقرة)</small>`:''}</td><td>${fmt(t.f)}</td><td>${rvEq(t.c,t.f)?fmt(t.c):`<b style="color:#7c3aed">${fmt(t.c)}</b>`}</td><td>${fmt(t.s)}</td><td>${t.ok?'—':fmt(t.c-t.s)}</td></tr>`).join('')}</tbody></table>
    ${cmpOk?'':`<div style="margin:6px 0"><button type="button" class="btn sm" data-rvx="apply" title="تُوضع مجاميع الحذف والإضافة والاستحداث بعد تعديل اللجنة في مبالغ الأمر">↧ اعتماد المجاميع ${anyFix?'بعد تعديل اللجنة':'من الملف'} في مبالغ الأمر</button></div>`}
    <h4>٢) الفقرات</h4>
-   <div class="ap-tw"><table class="ap-t rv-t"><thead><tr><th></th><th>ت</th><th>النوع</th><th>الفقرة</th><th>الوحدة</th><th>الأصلية</th><th>الكمية</th><th>سعر المفرد</th><th>المبلغ</th><th>الحالة</th><th>ملاحظة اللجنة</th><th>تنبيهات</th></tr></thead><tbody>
+   <div class="ap-tw"><table class="ap-t rv-t"><thead><tr><th></th><th>ت</th><th>النوع</th><th>الفقرة</th><th>الوحدة</th><th>الأصلية</th><th>الكمية</th><th>سعر المفرد</th><th title="للكمية المضافة التي تزيد على 20% من الكمية الأصلية — بقرار اللجنة">سعر ما زاد على 20%</th><th>المبلغ</th><th>الحالة</th><th>ملاحظة اللجنة</th><th>تنبيهات</th></tr></thead><tbody>
    ${RV.rows.map(({x,iss,open},i)=>`<tr class="${x.st==='cut'?'rv-cut':x.st==='fix'?'rv-fix':''}"${open.length?' style="background:#fff4f2"':''}><td>${ck(!open.length)}</td><td>${esc(x.no)}</td><td><select data-rve="${i}" data-k="type">${Object.entries(RVT).map(([k,v])=>`<option value="${k}" ${x.type===k?'selected':''}>${v}</option>`).join('')}</select></td>
-     <td title="${esc(x.desc)}" style="min-width:16em">${esc(x.sum||x.desc)}</td><td>${esc(x.unit)}</td><td>${esc(x.orig)}</td>
-     <td><input data-rve="${i}" data-k="q" value="${esc(apFmt(apNum(x.q)))}" style="width:6.5em" ${x.st==='cut'?'disabled':''}>${ch(x,'q')}</td>
+     ${x.manual?`<td><input data-rve="${i}" data-k="desc" value="${esc(x.desc)}" placeholder="اسم الفقرة" style="width:16em"></td><td><input data-rve="${i}" data-k="unit" value="${esc(x.unit)}" style="width:4em"></td><td><input data-rve="${i}" data-k="orig" value="${esc(x.orig)}" style="width:5.5em" ${x.type==='new'?'disabled':''}></td>`
+       :`<td title="${esc(x.desc)}" style="min-width:16em">${esc(x.sum||x.desc)}</td><td>${esc(x.unit)}</td><td>${x.missing||!String(x.orig).trim()?`<input data-rve="${i}" data-k="orig" value="${esc(x.orig)}" style="width:5.5em" placeholder="الأصلية" ${x.type==='new'?'disabled':''}>`:esc(x.orig)}</td>`}
+     <td><input data-rve="${i}" data-k="q" value="${esc(apFmt(apNum(x.q)))}" style="width:6.5em${x.missing&&!(apNum(x.q)>0)?';border:2px solid #b42318':''}" ${x.st==='cut'?'disabled':''} ${x.missing&&!(apNum(x.q)>0)?'placeholder="أدخل الكمية"':''}>${ch(x,'q')}${x.type==='add'&&x.st!=='cut'&&rvSplit(x).og>0&&rvQ(x)>0?(()=>{const sp=rvSplit(x);return `<div class="rv-sp">ضمن 20%: ${apFmt(sp.w)}${sp.a>0?` | <b>أكثر: ${apFmt(sp.a)}</b>`:''}</div>`;})():''}</td>
      <td><input data-rve="${i}" data-k="pr" value="${x.pr==null?'':esc(apFmt(x.pr))}" style="width:8em" ${x.st==='cut'?'disabled':''}>${ch(x,'pr')}</td>
+     <td>${x.type==='add'&&x.st!=='cut'&&rvSplit(x).a>0?`<input data-rve="${i}" data-k="pr2" value="${x.pr2==null?'':esc(apFmt(x.pr2))}" placeholder="بقرار اللجنة" style="width:8em">`:'<span style="color:#aaa">—</span>'}</td>
      <td>${x.st==='cut'?'<s>'+fmt(x.amt0||0)+'</s>':fmt(rvAmt(x))}${x.st==='fix'&&x.amt0!=null&&!rvEq(rvAmt(x),x.amt0)?`<div class="rv-old">${fmt(x.amt0)}</div>`:''}</td>
      <td><select data-rve="${i}" data-k="st">${Object.entries(RVS).map(([k,v])=>`<option value="${k}" ${x.st===k?'selected':''}>${v}</option>`).join('')}</select></td>
      <td><input data-rve="${i}" data-k="cnote" value="${esc(x.cnote||'')}" placeholder="سبب التعديل أو الحذف" style="width:13em"></td>
-     <td style="color:#b42318">${iss.map(t=>open.includes(t)?esc(t):`<span style="color:#667;text-decoration:line-through">${esc(t)}</span>`).join('<br>')}</td></tr>`).join('')||'<tr><td colspan="12" class="ap-none">لا فقرات — اختر ملف أمر التغيير (Excel أو Word).</td></tr>'}</tbody></table></div>
+     <td style="color:#b42318">${iss.map(t=>open.includes(t)?esc(t):`<span style="color:#667;text-decoration:line-through">${esc(t)}</span>`).join('<br>')}</td></tr>`).join('')||'<tr><td colspan="13" class="ap-none">لا فقرات — اختر ملف أمر التغيير (Excel أو Word).</td></tr>'}</tbody></table></div>
    <h4>٣) المطالعات (مطالعة أوامر التغيير ومطالعة الموافقة الأصولية)</h4>${memoH}
-   <div class="ap-b"><button type="button" class="btn sm" data-rvx="file">📂 ${RV.items.length?'ملف آخر (يستبدل الفقرات)':'اختيار ملف Excel أو Word'}</button><button type="button" class="btn sm" data-rvx="xl">⬇ حفظ المراجعة (Excel)</button>${anyFix?'<button type="button" class="btn sm" data-rvx="reset">↺ إرجاع كل الفقرات كما في الملف</button>':''}<span style="flex:1"></span><button type="button" class="btn sm" data-rvx="no">إغلاق</button></div></div>`;
+   <div class="ap-b"><button type="button" class="btn sm" data-rvx="file">📂 ${RV.items.length?'ملف آخر (يستبدل الفقرات)':'اختيار ملف Excel أو Word'}</button><button type="button" class="btn sm" data-rvx="row">＋ فقرة غير موجودة في الجدول</button><button type="button" class="btn sm" data-rvx="xl">⬇ حفظ المراجعة (Excel)</button>${anyFix?'<button type="button" class="btn sm" data-rvx="reset">↺ إرجاع كل الفقرات كما في الملف</button>':''}<span style="flex:1"></span><button type="button" class="btn sm" data-rvx="no">إغلاق</button></div></div>`;
   const bx=ov.querySelector('.ap-box');if(bx)bx.scrollTop=sc;}
 /* للتوافق: مراجعة مباشرة من فقرات مقروءة */
 function rvRun(items,file){return rvOpen(rvItemsFrom(items),file);}
 let RVF=null;
 function rvPick(){const inp=document.createElement('input');inp.type='file';inp.accept='.docx,.xlsx,.xlsm';
   inp.onchange=async()=>{const fl=inp.files&&inp.files[0];if(!fl)return;RVF=fl;await rvLoad(fl);};inp.click();}
-async function rvLoad(fl){try{let items;if(/\.xls[xm]$/i.test(fl.name))items=apParse(apSheetTables(await AnbarReg.readSheets(fl)));else items=apParse(apTables(await apUnzip(await fl.arrayBuffer(),'word/document.xml')));
+async function rvLoad(fl){try{let items;if(/\.xls[xm]$/i.test(fl.name))items=apParse(apSheetTables(await AnbarReg.readSheets(fl)),true);else items=apParse(apTables(await apUnzip(await fl.arrayBuffer(),'word/document.xml')),true);
     if(!items.length){flash(`لم تُقرأ فقرات من «${fl.name}»: تأكد أنه جدول أمر التغيير (أعمدة الفقرة والكمية والسعر والمبلغ).`,true);return null;}
     const o=R().orders[rvOi(R())];if((o.items||[]).some(x=>x.st!=='file')&&!confirm('في هذا الأمر فقرات عدّلتها اللجنة — استبدالها بفقرات الملف الجديد؟'))return null;
     return rvRun(items,fl.name);}catch(e){flash('تعذرت قراءة الملف: '+(e.message||e),true);return null;}}
 function rvXl(){if(!RV)return;const A=[['فقرات أمر التغيير ومراجعتها',R().project.name||'',oname(R().orders[RV.oi],RV.oi+1)],['الملف',RV.file],[],['البند','في الملف','بعد تعديل اللجنة','في النظام','الفرق','النتيجة']];
-  RV.tot.forEach(t=>A.push([t.l,t.f,t.c,t.s,t.ok?0:t.c-t.s,t.ok?'مطابق':'غير مطابق']));A.push([]);A.push(['ت','النوع','الفقرة','الوحدة','الأصلية','الكمية (الملف)','الكمية (اللجنة)','السعر (الملف)','السعر (اللجنة)','المبلغ (الملف)','المبلغ (اللجنة)','الحالة','ملاحظة اللجنة','تنبيهات']);
-  RV.rows.forEach(({x,open})=>A.push([x.no,RVT[x.type],x.desc,x.unit,x.orig,apNum(x.q0),x.st==='cut'?0:apNum(x.q),x.pr0,x.pr,x.amt0,rvAmt(x),RVS[x.st],x.cnote||'',open.join(' / ')||'✓']));
+  RV.tot.forEach(t=>A.push([t.l,t.f,t.c,t.s,t.ok?0:t.c-t.s,t.ok?'مطابق':'غير مطابق']));A.push([]);A.push(['ت','النوع','الفقرة','الوحدة','الأصلية','الكمية (الملف)','الكمية (اللجنة)','السعر (الملف)','السعر (اللجنة)','المضافة ضمن 20%','المضافة أكثر من 20%','سعر ما زاد على 20%','المبلغ (الملف)','المبلغ (اللجنة)','الحالة','ملاحظة اللجنة','تنبيهات']);
+  RV.rows.forEach(({x,open})=>A.push([x.no,RVT[x.type],x.desc,x.unit,x.orig,apNum(x.q0),x.st==='cut'?0:apNum(x.q),x.pr0,x.pr,x.type==='add'?rvSplit(x).w:'',x.type==='add'?rvSplit(x).a:'',x.pr2,x.amt0,rvAmt(x),RVS[x.st],x.cnote||'',open.join(' / ')||'✓']));
   RV.memos.forEach(m=>{A.push([]);A.push(['المطالعة',m.s,m.no?'العدد '+m.no:'',cmDmy(m.d)]);m.am.forEach(a=>A.push([a.l,a.v,a.ok?'مذكور':'غير مذكور']));m.it.forEach(i=>{if(i.st!=='ok')A.push([i.st==='miss'?'لم تُذكر':'كمية مختلفة',i.x.sum||i.x.desc,apNum(i.x.q),(i.found||[]).join('، ')]);});});
   if(window.XLW&&XLW.book){const X=XLW.S,cell=(v,i)=>v==null||v===''?null:{v,s:typeof v==='number'?X.int:(i===2?X.wrap:X.txt)};
     const rows=A.map((r,ri)=>r.map((v,i)=>ri===0&&i===0?{v,s:X.title}:/^(البند|ت|المطالعة)$/.test(String(r[0]))&&r.length>3?{v,s:X.head}:cell(v,i)));
-    const u8=XLW.book([{name:'فقرات أمر التغيير',cols:[12,10,44,8,10,11,11,12,12,14,14,16,30,44],rows}]);
+    const u8=XLW.book([{name:'فقرات أمر التغيير',cols:[12,10,44,8,10,11,11,12,12,12,12,12,14,14,16,30,44],rows}]);
     saveFile(baseName(R())+'_فقرات-أمر-'+(RV.oi+1)+'.xlsx',new Blob([u8],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');return;}
   const csv='﻿'+A.map(r=>r.map(c=>{c=c==null?'':String(c);return /[",\n]/.test(c)?'"'+c.replace(/"/g,'""')+'"':c;}).join(',')).join('\r\n');
   saveFile(baseName(R())+'_فقرات-أمر-'+(RV.oi+1)+'.csv',new Blob([csv],{type:'text/csv'}),'text/csv');}
 function rvEdit(i,k,v){const x=RV.items[i];if(!x)return;
-  if(k==='q'){const n=apNum(v);x.q=n==null?'':String(n);}else if(k==='pr'){const n=apNum(v);x.pr=n==null?null:n;}else x[k]=v;
-  if((k==='q'||k==='pr')&&x.st==='file'&&(apNum(x.q)!==apNum(x.q0)||(x.pr!==x.pr0)))x.st='fix';
-  if(k==='st'&&v==='file'){x.q=x.q0;x.pr=x.pr0;}
+  if(k==='q'){const n=apNum(v);x.q=n==null?'':String(n);}else if(k==='pr'||k==='pr2'){const n=apNum(v);x[k]=n==null?null:n;}else if(k==='orig'){const n=apNum(v);x.orig=n==null?'':String(n);}else x[k]=v;
+  if(k==='desc')x.sum=apShort(v)||v;
+  if(['q','pr','pr2','orig'].includes(k)&&x.st==='file'&&(apNum(x.q)!==apNum(x.q0)||x.pr!==x.pr0||x.pr2!=null||k==='orig'))x.st='fix';
+  if(k==='st'&&v==='file'){x.q=x.q0;x.pr=x.pr0;x.pr2=null;}
   rvCalc();rvSave();rvDraw();}
 document.addEventListener('change',e=>{const t=e.target;if(!RV||t.dataset.rve==null)return;rvEdit(+t.dataset.rve,t.dataset.k,t.value);});
 document.addEventListener('click',e=>{const b=e.target.closest('[data-rvgo],[data-rvx],[data-rvshow]');if(!b)return;const r=R();if(!r)return;
@@ -14209,7 +14222,8 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-rvgo],[dat
   if(b.dataset.rvshow){const o=r.orders[rvOi(r)];if((o.items||[]).length){RV=null;rvOpen(o.items,null);}else{flash('اختر ملف أمر التغيير لإعادة المراجعة.');rvPick();}return;}
   const a=b.dataset.rvx;if(a==='no'){const ov=document.getElementById('rvOv');if(ov)ov.remove();try{renderForm();renderPreview(true);}catch(_){}return;}
   if(a==='file')return rvPick();if(a==='xl')return rvXl();
-  if(a==='reset'){if(!confirm('إرجاع كل الفقرات إلى كمياتها وأسعارها في الملف وإلغاء تعديلات اللجنة؟'))return;RV.items.forEach(x=>{x.q=x.q0;x.pr=x.pr0;x.st='file';});rvCalc();rvSave();rvDraw();return;}
+  if(a==='row'){RV.items.push({id:'m'+Date.now().toString(36),type:'add',no:'',desc:'',sum:'',unit:'',orig:'',full:false,after:null,q0:'',pr0:null,amt0:null,q:'',pr:null,pr2:null,missing:true,manual:true,st:'fix',cnote:'أُدرجت من اللجنة — غير موجودة في جدول أمر التغيير'});rvCalc();rvSave();rvDraw();const ins=document.querySelectorAll('#rvOv [data-k=desc]');if(ins.length)ins[ins.length-1].focus();return;}
+  if(a==='reset'){if(!confirm('إرجاع كل الفقرات إلى كمياتها وأسعارها في الملف وإلغاء تعديلات اللجنة؟'))return;RV.items.forEach(x=>{x.q=x.q0;x.pr=x.pr0;x.pr2=null;x.st=x.manual?'fix':'file';});rvCalc();rvSave();rvDraw();return;}
   if(a==='apply'){const o=r.orders[RV.oi],C=RV.C;if(!confirm(`وضع مجاميع الفقرات في مبالغ ${oname(o,RV.oi+1)}؟\nالمحذوفة: ${fmt(C.del)}\nالمضافة: ${fmt(C.add)}\nالمستحدثة: ${fmt(C.new)}\n(المبالغ الحالية: ${fmt(+o.del||0)} / ${fmt(+o.add||0)} / ${fmt(+o.nw||0)})`))return;
     o.del=C.del;o.add=C.add;o.nw=C.new;rvCalc();rvSave();rvDraw();try{renderBar();renderForm();renderPreview(true);}catch(_){}flash('✔ اعتُمدت مجاميع الفقرات في مبالغ الأمر');}});
 window.CoReview={load:rvLoad,run:rvRun,open:()=>{const r=R(),o=r.orders[rvOi(r)];return rvOpen(o.items||[],null);},edit:rvEdit,last:()=>RV,calc:()=>rvCalc()};

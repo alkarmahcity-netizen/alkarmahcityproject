@@ -1,6 +1,6 @@
 /* «📥 فقرات أمر التغيير» في مطالعات لجنة أوامر التغيير (يُحقن من البرنامج في صفحة المطالعات cm):
-   يُستدعى المشروع من بيانات أوامر التغيير باسمه أو باسم الشركة أو رقم الاضبارة، ثم يُختار الأمر فتُدرج فقراته (الكميات والأسعار والمبالغ
-   كما اعتمدتها اللجنة، والمحذوفة من اللجنة بملاحظتها) جدولاً في المطالعة، مع سطور الحذف والإضافة والاستحداث في المتن اختيارياً.
+   يُستدعى المشروع من بيانات أوامر التغيير باسمه أو باسم الشركة أو رقم الاضبارة، ثم يُختار الأمر فتُدرج فقراته جدولاً وحده في المطالعة:
+   الفقرة والكميات الأصلية والمحذوفة والمضافة (ضمن 20% وأكثر) والمستحدثة كما اعتمدتها اللجنة — بلا أسعار ولا كتابة في المتن.
    الجدول يحمل مصدره؛ فإن عدّلت اللجنة الفقرات في أوامر التغيير يظهر «↻ تحديث فقرات أمر التغيير» ويُحدَّث الجدول نفسه.
    للقراءة من أوامر التغيير فقط — لا يكتب في بياناتها. */
 (function () {
@@ -17,36 +17,30 @@
   const oname = (o, n) => (o && o.isFix && o.isFix !== '0' && o.isFix !== 'false' ? 'تصحيح ' : '') + 'أمر التغيير رقم ' + n;
   /* القيم كما اعتمدتها اللجنة (نفس قواعد أوامر التغيير) */
   const q = x => x.st === 'cut' ? 0 : (num(x.q) || 0);
-  const amt = x => { if (x.st === 'cut') return 0; if (x.st !== 'fix' && x.amt0 != null) return +x.amt0; const pr = x.pr != null && x.pr !== '' ? +x.pr : null; if (pr > 0) return Math.round(q(x) * pr); const q0 = num(x.q0); if (x.amt0 != null && q0 > 0) return Math.round(+x.amt0 * q(x) / q0); return x.amt0 != null ? +x.amt0 : 0; };
-  const sig = items => { let h = 0; const s = JSON.stringify((items || []).map(x => [x.type, x.desc, x.q, x.pr, x.st, x.cnote, x.amt0])); for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return String(h); };
+  const sig = items => { let h = 0; const s = JSON.stringify((items || []).map(x => [x.type, x.desc, x.unit, x.orig, x.q, x.st])); for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return String(h); };
   const ordered = items => ['del', 'add', 'new'].flatMap(t => (items || []).filter(x => x.type === t));
+  /* الكمية المضافة: ضمن 20% من الأصلية وما زاد عليها (كما في أوامر التغيير) */
+  const split = x => { const qq = q(x), og = num(x.orig); if (x.type !== 'add' || !(og > 0)) return { w: qq, a: 0 }; const lim = +(og * 0.2).toFixed(3), w = Math.min(qq, lim); return { w, a: +Math.max(0, qq - lim).toFixed(3) }; };
+  /* جدول الفقرات في المطالعة: الفقرة والكميات فقط (بلا أسعار ولا مبالغ)؛ الفقرات التي حذفتها اللجنة لا تُدرج */
   function table(rec, oi) {
-    const o = rec.orders[oi], items = ordered(o.items), rows = [], tot = { del: 0, add: 0, new: 0 };
-    items.forEach((x, i) => { const a = amt(x); tot[x.type] += a;
-      rows.push([String(i + 1), String(x.desc || x.sum || ''), String(x.unit || ''), x.type === 'new' ? '—' : fmt(num(x.orig)), x.st === 'cut' ? 'محذوفة من اللجنة' : T[x.type], x.st === 'cut' ? '—' : fmt(q(x)), x.pr != null && x.st !== 'cut' ? fmt(x.pr) : '', x.st === 'cut' ? '—' : fmt(a),
-        [x.st === 'fix' ? `صُحّحت من اللجنة${num(x.q0) !== num(x.q) ? ` (الكمية في الكشف ${fmt(num(x.q0))})` : ''}${x.pr0 != null && x.pr0 !== x.pr ? ` (السعر في الكشف ${fmt(x.pr0)})` : ''}` : '', x.cnote || ''].filter(Boolean).join(' — ')]); });
-    const sumRow = (l, v) => ['', l, '', '', '', '', '', fmt(v), ''];
-    if (tot.del) rows.push(sumRow('مجموع الأعمال المحذوفة', tot.del)); if (tot.add) rows.push(sumRow('مجموع الأعمال المضافة', tot.add)); if (tot.new) rows.push(sumRow('مجموع الأعمال المستحدثة', tot.new));
-    rows.push(sumRow('صافي أمر التغيير', tot.add + tot.new - tot.del));
-    return { cols: ['ت', 'الفقرة', 'الوحدة', 'الكمية الأصلية', 'التغيير', 'الكمية', 'سعر المفرد (دينار)', 'المبلغ (دينار)', 'ملاحظة اللجنة'], rows, serial: false, shade: 'D9D9D9', fit: 'full', src: rec.id + ':' + oi, sig: sig(o.items), tot };
+    const o = rec.orders[oi], items = ordered(o.items).filter(x => x.st !== 'cut' && q(x) > 0), rows = [];
+    items.forEach((x, i) => { const sp = split(x);
+      rows.push([String(i + 1), String(x.desc || x.sum || ''), String(x.unit || ''), x.type === 'new' ? '—' : fmt(num(x.orig)),
+        x.type === 'del' ? fmt(q(x)) : '', x.type === 'add' ? fmt(sp.w) : '', x.type === 'add' && sp.a > 0 ? fmt(sp.a) : '', x.type === 'new' ? fmt(q(x)) : '']); });
+    return { cols: ['ت', 'الفقرة', 'الوحدة', 'الكمية الأصلية', 'الكمية المحذوفة', 'الكمية المضافة ضمن 20%', 'الكمية المضافة أكثر من 20%', 'الكمية المستحدثة'], rows, serial: false, shade: 'D9D9D9', fit: 'full', src: rec.id + ':' + oi, sig: sig(o.items) };
   }
-  const line = x => { const u = x.unit ? ' ' + x.unit : '', s = String(x.sum || x.desc || '').trim(), qq = fmt(q(x)), og = fmt(num(x.orig));
-    if (x.type === 'del') return `${s} ${x.full || !qq ? 'حذف كلي' : `حذف ${qq}${u}${og ? ` من أصل ${og}${u}` : ''}`}`; if (x.type === 'add') return `${s} إضافة ${qq}${u}${og ? ` من أصل ${og}${u}` : ''}`; return `${s} استحداث ${qq}${u}`; };
-  function textLines(o) { const L = []; [['del', 'الحذف'], ['add', 'الإضافة'], ['new', 'الاستحداثات']].forEach(([t, l]) => { const X = (o.items || []).filter(x => x.type === t && x.st !== 'cut'); if (X.length) L.push(`{#C00000*:${l}:} ${X.map(line).join(' – ')}.`); });
-    const cut = (o.items || []).filter(x => x.st === 'cut'); if (cut.length) L.push(`{#C00000*:فقرات حذفتها اللجنة:} ${cut.map(x => `${x.sum || x.desc}${x.cnote ? ' (' + x.cnote + ')' : ''}`).join(' – ')}.`); return L; }
   const memo = () => (typeof view !== 'undefined' && view === 'edit' && typeof R === 'function') ? R() : null;
   const srcOf = r => (r && r.tables || []).map((t, i) => ({ t, i })).filter(z => z.t && z.t.src);
   function find(src) { const [rid, oi] = String(src).split(':'); const rec = coData().find(x => x && x.id === rid); const o = rec && rec.orders && rec.orders[+oi]; return o ? { rec, oi: +oi, o } : null; }
   function stale(r) { return srcOf(r).filter(z => { const f = find(z.t.src); return f && sig(f.o.items) !== z.t.sig; }); }
   /* إدراج أو تحديث */
-  function insert(rec, oi, withText) {
+  function insert(rec, oi) {
     const r = memo(); if (!r) return; r.tables = r.tables || []; const tb = table(rec, oi), o = rec.orders[oi];
     const ex = r.tables.findIndex(t => t && t.src === tb.src);
     if (ex >= 0) { r.tables[ex] = Object.assign({}, r.tables[ex], { cols: tb.cols, rows: tb.rows, sig: tb.sig }); }
     else {
       const idx = r.tables.length; r.tables.push({ id: typeof uid === 'function' ? uid() : 't' + Date.now(), cols: tb.cols, rows: tb.rows, serial: false, shade: tb.shade, fit: 'full', src: tb.src, sig: tb.sig });
-      const P = rec.project || {}, head = `فقرات ${oname(o, oi + 1)} — مشروع (${P.name || ''})${P.contractor ? ' — ' + P.contractor : ''}:`;
-      const add = [head].concat(withText ? textLines(o) : [], [`[[جدول ${idx + 1}]]`]).join('\n');
+      const P = rec.project || {}, add = `[[جدول ${idx + 1}]]`;   // الجدول وحده — بلا كتابة في المتن
       r.body = String(r.body || '').replace(/\s*$/, '') + (r.body ? '\n' : '') + add + '\n';
       if (!String(r.fileNo || '').trim() && P.fileNo) r.fileNo = String(P.fileNo);
       if (!r.ltEv) r.ltEv = 'order:' + oi;
@@ -55,7 +49,7 @@
     try { (window.flash || alert)(ex >= 0 ? '✔ حُدّث جدول الفقرات من أوامر التغيير' : `✔ أُدرجت ${(o.items || []).length} فقرة من ${oname(o, oi + 1)}`); } catch (_) {}
     ensure(true);
   }
-  function update() { const r = memo(); if (!r) return; stale(r).forEach(z => { const f = find(z.t.src); if (f) insert(f.rec, f.oi, false); }); }
+  function update() { const r = memo(); if (!r) return; stale(r).forEach(z => { const f = find(z.t.src); if (f) insert(f.rec, f.oi); }); }
   /* نافذة الاستدعاء: البحث باسم المشروع أو الشركة أو رقم الاضبارة */
   function dlg() {
     C = null; const L = coData(), r = memo(); let ov = $('ciOv'); if (ov) ov.remove(); ov = document.createElement('div'); ov.id = 'ciOv';
@@ -63,16 +57,15 @@
     ov.innerHTML = `<div style="background:#fff;color:#1e293b;border-radius:12px;padding:16px 18px;width:min(760px,95vw);max-height:88vh;display:flex;flex-direction:column;gap:8px">
       <h3 style="margin:0;color:#1f3a5f">📥 فقرات أمر التغيير — من نظام أوامر التغيير</h3>
       <input id="ciQ" type="search" placeholder="ابحث باسم المشروع أو اسم الشركة أو رقم الاضبارة…" style="font:inherit;padding:7px 10px;border:1px solid #cbd5e1;border-radius:8px" value="${esc(r && r.fileNo || '')}">
-      <label style="font-size:13px"><input id="ciTxt" type="checkbox" checked> وأضف سطور الحذف والإضافة والاستحداث في المتن (كما في مطالعة الموافقة الأصولية)</label>
       <div id="ciL" style="overflow:auto;flex:1;border:1px solid #e2e8f0;border-radius:8px"></div>
-      <div style="display:flex;justify-content:space-between;align-items:center"><small style="color:#64748b">تُدرج الكميات والأسعار كما اعتمدتها اللجنة في «📋 فقرات الأمر» بنظام أوامر التغيير.</small><button id="ciX" type="button">إغلاق</button></div></div>`;
+      <div style="display:flex;justify-content:space-between;align-items:center"><small style="color:#64748b">يُدرج جدول الفقرات وكمياتها (الأصلية والمحذوفة والمضافة والمستحدثة) كما اعتمدتها اللجنة — بلا أسعار ولا كتابة في المتن.</small><button id="ciX" type="button">إغلاق</button></div></div>`;
     document.body.appendChild(ov);
     const draw = () => { const qv = N($('ciQ').value), hit = L.filter(x => x && x.project && (!qv || [x.project.name, x.project.contractor, x.project.fileNo, x.project.contractNo].some(v => N(v).includes(qv))));
       $('ciL').innerHTML = hit.slice(0, 60).map(x => { const P = x.project; return `<div style="padding:8px 10px;border-bottom:1px solid #eef2f7"><b>${esc(P.name || 'مشروع بلا اسم')}</b> <small style="color:#64748b">${esc(P.contractor || '')}${P.fileNo ? ' — اضبارة ' + esc(P.fileNo) : ''}</small>
         <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:5px">${(x.orders || []).map((o, i) => { const n = (o.items || []).length; return `<button type="button" data-ci="${esc(x.id)}" data-oi="${i}" ${n ? '' : 'disabled title="لا فقرات محفوظة لهذا الأمر — افتح «🔍 مراجعة ملف أمر التغيير» في نظام أوامر التغيير واختر ملفه"'} style="padding:4px 10px;border-radius:8px;border:1px solid ${n ? '#2563a8' : '#cbd5e1'};background:${n ? '#eff6ff' : '#f8fafc'};color:${n ? '#1e3a8a' : '#94a3b8'};cursor:${n ? 'pointer' : 'default'}">${esc(oname(o, i + 1))} — ${n ? n + ' فقرة' : 'بلا فقرات'}</button>`; }).join('')}</div></div>`; }).join('') || '<div style="padding:14px;color:#64748b">لا مشاريع مطابقة في نظام أوامر التغيير.</div>'; };
     draw(); $('ciQ').addEventListener('input', draw); $('ciQ').focus();
     ov.addEventListener('click', e => { if (e.target === ov || e.target.id === 'ciX') { ov.remove(); return; } const b = e.target.closest('[data-ci]'); if (!b || b.disabled) return;
-      const rec = L.find(x => x.id === b.dataset.ci); if (!rec) return; const wt = $('ciTxt').checked; ov.remove(); insert(rec, +b.dataset.oi, wt); });
+      const rec = L.find(x => x.id === b.dataset.ci); if (!rec) return; ov.remove(); insert(rec, +b.dataset.oi); });
   }
   /* الزر في شريط المحرر، وتنبيه التحديث إن تغيّرت الفقرات في أوامر التغيير */
   let lastChk = 0, st = [];
@@ -92,5 +85,5 @@
   let pend = false; new MutationObserver(() => { if (!pend) { pend = true; requestAnimationFrame(() => { pend = false; ensure(); }); } }).observe(document.body, { childList: true, subtree: true });
   window.addEventListener('focus', () => { C = null; ensure(true); });
   ensure();
-  window.CoItems = { dlg, insert: (rid, oi, wt) => { C = null; const rec = coData().find(x => x.id === rid); if (rec) insert(rec, oi, wt); }, update, stale: () => stale(memo()).length, table };
+  window.CoItems = { dlg, insert: (rid, oi) => { C = null; const rec = coData().find(x => x.id === rid); if (rec) insert(rec, oi); }, update, stale: () => stale(memo()).length, table };
 })();

@@ -1,6 +1,6 @@
 /* «📥 فقرات أمر التغيير» في مطالعات لجنة أوامر التغيير (يُحقن من البرنامج في صفحة المطالعات cm):
    يُستدعى المشروع من بيانات أوامر التغيير باسمه أو باسم الشركة أو رقم الاضبارة، ثم يُختار الأمر فتُدرج فقراته جدولاً وحده في المطالعة:
-   الفقرة والكميات الأصلية والمحذوفة والمضافة (ضمن 20% وأكثر) والمستحدثة كما اعتمدتها اللجنة — بلا أسعار ولا كتابة في المتن.
+   الفقرة والكمية الأصلية ونوع التغيير والكمية وسبب اللجنة — بلا أسعار ولا تقسيم 20% ولا كتابة في المتن.
    الجدول يحمل مصدره؛ فإن عدّلت اللجنة الفقرات في أوامر التغيير يظهر «↻ تحديث فقرات أمر التغيير» ويُحدَّث الجدول نفسه.
    للقراءة من أوامر التغيير فقط — لا يكتب في بياناتها. */
 (function () {
@@ -17,17 +17,14 @@
   const oname = (o, n) => (o && o.isFix && o.isFix !== '0' && o.isFix !== 'false' ? 'تصحيح ' : '') + 'أمر التغيير رقم ' + n;
   /* القيم كما اعتمدتها اللجنة (نفس قواعد أوامر التغيير) */
   const q = x => x.st === 'cut' ? 0 : (num(x.q) || 0);
-  const sig = items => { let h = 0; const s = JSON.stringify((items || []).map(x => [x.type, x.desc, x.unit, x.orig, x.q, x.st])); for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return String(h); };
+  const sig = items => { let h = 0; const s = JSON.stringify((items || []).map(x => [x.type, x.desc, x.unit, x.orig, x.q, x.st, x.cnote])); for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return String(h); };
   const ordered = items => ['del', 'add', 'new'].flatMap(t => (items || []).filter(x => x.type === t));
-  /* الكمية المضافة: ضمن 20% من الأصلية وما زاد عليها (كما في أوامر التغيير) */
-  const split = x => { const qq = q(x), og = num(x.orig); if (x.type !== 'add' || !(og > 0)) return { w: qq, a: 0 }; const lim = +(og * 0.2).toFixed(3), w = Math.min(qq, lim); return { w, a: +Math.max(0, qq - lim).toFixed(3) }; };
-  /* جدول الفقرات في المطالعة: الفقرة والكميات فقط (بلا أسعار ولا مبالغ)؛ الفقرات التي حذفتها اللجنة لا تُدرج */
+  /* جدول الفقرات في المطالعة: الفقرة والكمية الأصلية ونوع التغيير والكمية والسبب (ملاحظة اللجنة) — بلا أسعار ولا مبالغ ولا تقسيم 20%
+     (التقسيم من عمل لجان المتابعة ويبقى في نافذة فقرات الأمر بنظام أوامر التغيير فقط)؛ الفقرات التي حذفتها اللجنة لا تُدرج */
   function table(rec, oi) {
     const o = rec.orders[oi], items = ordered(o.items).filter(x => x.st !== 'cut' && q(x) > 0), rows = [];
-    items.forEach((x, i) => { const sp = split(x);
-      rows.push([String(i + 1), String(x.desc || x.sum || ''), String(x.unit || ''), x.type === 'new' ? '—' : fmt(num(x.orig)),
-        x.type === 'del' ? fmt(q(x)) : '', x.type === 'add' ? fmt(sp.w) : '', x.type === 'add' && sp.a > 0 ? fmt(sp.a) : '', x.type === 'new' ? fmt(q(x)) : '']); });
-    return { cols: ['ت', 'الفقرة', 'الوحدة', 'الكمية الأصلية', 'الكمية المحذوفة', 'الكمية المضافة ضمن 20%', 'الكمية المضافة أكثر من 20%', 'الكمية المستحدثة'], rows, serial: false, shade: 'D9D9D9', fit: 'full', src: rec.id + ':' + oi, sig: sig(o.items) };
+    items.forEach((x, i) => rows.push([String(i + 1), String(x.desc || x.sum || ''), String(x.unit || ''), x.type === 'new' ? '—' : fmt(num(x.orig)), T[x.type], fmt(q(x)), String(x.cnote || '')]));
+    return { cols: ['ت', 'الفقرة', 'الوحدة', 'الكمية الأصلية', 'نوع التغيير', 'الكمية', 'السبب'], rows, serial: false, shade: 'D9D9D9', fit: 'full', src: rec.id + ':' + oi, sig: sig(o.items) };
   }
   const memo = () => (typeof view !== 'undefined' && view === 'edit' && typeof R === 'function') ? R() : null;
   const srcOf = r => (r && r.tables || []).map((t, i) => ({ t, i })).filter(z => z.t && z.t.src);
@@ -58,7 +55,7 @@
       <h3 style="margin:0;color:#1f3a5f">📥 فقرات أمر التغيير — من نظام أوامر التغيير</h3>
       <input id="ciQ" type="search" placeholder="ابحث باسم المشروع أو اسم الشركة أو رقم الاضبارة…" style="font:inherit;padding:7px 10px;border:1px solid #cbd5e1;border-radius:8px" value="${esc(r && r.fileNo || '')}">
       <div id="ciL" style="overflow:auto;flex:1;border:1px solid #e2e8f0;border-radius:8px"></div>
-      <div style="display:flex;justify-content:space-between;align-items:center"><small style="color:#64748b">يُدرج جدول الفقرات وكمياتها (الأصلية والمحذوفة والمضافة والمستحدثة) كما اعتمدتها اللجنة — بلا أسعار ولا كتابة في المتن.</small><button id="ciX" type="button">إغلاق</button></div></div>`;
+      <div style="display:flex;justify-content:space-between;align-items:center"><small style="color:#64748b">يُدرج جدول الفقرات: الكمية الأصلية ونوع التغيير والكمية والسبب (ملاحظة اللجنة) — بلا أسعار ولا كتابة في المتن.</small><button id="ciX" type="button">إغلاق</button></div></div>`;
     document.body.appendChild(ov);
     const draw = () => { const qv = N($('ciQ').value), hit = L.filter(x => x && x.project && (!qv || [x.project.name, x.project.contractor, x.project.fileNo, x.project.contractNo].some(v => N(v).includes(qv))));
       $('ciL').innerHTML = hit.slice(0, 60).map(x => { const P = x.project; return `<div style="padding:8px 10px;border-bottom:1px solid #eef2f7"><b>${esc(P.name || 'مشروع بلا اسم')}</b> <small style="color:#64748b">${esc(P.contractor || '')}${P.fileNo ? ' — اضبارة ' + esc(P.fileNo) : ''}</small>

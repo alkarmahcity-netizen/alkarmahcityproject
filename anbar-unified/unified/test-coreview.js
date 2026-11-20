@@ -72,8 +72,8 @@ const R = []; const ok = (n, c, d = '') => R.push([c ? 'PASS' : 'FAIL', n, d]);
   const mr = JSON.parse(await cm(`JSON.stringify((r=>({body:r.body,fn:r.fileNo,ev:r.ltEv,t:r.tables.map(t=>({src:t.src,rows:t.rows}))}))(R()))`));
   const tb = (mr.t.find(t => t.src) || { rows: [] }).rows, flat = JSON.stringify(tb);
   const cols = JSON.parse(await cm(`JSON.stringify(R().tables.find(t=>t.src).cols)`));
-  ok('the memo table has the item and the quantities only (original / deleted / added within 20% / above 20% / new) — no prices or amounts', cols.join('|') === 'ت|الفقرة|الوحدة|الكمية الأصلية|الكمية المحذوفة|الكمية المضافة ضمن 20%|الكمية المضافة أكثر من 20%|الكمية المستحدثة' && !/150,000|140,000|300,000|3,600,000/.test(flat), cols.join('|') + ' ' + flat);
-  ok('rows: concrete 50 → added 10 within + 15 above; doors 20 → 2; new 10; the item deleted by the committee is not listed', /"صب خرسانة مسلحة للسقوف","م3","50","","10","15",""/.test(flat) && /"تجهيز ونصب أبواب حديد","عدد","20","","2","",""/.test(flat) && /"تجهيز ونصب مقرنص حجري","م.ط","—","","","","10"/.test(flat) && !/حفريات/.test(flat), flat);
+  ok('the memo table: item, unit, original, change type, quantity, reason — no prices, no 20% split', cols.join('|') === 'ت|الفقرة|الوحدة|الكمية الأصلية|نوع التغيير|الكمية|السبب' && !/150,000|140,000|300,000|20%/.test(flat), cols.join('|') + ' ' + flat);
+  ok('rows: concrete 50 → إضافة 25 with the committee reason; doors 20 → إضافة 2; new 10; the item deleted by the committee is not listed', /"صب خرسانة مسلحة للسقوف","م3","50","إضافة","25","حسب الذرعة الموقعية"/.test(flat) && /"تجهيز ونصب أبواب حديد","عدد","20","إضافة","2"/.test(flat) && /"تجهيز ونصب مقرنص حجري","م.ط","—","استحداث","10"/.test(flat) && !/حفريات/.test(flat), flat);
   ok('nothing is written in the memo text — only the table line [[جدول 1]]; linked to the project file and the order', /\[\[جدول 1\]\]/.test(mr.body) && !/إضافة 25|الاستحداثات|فقرات أمر التغيير رقم/.test(mr.body) && mr.fn === '7001' && mr.ev === 'order:0', mr.body.slice(0, 400));
   await sleep(1500);
   // تعديل جديد في أوامر التغيير ← تنبيه التحديث في المطالعة
@@ -86,7 +86,7 @@ const R = []; const ok = (n, c, d = '') => R.push([c ? 'PASS' : 'FAIL', n, d]);
   const flat2 = await cm(`JSON.stringify(R().tables.find(t=>t.src).rows)`);
   await cm(`(()=>{const s=document.getElementById('pages')||document.querySelector('.prev-col');if(s)s.scrollIntoView();return 1})()`);
   if (process.env.UNI_TEST_SHOT) { await sleep(800); const b = await app.evaluate(async (_, v) => { const im = await global.__uni.views[v].webContents.capturePage(); return im.toPNG().toString('base64'); }, 'cm'); fs.writeFileSync(process.env.UNI_TEST_SHOT.replace('.png', '-memo.png'), Buffer.from(b, 'base64')); }
-  ok('updating refreshes the same table (added 30 → 10 within + 20 above) without duplicating it', /"50","","10","20",""/.test(flat2) && (await cm(`R().tables.filter(t=>t.src).length`)) === 1 && !(await cm(`!!document.getElementById('btnCoUpd')`)), flat2.slice(0, 300));
+  ok('updating refreshes the same table (added 25 → 30) without duplicating it', /"50","إضافة","30"/.test(flat2) && (await cm(`R().tables.filter(t=>t.src).length`)) === 1 && !(await cm(`!!document.getElementById('btnCoUpd')`)), flat2.slice(0, 300));
   const e = await app.evaluate(() => (global.__uniErrors || []).slice()); ok('no JavaScript errors', e.length === 0, e.join(' | ').slice(0, 400));
   await app.close();
   R.forEach(x => console.log(x[0], x[1], x[2] ? '— ' + String(x[2]).slice(0, 600) : '')); console.log(`${R.filter(x => x[0] === 'PASS').length}/${R.length}`); process.exit(R.every(x => x[0] === 'PASS') ? 0 : 1);

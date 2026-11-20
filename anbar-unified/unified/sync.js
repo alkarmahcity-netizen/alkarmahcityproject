@@ -56,8 +56,12 @@ module.exports = function createSync(ctx) {
     const m = { ...newer, dist: { ...(older.dist || {}) }, files: [] };
     for (const [k, d] of Object.entries(newer.dist || {})) { const o = m.dist[k]; m.dist[k] = !o ? d : { ...o, ...d, recvAt: d.recvAt || o.recvAt, recvBy: d.recvBy || o.recvBy }; }
     for (const [k, o] of Object.entries(older.dist || {})) if (!(newer.dist || {})[k] && (+newer.updated || 0) > (+o.at || 0) && !(o.recvAt) && (newer.distRemoved || []).includes(k)) delete m.dist[k];
-    const seen = new Set(); for (const f of [...(newer.files || []), ...(older.files || [])]) if (f && !seen.has(f.name)) { seen.add(f.name); m.files.push(f); }
-    const same = JSON.stringify({ d: a.dist || {}, f: (a.files || []).map(f => f.name).sort(), x: { ...a, dist: 0, files: 0, updated: 0 } }) === JSON.stringify({ d: m.dist, f: m.files.map(f => f.name).sort(), x: { ...m, dist: 0, files: 0, updated: 0 } });
+    /* ملفات حذفها أرشيف القسم (filesDel: الاسم ← وقت الحذف): لا يعيدها دمج نسخة اللجنة؛ ويبقى الملف إن أُضيف بالاسم نفسه بعد حذفه */
+    const del = {}; for (const x of [older.filesDel || {}, newer.filesDel || {}]) for (const [n, t] of Object.entries(x)) del[n] = Math.max(del[n] || 0, +t || 0);
+    for (const f of newer.files || []) if (f && del[f.name] && (+f.at || 0) > del[f.name]) delete del[f.name];
+    if (Object.keys(del).length) m.filesDel = del;
+    const seen = new Set(); for (const f of [...(newer.files || []), ...(older.files || [])]) if (f && !seen.has(f.name) && !(del[f.name] && !((+f.at || 0) > del[f.name]))) { seen.add(f.name); m.files.push(f); }
+    const same = JSON.stringify({ d: a.dist || {}, f: (a.files || []).map(f => f.name).sort(), x: { ...a, dist: 0, files: 0, updated: 0, filesDel: 0 }, fd: a.filesDel || {} }) === JSON.stringify({ d: m.dist, f: m.files.map(f => f.name).sort(), x: { ...m, dist: 0, files: 0, updated: 0, filesDel: 0 }, fd: m.filesDel || {} });
     if (same) return null;
     const ab = JSON.stringify(m.dist) !== JSON.stringify(b.dist || {}) || m.files.length !== (b.files || []).length;
     m.updated = Math.max(+a.updated || 0, +b.updated || 0) + (ab ? 1 : 0);   // إن اختلف الدمج عن النسخة الواصلة يُرفع وقت التعديل فتعود النسخة المدمجة للطرف الآخر
@@ -82,6 +86,7 @@ module.exports = function createSync(ctx) {
     }
     if (changed || (tin && Object.keys(tin).length)) { saveTombs(); }
     if (changed) { o[key] = [...map.values()].filter(Boolean); ctx.writeData(ds, JSON.stringify(o)); delete DIG[ds]; }
+    if (ds === 'ar' && ctx.archDir) arClean([...map.values()], Object.keys(tin || {}));
     return changed;
   }
 
@@ -192,9 +197,18 @@ module.exports = function createSync(ctx) {
       } catch (_) {} }
     return out;
   }
+  /* حذف أرشيف القسم: الملفات المحذوفة من كتاب (filesDel) والكتب المحذوفة (سجل الحذف) لا تُستقبل، وتُحذف نسختها المحلية */
+  function arDead() { const files = new Set(), recs = new Set(Object.keys(tombs.ar || {}));
+    try { for (const r of (safe(ctx.readData('ar') || '{}').records || [])) if (r && r.id && r.filesDel) for (const n of Object.keys(r.filesDel)) if (!(r.files || []).some(f => f && f.name === n)) files.add(r.id + '/' + n); } catch (_) {}
+    return { files, recs }; }
+  function arClean(records, gone) { const root = ctx.archDir && ctx.archDir(); if (!root) return;
+    for (const r of records || []) if (r && r.id && r.filesDel && /^[A-Za-z0-9_-]{1,40}$/.test(r.id)) for (const n of Object.keys(r.filesDel)) {
+      if ((r.files || []).some(f => f && f.name === n) || /[\\/]|\.\./.test(n)) continue; try { fs.unlinkSync(path.join(root, r.id, n)); } catch (_) {} }
+    for (const id of gone || []) if (/^[A-Za-z0-9_-]{1,40}$/.test(id)) { try { fs.rmSync(path.join(root, id), { recursive: true, force: true }); } catch (_) {} } }
   function arfApply(items) {
-    let n = 0; const root = ctx.archDir();
+    let n = 0; const root = ctx.archDir(), dead = arDead();
     for (const it of items || []) { const k = it.id; if (!okKey(k) || typeof it.v !== 'string') continue;
+      if (dead.files.has(k) || dead.recs.has(String(k).split('/')[0])) continue;
       try { const b = Buffer.from(it.v, 'base64'), f = path.join(root, k);
         if (it.part) {   // جزء من ملف كبير
           const u = +it.u, off = +it.off || 0; if (!(u > 0 && u <= ARF_MAX) || off + b.length > u) continue;
@@ -268,7 +282,7 @@ module.exports = function createSync(ctx) {
         { const um = req.method === 'GET' && String(req.url || '').match(/^\/sync\/update\/(info|file)$/);   // التحديث من حاسبة القسم
           if (um) { if (cfg.mode === 'server' && ctx.updater) return ctx.updater.serve(um[1], res); return send(404, { error: 'none' }); } }
         notePeer(req);
-        const m = req.url.match(/^\/sync\/(ping|(co|du|ad|in|lt|fu|dm|cm|ar|arf|reg|ac|wf|pl|wfa)\/(digest|push))$/);
+        const m = req.url.match(/^\/sync\/(ping|(co|du|ad|in|lt|fu|dm|cm|fv|ar|arf|reg|ac|wf|pl|wfa)\/(digest|push))$/);
         if (!m) return send(404, { error: 'nf' });
         if (m[1] === 'ping') return send(200, { ok: true, time: Date.now(), name: cfg.name || os.hostname(), sets: ALL, ver: String(ctx.version || '') });
         const ds = m[2], act = m[3];
@@ -402,7 +416,8 @@ module.exports = function createSync(ctx) {
       if (!(await ensureFound(false))) throw new Error('لم يُعثر على حاسبة القسم في الشبكة — تأكد أنها مشغّلة وأن رمز القسم نفسه');
       let ping; const t0 = Date.now();
       try { ping = await call('/sync/ping', {}); } catch (e) { if (!isAuto() || /مفتاح/.test(e.message)) throw e; if (!(await ensureFound(true))) throw new Error('لم يُعثر على حاسبة القسم في الشبكة — تأكد أنها مشغّلة وأن رمز القسم نفسه'); ping = await call('/sync/ping', {}); } state.skew = Math.round((ping.time - Date.now() + (Date.now() - t0) / 2) / 1000); state.peers = 1; state.serverVer = String(ping.ver || ''); state.serverName = String(ping.name || '');
-      for (const ds of ALL) {
+      let dsErr = null;   /* خطأ في مجموعة واحدة لا يوقف مزامنة باقي المجموعات (كان يوقف الجولة كلها) */
+      for (const ds of ALL) { try {
         if (ds === 'ac' && !ctx.acAvailable()) continue;
         if (['in', 'lt', 'fu', 'dm', 'cm', 'fv', 'ar', 'arf', 'wf', 'pl', 'wfa'].includes(ds) && !(ping.sets || []).includes(ds)) continue;   // خادم أقدم لا يعرف هذه المجموعة   // خادم أو سحابة بإصدار أقدم لا يعرف «إطلاق التأمينات»
         const rv = ping.revs ? (ping.revs[ds] || 0) : undefined;
@@ -419,7 +434,8 @@ module.exports = function createSync(ctx) {
           if (!((r.items && r.items.length) || sent)) break;
         }
         if (rv !== undefined) { lastRev[ds] = rv; lastSig[ds] = JSON.stringify(await API.digest(ds)); }
-      }
+      } catch (e) { if (/مفتاح|403|401/.test(String(e && e.message))) throw e; dsErr = dsErr || (ds + ': ' + (e.message || e)); delete lastRev[ds]; } }
+      if (dsErr) throw new Error(dsErr);
       state.ok = true; state.error = ''; state.last = Date.now(); state.applied += applied;
       try { const u = parseServer(); if (ctx.onSynced && u && !u.tls) ctx.onSynced({ base: `http://${u.hostname}:${u.port}${u.base || ''}`, key: cfg.key, serverVer: state.serverVer || '' }); } catch (_) {}
     } catch (e) { state.ok = false; state.error = e.message || String(e); for (const k of Object.keys(lastRev)) delete lastRev[k]; }

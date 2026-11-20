@@ -26,7 +26,7 @@ const APPS = {
   du: { title: 'المدد والتوقف', file: 'app/du.html', data: 'Durations-Data.json' },
   ad: { title: 'لجنة تدقيق السلف', file: 'app/ad.html', data: 'Advances-Data.json' },
   in: { title: 'إطلاق التأمينات', file: 'app/in.html', data: 'Insurance-Data.json' },
-  ac: { title: 'الاستلام', url: `http://127.0.0.1:${AC_PORT}/` },
+  ac: { title: 'الاستلام', url: `http://127.0.0.1:${AC_PORT}/`, data: 'AcceptanceFlow-Snapshot.json' },   // data: لقطة سجلات الشهادات للوحة سير المعاملات فقط (بيانات الاستلام نفسها في نظامه)
   lt: { title: 'المخاطبات والمطالعات', file: 'app/lt.html', data: 'Letters-Data.json' },
   fu: { title: 'مطالعات أوامر التغيير', file: 'app/fu.html', data: 'FollowUp-Data.json' },
   ar: { title: 'الأرشيف والتوزيع', file: 'app/ar.html', data: 'Archive-Data.json' },
@@ -884,7 +884,9 @@ function ensureView(id) {
   // window.print() لا تفتح نافذة الطباعة داخل BrowserView؛ تُحوَّل إلى طباعة البرنامج
   v.webContents.on('dom-ready', () => { v.webContents.executeJavaScript("if(window.desktop&&window.desktop.print){window.print=function(){return window.desktop.print();};}").catch(() => {}); });
   if (GLASS_IDS.has(id)) v.webContents.on('dom-ready', () => { v.webContents.__glassKey = null; applyGlass(v.webContents); });   // المظهر يُعاد بعد كل تحميل للصفحة
-  if (['ad', 'co', 'du'].includes(id)) v.webContents.on('did-finish-load', () => { const js = flowPanelJs(id); if (js) v.webContents.executeJavaScript(js).catch(e => logError('flowpanel-' + id, String(e && e.message || e))); });
+  if (['ad', 'co', 'du', 'ac'].includes(id)) v.webContents.on('did-finish-load', () => { const js = flowPanelJs(id); if (js) v.webContents.executeJavaScript(js).catch(e => logError('flowpanel-' + id, String(e && e.message || e))); });
+  /* نظام الاستلام: لقطة الشهادات للوحة + تنبيه رمز QR عند الإصدار (acaddon.js) — يُحقن في كل صفحة من صفحاته */
+  if (id === 'ac') v.webContents.on('did-finish-load', () => { try { const js = fs.readFileSync(path.join(__dirname, 'acaddon.js'), 'utf8'); v.webContents.executeJavaScript(js).catch(e => logError('acaddon', String(e && e.message || e))); } catch (_) {} });
   v.webContents.on('before-input-event', touchActivity);
   v.webContents.on('render-process-gone', () => {
     if (v.__unloading) return;
@@ -1012,13 +1014,15 @@ const flow = createFlow({
 const flowWho = () => ({ name: audit.who() || '', dev: (() => { try { return (sync && sync.getConfig && (sync.getConfig() || {}).name) || require('os').hostname(); } catch (_) { return ''; } })() });
 const FLOW_T = {};
 // بعد الحفظ بقليل (لا يؤخر الحفظ نفسه، والحفظات المتتالية تُجمع في فحص واحد)
-function flowSoon(id) { if (!['ad', 'co', 'du'].includes(id)) return; clearTimeout(FLOW_T[id]); FLOW_T[id] = setTimeout(() => { flow.reconcile(id, true, flowWho()).catch(e => logError('flow', String(e && e.message || e))); }, +process.env.UNI_FLOW_DELAY || 2500); }
+function flowSoon(id) { if (!['ad', 'co', 'du', 'ac'].includes(id)) return; clearTimeout(FLOW_T[id]); FLOW_T[id] = setTimeout(() => { flow.reconcile(id, true, flowWho()).catch(e => logError('flow', String(e && e.message || e))); }, +process.env.UNI_FLOW_DELAY || 2500); }
 let flowWin = null, flowRev = 0;
-function flowNotify() { flowRev++; annSoon(); for (const w of [win, flowWin, views.ad, views.co, views.du]) { try { if (w && w.webContents && !w.webContents.isDestroyed()) w.webContents.send('wf:changed', flowRev); } catch (_) {} } }
+function flowNotify() { flowRev++; annSoon(); for (const w of [win, flowWin, views.ad, views.co, views.du, views.ac]) { try { if (w && w.webContents && !w.webContents.isDestroyed()) w.webContents.send('wf:changed', flowRev); } catch (_) {} } }
 const flowLate = () => { const n = +prefs().wfLate; return n >= 1 && n <= 60 ? n : 5; };
-async function flowBoard(amounts) { return { cards: await flow.board({ amounts }), anns: flow.anns(), late: flowLate(), rev: flowRev, now: Date.now() }; }
-ipcMain.handle('wf:board', async () => { const b = await flowBoard(finVisible()); b.fin = finVisible(); b.who = audit.who() || ''; b.open = Object.fromEntries(['ad', 'co', 'du'].map(i => [i, isOpen(i)])); b.web = flowWebInfo(); return b; });
-const flowCan = sys => ['ad', 'co', 'du'].includes(sys) && isOpen(sys);
+/* متى تُعدّ المعاملة متأخرة (أيام منذ استلامها ما لم تُنجز): لكل نظام — prefs.wfLateBy يغيّرها، وإلا القيم المعتمدة */
+const flowLateBy = () => { const d = Object.assign({}, createFlow.LATE_BY); try { const p = prefs().wfLateBy || {}; for (const k of Object.keys(d)) { const n = Math.round(+p[k]); if (n >= 1 && n <= 120) d[k] = n; } } catch (_) {} return d; };
+async function flowBoard(amounts) { return { cards: await flow.board({ amounts }), anns: flow.anns(), late: flowLate(), lateBy: flowLateBy(), rev: flowRev, now: Date.now() }; }
+ipcMain.handle('wf:board', async () => { const b = await flowBoard(finVisible()); b.fin = finVisible(); b.who = audit.who() || ''; b.open = Object.fromEntries(['ad', 'co', 'du', 'ac'].map(i => [i, isOpen(i)])); b.web = flowWebInfo(); return b; });
+const flowCan = sys => ['ad', 'co', 'du', 'ac'].includes(sys) && isOpen(sys);
 ipcMain.handle('wf:move', (_e, key, to, why) => { const sys = String(key).slice(0, 2); if (!flowCan(sys)) return { error: 'locked', sys }; if (!audit.who()) return { error: 'who' };
   touchActivity(); const r = flow.move(String(key), String(to), why, flowWho()); if (r.ok) audit.note(sys, 'flow', `لوحة سير المعاملات: ${key} ← ${createFlow.STAGE_NAMES[to] || to}${why ? ' (' + String(why).slice(0, 120) + ')' : ''}`).catch(() => {}); return r; });
 ipcMain.handle('wf:add', (_e, key) => { const sys = String(key).slice(0, 2); if (!flowCan(sys)) return { error: 'locked', sys }; if (!audit.who()) return { error: 'who' }; return flow.add(String(key), flowWho()); });
@@ -1027,7 +1031,7 @@ ipcMain.handle('wf:remove', (_e, key) => { const sys = String(key).slice(0, 2); 
 /* فتح نظام من لوحة سير المعاملات (نقل / إزالة بطاقة): كلمة سر النظام أو كلمة سر المدير.
    يُقبل الرقم المكتوب بلوحة مفاتيح عربية (٢٠١٠) والمسافات الزائدة في أوله وآخره — دون زيادة عدد المحاولات المحسوبة. */
 ipcMain.handle('wf:unlock', (_e, sys, pw) => {
-  sys = String(sys || ''); if (!['ad', 'co', 'du'].includes(sys)) return false;
+  sys = String(sys || ''); if (!['ad', 'co', 'du', 'ac'].includes(sys)) return false;
   const raw = String(pw == null ? '' : pw), west = raw.replace(/[٠-٩]/g, d => d.charCodeAt(0) - 1632).replace(/[۰-۹]/g, d => d.charCodeAt(0) - 1776);
   const id = AUTHID(sys), cand = [...new Set([raw, raw.trim(), west, west.trim()])];
   const hit = needsAuth(id) ? cand.find(v => hashPw(id, v) === authTable()[id]) : raw;
@@ -1124,13 +1128,21 @@ function annCheck() {
 }
 setInterval(annCheck, 30000);
 /* شريط اللوحة داخل السلف وأوامر التغيير والمدد: كل نظام يقرأ ويعدّل معاملاته فقط (والنظام مفتوح بكلمة سره ما دامت صفحته معروضة) */
-const flowFrom = (e, key) => { const sys = String(key || '').slice(0, 2); return ['ad', 'co', 'du'].includes(sys) && views[sys] && e.sender === views[sys].webContents && isOpen(sys) ? sys : ''; };
-ipcMain.handle('wf:get', (e, key) => (flowFrom(e, key) ? flow.get(String(key), flowLate()) : null));
+const flowFrom = (e, key) => { const sys = String(key || '').slice(0, 2); return ['ad', 'co', 'du', 'ac'].includes(sys) && views[sys] && e.sender === views[sys].webContents && isOpen(sys) ? sys : ''; };
+ipcMain.handle('wf:get', (e, key) => { const sys = flowFrom(e, key); if (!sys) return null; const c = flow.get(String(key), flowLateBy()[sys] || flowLate()); if (c) c.lateAge = 1; return c; });
 ipcMain.handle('wf:set', (e, key, patch) => { const sys = flowFrom(e, key); if (!sys) return { error: 'غير مسموح' }; touchActivity();
   const r = flow.set(String(key), patch && typeof patch === 'object' ? { st: patch.st, why: patch.why, recv: patch.recv } : {}, flowWho());
-  if (r.ok && r.card) r.card.late = flowLate();
+  if (r.ok && r.card) { r.card.late = flowLateBy()[sys] || flowLate(); r.card.lateAge = 1; }
   if (r.moved) audit.note(sys, 'flow', `لوحة سير المعاملات: ${key} ← ${createFlow.STAGE_NAMES[r.moved] || r.moved}${patch.why ? ' (' + String(patch.why).slice(0, 120) + ')' : ''}`).catch(() => {});
   return r; });
+/* نظام الاستلام: لقطة سجلات الشهادات (من الطبقة المحقونة في صفحاته) ← ملف اللقطة، ثم مزامنة اللوحة (إضافة الشهادة الجديدة، و«منجزة» عند إصدارها).
+   أول لقطة على هذه الحاسبة: الشهادات الموجودة تُعدّ «معروفة» فلا تُضاف كلها إلى اللوحة دفعة واحدة */
+ipcMain.handle('ac:flowSnap', async (e, snap) => { try {
+  if (!views.ac || e.sender !== views.ac.webContents || !snap || !Array.isArray(snap.recs)) return false;
+  const f = dataFile('ac'), first = !fs.existsSync(f); const t = JSON.stringify({ at: Date.now(), recs: snap.recs.slice(0, 5000) });
+  let old = ''; try { old = fs.readFileSync(f, 'utf8'); } catch (_) {} if (old && JSON.parse(old).recs && JSON.stringify(JSON.parse(old).recs) === JSON.stringify(snap.recs.slice(0, 5000))) return true;
+  atomicWrite(f, t); if (first) { flow.seenAll('ac'); return true; }
+  flowSoon('ac'); return true; } catch (err) { logError('ac:flowSnap', String(err && err.message || err)); return false; } });
 let FLOWPANEL_JS = null;
 const flowPanelJs = id => { if (FLOWPANEL_JS == null) { try { FLOWPANEL_JS = fs.readFileSync(path.join(__dirname, 'flowpanel.js'), 'utf8'); } catch (_) { FLOWPANEL_JS = ''; } } return FLOWPANEL_JS.replace("'__SYS__'", JSON.stringify(id)); };
 /* شاشة القاعة (تلفاز أو أي حاسبة): صفحة للقراءة فقط على الشبكة الداخلية، بلا مبالغ. معطّلة حتى تُفعَّل من اللوحة */

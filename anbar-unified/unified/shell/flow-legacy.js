@@ -35,13 +35,13 @@ var __async = (__this, __arguments, generator) => {
   "use strict";
   const STAGES = [["rcv", "استلام"], ["aud", "تدقيق"], ["rev", "مراجعة"], ["prt", "طباعة وتوقيع"], ["done", "منجزة"], ["ret", "مُعادة"]];
   const SN = Object.fromEntries(STAGES);
-  const TYPES = { ad: "سلفة", co: "أمر تغيير", du: "مدة" };
-  const SYSN = { ad: "لجنة تدقيق السلف", co: "أوامر التغيير", du: "المدد والتوقف" };
+  const TYPES = { ad: "سلفة", co: "أمر تغيير", du: "مدة", ac: "شهادة" };
+  const SYSN = { ad: "لجنة تدقيق السلف", co: "أوامر التغيير", du: "المدد والتوقف", ac: "الاستلام" };
   const DAY = 864e5, DONE_DAYS = 14;
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
   const fmtN = (n) => Math.round(+n || 0).toLocaleString("en-US");
   const CSS = `
-.fb,.fbv{--fb-card:#fff;--fb-ink:#1e293b;--fb-mut:#64748b;--fb-line:#e2e8f0;--fb-col:rgba(255,255,255,.6);--fb-ad:#2563eb;--fb-co:#d97706;--fb-du:#059669;--fb-late:#dc2626;--fb-ok:#16a34a;--fb-ret:#9333ea;color:var(--fb-ink)}
+.fb,.fbv{--fb-card:#fff;--fb-ink:#1e293b;--fb-mut:#64748b;--fb-line:#e2e8f0;--fb-col:rgba(255,255,255,.6);--fb-ad:#2563eb;--fb-co:#d97706;--fb-du:#059669;--fb-ac:#7c3aed;--fb-late:#dc2626;--fb-ok:#16a34a;--fb-ret:#9333ea;color:var(--fb-ink)}
 .fb{display:flex;flex-direction:column;gap:10px;min-height:0}
 .fb.dark,.fbv.dark{--fb-card:#131c2e;--fb-ink:#e5e7eb;--fb-mut:#94a3b8;--fb-line:#243047;--fb-col:rgba(255,255,255,.04)}
 .fb *{box-sizing:border-box}
@@ -67,7 +67,7 @@ var __async = (__this, __arguments, generator) => {
 .fb-e{color:var(--fb-mut);font-size:13px;text-align:center;padding:14px}
 .fb-x{background:var(--fb-card);border:1px solid var(--fb-line);border-inline-start:5px solid var(--t);border-radius:10px;padding:7px 9px;cursor:pointer;transition:transform .15s,box-shadow .15s}
 .fb-x:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(0,0,0,.08)}
-.fb-x.ad{--t:var(--fb-ad)}.fb-x.co{--t:var(--fb-co)}.fb-x.du{--t:var(--fb-du)}
+.fb-x.ad{--t:var(--fb-ad)}.fb-x.co{--t:var(--fb-co)}.fb-x.du{--t:var(--fb-du)}.fb-x.ac{--t:var(--fb-ac)}
 .fb-x .t{display:flex;justify-content:space-between;gap:6px;font-size:12px;color:var(--fb-mut)}.fb-x .ty{color:var(--t);font-weight:700}
 .fb-x .cn{font-weight:700;font-size:15px;margin:3px 0 1px}
 .fb-x .pj{font-size:12.5px;color:var(--fb-mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -274,15 +274,15 @@ var __async = (__this, __arguments, generator) => {
     if (opt.big)
       root.classList.add("big");
     root.innerHTML = `
-    ${opt.header ? `<header class="fb-h">${opt.logo ? `<img src="${opt.logo}" alt="">` : ""}<div><h1>لوحة سير المعاملات — الشؤون الهندسية</h1><div class="fb-sub">السلف · أوامر التغيير · المدد — تتحدّث تلقائياً من حاسبات القسم</div></div><div class="fb-clk"><b data-fb="clk"></b><span data-fb="dt"></span></div></header>` : ""}
+    ${opt.header ? `<header class="fb-h">${opt.logo ? `<img src="${opt.logo}" alt="">` : ""}<div><h1>لوحة سير المعاملات — الشؤون الهندسية</h1><div class="fb-sub">السلف · أوامر التغيير · المدد · الاستلام — تتحدّث تلقائياً من حاسبات القسم</div></div><div class="fb-clk"><b data-fb="clk"></b><span data-fb="dt"></span></div></header>` : ""}
     <div class="fb-anb" data-fb="anb"></div>
     <section class="fb-k" data-fb="k"></section>
     <div class="fb-bar">
-      <button data-f="all" class="on">الكل</button><button data-f="ad">السلف</button><button data-f="co">أوامر التغيير</button><button data-f="du">المدد</button><button data-f="late">المتأخرة فقط</button>
+      <button data-f="all" class="on">الكل</button><button data-f="ad">السلف</button><button data-f="co">أوامر التغيير</button><button data-f="du">المدد</button><button data-f="ac">الاستلام</button><button data-f="late">المتأخرة فقط</button>
       <input data-fb="q" placeholder="بحث: اسم الشركة، المشروع، رقم الاضبارة…">
       <span class="sp"></span>
-      <span class="fb-lg"><span><i style="background:var(--fb-ad)"></i>سلفة</span><span><i style="background:var(--fb-co)"></i>أمر تغيير</span><span><i style="background:var(--fb-du)"></i>مدة</span></span>
-      ${edit ? `<select data-fb="late" title="تُعدّ المعاملة متأخرة إذا بقيت في مرحلتها أكثر من هذه المدة">${[2, 3, 5, 7, 10, 15, 30].map((n) => `<option value="${n}">متأخرة بعد ${n} أيام</option>`).join("")}</select>
+      <span class="fb-lg"><span><i style="background:var(--fb-ad)"></i>سلفة</span><span><i style="background:var(--fb-co)"></i>أمر تغيير</span><span><i style="background:var(--fb-du)"></i>مدة</span><span><i style="background:var(--fb-ac)"></i>شهادة استلام</span></span>
+      ${edit ? `<span class="fb-lr" title="المعاملة تُعدّ متأخرة إذا مضى على استلامها (تاريخ استلام الذمة) أكثر من هذه المدة ولم تُنجز">⏱ متأخرة بعد: السلف والمدد 15 يوماً، أوامر التغيير 30، الاستلام 30 يوماً من الاستلام</span>
       <button class="pri" data-fb="ann" title="تبليغ من مدير القسم يظهر بملء الشاشة على كل الحاسبات وشاشات اللوحة لمدة تحددها (بكلمة سر المدير)" style="background:#0f2a4a;border-color:#0f2a4a">📢 تبليغ</button>
       <button class="pri" data-fb="add" title="إضافة معاملة موجودة في السلف أو أوامر التغيير أو المدد إلى اللوحة">＋ إضافة معاملة</button>
       <button data-fb="disp" title="فتح اللوحة بملء الشاشة على الشاشة الثانية الموصولة بهذه الحاسبة (للعرض فقط)">🖥 شاشة ثانية</button>
@@ -294,7 +294,10 @@ var __async = (__this, __arguments, generator) => {
     const $ = (k) => root.querySelector(`[data-fb="${k}"]`);
     const since = (c) => c.since || c.updated || c.created || 0;
     const daysIn = (c) => Math.floor((Date.now() - since(c)) / DAY);
-    const isLate = (c) => !["done", "ret"].includes(c.st) && daysIn(c) > data.late;
+    const recvAt = (c) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(c.recv || ""); return m ? new Date(+m[1], +m[2] - 1, +m[3]).getTime() : (c.created || since(c)); };
+    const ageOf = (c) => Math.floor((Date.now() - recvAt(c)) / DAY);
+    const limOf = (c) => (data.lateBy && data.lateBy[c.sys]) || data.late;
+    const isLate = (c) => !["done", "ret"].includes(c.st) && (data.lateBy ? ageOf(c) > limOf(c) : daysIn(c) > data.late);
     function show(c) {
       if (c.st === "done" && Date.now() - since(c) > DONE_DAYS * DAY)
         return false;
@@ -317,13 +320,13 @@ var __async = (__this, __arguments, generator) => {
           <div class="cn">${esc(c.co || "— الشركة غير مكتوبة —")}</div>
           <div class="pj" title="${esc(c.pj)}">${esc(c.pj || "—")}</div>
           ${c.st === "ret" && last.why ? `<div class="why">↩ ${esc(last.why)}</div>` : ""}
-          <div class="f"><span>${esc(c.eng || "")}${a ? ` · ${esc(a)}` : ""}</span><span class="fb-d">${isLate(c) ? "⚠ " : ""}${dTxt(daysIn(c))}</span></div></div>`;
+          <div class="f"><span>${esc(c.eng || "")}${a ? ` · ${esc(a)}` : ""}</span><span class="fb-d" title="${isLate(c) ? "متأخرة: مضى على استلامها " + ageOf(c) + " يوماً (الحد " + limOf(c) + ")" : "في مرحلتها"}">${isLate(c) ? "⚠ " + ageOf(c) + " يوماً" : dTxt(daysIn(c))}</span></div></div>`;
         }).join("") || '<div class="fb-e">لا توجد معاملات</div>'}</div></section>`;
       }).join("");
       const open = C.filter((c) => !["done", "ret"].includes(c.st)), d0 = /* @__PURE__ */ new Date();
       d0.setHours(0, 0, 0, 0);
       $("k").innerHTML = `<div><small>معاملات قيد العمل</small><b>${open.length}</b></div><div><small>وردت اليوم</small><b>${C.filter((c) => (c.created || 0) >= d0.getTime()).length}</b></div>
-      <div class="l"><small>متأخرة (أكثر من ${data.late} أيام في مرحلتها)</small><b>${C.filter(isLate).length}</b></div><div class="o"><small>أُنجزت هذا الأسبوع</small><b>${C.filter((c) => c.st === "done" && Date.now() - since(c) < 7 * DAY).length}</b></div>
+      <div class="l"><small>متأخرة (السلف والمدد بعد 15 يوماً، الأوامر والاستلام بعد 30 من الاستلام)</small><b>${C.filter(isLate).length}</b></div><div class="o"><small>أُنجزت هذا الأسبوع</small><b>${C.filter((c) => c.st === "done" && Date.now() - since(c) < 7 * DAY).length}</b></div>
       <div class="r"><small>مُعادة للاستكمال</small><b>${C.filter((c) => c.st === "ret").length}</b></div>`;
       const ev = [];
       C.forEach((c) => (c.hist || []).forEach((h) => ev.push({ c, h })));

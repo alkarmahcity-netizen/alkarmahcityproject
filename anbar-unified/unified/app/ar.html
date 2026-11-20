@@ -366,7 +366,7 @@ function openDoc(id){const r=R(id);if(!r)return;const ds=Object.entries(r.dist||
   $('dlg').innerHTML=`<h3>📄 ${esc(r.subject||'كتاب')}</h3>
    <table><tbody><tr><th>رقم الأرشيف</th><td>${esc(r.serial)}</td><th>النوع</th><td>${esc(r.kind)} — ${esc(r.dir)}</td></tr><tr><th>العدد</th><td>${esc(r.no||'—')}</td><th>التاريخ</th><td>${dmy(r.date)}</td></tr>
    <tr><th>الجهة</th><td colspan="3">${esc(r.party||'—')}</td></tr><tr><th>الاضبارة</th><td colspan="3">${ROLE==='dept'?`<input id="dFn" list="projList" value="${esc(fnOf(r))}" placeholder="رقم الاضبارة" style="width:9em"> <button class="b" data-setfn="${r.id}">حفظ</button> `:''}<span class="mu">${esc(fnLabel(fnOf(r))||'—')}</span>${(r.moves||[]).length?`<br><small class="mu">نُقلت: ${(r.moves||[]).map(m=>esc(m.from+' ← '+m.to+' ('+tm(m.at)+')')).join('، ')}</small>`:''}</td></tr>${r.notes?`<tr><th>ملاحظات</th><td colspan="3">${esc(r.notes).replace(/\n/g,'<br>')}</td></tr>`:''}<tr><th>أُرشف</th><td colspan="3">${tm(r.created)}${r.by?' — '+esc(r.by):''}</td></tr></tbody></table>
-   <h3 style="margin-top:12px">المرفقات</h3><div class="files">${(r.files||[]).map(f=>{const has=DESK&&DESK.archHas?DESK.archHas(r.id,f.name):true;return `<div class="fl"><span>📄 ${esc(f.name)}</span>${has?`<a data-open="${r.id}" data-f="${esc(f.name)}">فتح</a> <a data-show="${r.id}" data-f="${esc(f.name)}">في المجلد</a>`:'<small class="am">يصل مع المزامنة...</small>'}</div>`;}).join('')||'<p class="mu">لا مرفقات.</p>'}</div>
+   <h3 style="margin-top:12px">المرفقات</h3><div class="files">${(r.files||[]).map(f=>{const has=DESK&&DESK.archHas?DESK.archHas(r.id,f.name):true;return `<div class="fl"><span>📄 ${esc(f.name)}</span>${has?`<a data-open="${r.id}" data-f="${esc(f.name)}">فتح</a> <a data-show="${r.id}" data-f="${esc(f.name)}">في المجلد</a>`:'<small class="am">يصل مع المزامنة...</small>'}${ROLE==='dept'?` <a data-fdel="${r.id}" data-f="${esc(f.name)}" style="color:#b42318" title="حذف هذا الملف من الأرشيف ومن حاسبات اللجان المرسل إليها">🗑 حذف</a>`:''}</div>`;}).join('')||'<p class="mu">لا مرفقات.</p>'}</div>
    ${ROLE==='dept'?`<div class="dist-bar"><button class="b" data-addf="${r.id}">📎 إضافة مرفق</button></div>`:''}
    <h3 style="margin-top:12px">التوزيع</h3><table><thead><tr><th>الصندوق</th><th>أُرسل</th><th>الاستلام</th><th></th></tr></thead><tbody>${ds.map(([k,d])=>`<tr><td>${esc(BN[k]||k)}</td><td><small>${tm(d.at)}</small></td><td>${d.recvAt?`<span class="gr">✔ ${tm(d.recvAt)}</span> <small class="mu">${esc(d.recvBy||'')}</small>`:'<span class="am">⏳ لم يُستلم</span>'}</td><td>${!d.recvAt&&myBox()==='dept'?`<button class="b bad" data-undist="${r.id}" data-k="${k}">سحب</button>`:''}</td></tr>`).join('')||'<tr><td colspan="4" class="mu">لم يوزّع بعد — اسحب البطاقة إلى صندوق اللجنة.</td></tr>'}</tbody></table>
    <div class="dist-bar"><button class="b" data-print="${r.id}">🖨 طباعة وصل التوزيع</button>${myBox()==='dept'?`<button class="b bad" data-delrec="${r.id}">حذف من الأرشيف</button>`:''}<span class="sp" style="flex:1"></span><button class="b" data-x>إغلاق</button></div>`;
@@ -390,9 +390,14 @@ const act=async e=>{const t=e.target.closest('button,a');if(!t)return;const D=t.
   if(D.mv!=null)return moveDlg(D.mv);
   if(D.dirsend!=null)return dirDlg(D.dirsend);
   if(D.setfn){const r=R(D.setfn);if(!r)return;const v=normFn($('dFn').value);if(v===fnOf(r))return;const old=fnOf(r);r.fileNo=v;if(old)r.moves=(r.moves||[]).concat([{from:old,to:v||'—',at:Date.now(),by:device(),box:''}]);r.updated=Date.now();persist();renderAll();openDoc(r.id);flash(v?'رُبط الكتاب بالاضبارة '+v:'أُزيل رقم الاضبارة');return;}
-  if(D.addf){const r=R(D.addf);const got=DESK&&DESK.archPick?await DESK.archPick(r.id):[];(got||[]).forEach(x=>{if(!x.error){r.files=(r.files||[]).concat([x]);}});r.updated=Date.now();persist();openDoc(r.id);renderList();return;}
+  if(D.addf){const r=R(D.addf);const got=DESK&&DESK.archPick?await DESK.archPick(r.id):[];(got||[]).forEach(x=>{if(!x.error){x.at=Date.now();if(r.filesDel)delete r.filesDel[x.name];r.files=(r.files||[]).filter(f=>f.name!==x.name).concat([x]);}});r.updated=Date.now();persist();openDoc(r.id);renderList();return;}
+  /* صلاحية أرشيف القسم: حذف ملف مرفق من كتاب أُرسل إلى اللجان — يُحذف هنا ومن حاسبات اللجان (سجل حذف في الكتاب يُزامَن، فلا تعيده المزامنة) */
+  if(D.fdel){if(ROLE!=='dept'){flash('حذف الملفات لأرشيف القسم الهندسي فقط',true);return;}const r=R(D.fdel),nm=D.f;if(!r||!nm)return;
+    const to=Object.keys(r.dist||{}).map(k=>BN[k]||k);if(!confirm('حذف الملف «'+nm+'» نهائياً؟'+(to.length?'\nيُحذف أيضاً من حاسبات: '+to.join('، '):'')))return;
+    r.files=(r.files||[]).filter(f=>f.name!==nm);r.filesDel=Object.assign({},r.filesDel||{},{[nm]:Date.now()});r.updated=Date.now();
+    try{DESK&&DESK.archDel&&DESK.archDel(r.id,nm);}catch(_){}persist();openDoc(r.id);renderList();flash('حُذف الملف «'+nm+'»'+(to.length?' — ويُحذف من حاسبات اللجان مع المزامنة':''));return;}
   if(D.undist){const r=R(D.undist);if(r&&r.dist&&confirm('سحب الكتاب من '+(BN[D.k]||D.k)+'؟')){delete r.dist[D.k];r.distRemoved=[...new Set([...(r.distRemoved||[]),D.k])];r.updated=Date.now();persist();renderAll();openDoc(r.id);}return;}
-  if(D.delrec){if(!confirm('حذف الكتاب من الأرشيف نهائياً؟'))return;DB.records=DB.records.filter(x=>x.id!==D.delrec);try{DESK&&DESK.tomb&&DESK.tomb(D.delrec);}catch(_){}persist();$('ov').hidden=true;cur=null;renderAll();return;}
+  if(D.delrec){if(!confirm('حذف الكتاب من الأرشيف نهائياً؟\nتُحذف معه ملفاته من هذه الحاسبة ومن حاسبات اللجان المرسل إليها (مع المزامنة).'))return;try{const rr=R(D.delrec);(rr&&rr.files||[]).forEach(f=>{try{DESK&&DESK.archDel&&DESK.archDel(rr.id,f.name);}catch(_){}});}catch(_){}DB.records=DB.records.filter(x=>x.id!==D.delrec);try{DESK&&DESK.tomb&&DESK.tomb(D.delrec);}catch(_){}persist();$('ov').hidden=true;cur=null;renderAll();return;}
   if(D.print)return printSlip(D.print);
   if(D.deptpw!=null){const r=$('deptPwRow');if(r){r.hidden=!r.hidden;$('dpOld').focus();}return;}
   if(D.deptpwsave!=null){const a=authOf('dept'),o=$('dpOld').value,n1=$('dpN1').value,n2=$('dpN2').value;if(!a)return;
@@ -433,7 +438,7 @@ window.__openProject=function(){};
 load();refreshBoxes();$('fKind').value=KINDS[0];$('fDate').value=today();fillLt();fillParties();applyRole();lgShow();
 fillProj();$('bMove').onclick=()=>moveDlg(window.__qBox||'');$('bDirSend').onclick=()=>dirDlg(window.__qBox||(BOXES[0]||[])[0]);
 $('fFile').addEventListener('input',()=>{const v=normFn($('fFile').value);$('fFileNm').textContent=v&&projs()[v]?projs()[v]:'';});
-window.ARCH={DB:()=>DB,moveDlg,dirDlg,normFn,distribute,receive,openBox,openDoc,get BOXES(){return BOXES;},get ROLE(){return ROLE;},logout,boxesDlg};
+window.ARCH={role:r=>{if(r!==undefined)ROLE=r;return ROLE;},DB:()=>DB,moveDlg,dirDlg,normFn,distribute,receive,openBox,openDoc,get BOXES(){return BOXES;},get ROLE(){return ROLE;},logout,boxesDlg};
 })();
 </script>
 </body>

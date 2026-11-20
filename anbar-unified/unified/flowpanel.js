@@ -6,7 +6,9 @@
   'use strict';
   if (window.__wfPanel || !window.desktop || !window.desktop.flowGet) return;
   window.__wfPanel = 1;
-  const ST = [['rcv', 'استلام'], ['aud', 'تدقيق'], ['rev', 'مراجعة'], ['prt', 'طباعة وتوقيع'], ['done', 'منجزة'], ['ret', 'مُعادة']];
+  /* الاستلام: استلام المعاملة ← المراجعة ← التدقيق ← التوقيع ← الإنجاز (صدور الشهادة) */
+  const ST = SYS === 'ac' ? [['rcv', 'استلام المعاملة'], ['rev', 'المراجعة'], ['aud', 'التدقيق'], ['prt', 'التوقيع'], ['done', 'الإنجاز (صدرت الشهادة)'], ['ret', 'مُعادة']]
+    : [['rcv', 'استلام'], ['aud', 'تدقيق'], ['rev', 'مراجعة'], ['prt', 'طباعة وتوقيع'], ['done', 'منجزة'], ['ret', 'مُعادة']];
   const SN = Object.fromEntries(ST);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const today = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
@@ -14,6 +16,11 @@
   const KEY = {
     ad: () => { try { if (view !== 'edit') return null; const r = R(); if (!r) return null; const a0 = document.querySelector('#main .ed-bar'); const L = r.advances || []; if (!L.length) return { anchor: a0, none: 'أضف سلفة ليظهر الملف على لوحة سير المعاملات' }; const i = L.length - 1, a = L[i] || {}; return { key: `ad:${r.id}:${a.id || i}`, label: 'السلفة رقم ' + (a.no || i + 1), anchor: a0 }; } catch (_) { return null; } },
     co: () => { try { const bar = document.getElementById('edBar'); if (!bar || !bar.offsetParent) return null; const r = R(); if (!r) return null; const n = Math.max(1, (r.orders || []).length); return { key: `co:${r.id}:${n}`, label: 'أمر التغيير رقم ' + n, anchor: bar }; } catch (_) { return null; } },
+    ac: () => { try { const pg = (location.pathname.split('/').pop() || '').toLowerCase(), t = { 'preliminary.html': 'pac', 'partial.html': 'pap', 'final.html': 'fac', 'partial_final.html': 'fpa' }[pg];
+      const sv = document.getElementById('serial'), b = document.getElementById('btnSave'); if (!t || !sv || !b) return null; const a0 = b.parentElement;
+      const sr = String(sv.value || '').trim(); if (!sr) return { anchor: a0, none: 'احفظ الشهادة (يُعطى لها رقم) لتظهر على لوحة سير المعاملات' };
+      const nm = { pac: 'محضر الاستلام الأولي', pap: 'الاستلام الأولي الجزئي', fac: 'الاستلام النهائي', fpa: 'الاستلام النهائي الجزئي' }[t];
+      return { key: `ac:${t}-${sr.replace(/:/g, '-')}:1`, label: nm + ' ' + sr, anchor: a0 }; } catch (_) { return null; } },
     du: () => { try { const p = document.getElementById('proj'), a0 = document.getElementById('curFile'); if (!p || p.hidden || !a0 || typeof S === 'undefined' || !S || !S.rid) return null; const L = S.exts || []; if (!L.length) return (S.cases || []).length ? { key: `du:${S.rid}:f`, label: 'التوقف والاستئناف (قبل المدة الإضافية)', anchor: a0 } : { anchor: a0, none: 'أضف توقفاً أو مدة إضافية ليظهر الملف على لوحة سير المعاملات' }; const i = L.length - 1, e = L[i] || {}; return { key: `du:${S.rid}:${e.id || i}`, label: 'المدة رقم ' + (e.no || i + 1), anchor: a0 }; } catch (_) { return null; } }
   }[SYS];
   if (!KEY) return;
@@ -71,8 +78,11 @@
     if (!cur.key) { q('whyl').hidden = true; twin(true); info(cur.none || ''); return; }
     if (!c) { setv('recv', today()); if (P()._resetSent) P()._resetSent(null); twin(false); setv('st', 'rcv'); q('whyl').hidden = true; info('غير مضافة إلى اللوحة بعد — تُضاف عند تحديد التاريخ أو المرحلة'); return; }
     { setv('recv', c.recv || ''); if (P()._resetSent) P()._resetSent(c.recv || null); twin(false); const h = (c.hist || [])[c.hist.length - 1] || {}; if (!(fa === q('why') && q('st').value === 'ret' && c.st !== 'ret')) { setv('st', c.st); q('whyl').hidden = c.st !== 'ret'; setv('why', c.st === 'ret' ? (h.why || '') : ''); } }
-    const h = (c.hist || [])[c.hist.length - 1] || {}, since = c.since || h.at || c.updated, d = Math.floor((Date.now() - since) / 864e5), late = !['done', 'ret'].includes(c.st) && d > (c.late || 5);
-    info(`في «${SN[c.st]}» ${d < 1 ? 'منذ اليوم' : 'منذ ' + d + ' يوماً'}${h.by ? ' — آخر نقل: ' + h.by : ''}`, late ? 'late' : '');
+    const h = (c.hist || [])[c.hist.length - 1] || {}, since = c.since || h.at || c.updated, d = Math.floor((Date.now() - since) / 864e5);
+    /* التأخر: أيام منذ استلام المعاملة (تاريخ استلام الذمة) ما لم تُنجز — 15 للسلف والمدد، 30 لأوامر التغيير والاستلام */
+    const r0 = /^\d{4}-\d{2}-\d{2}$/.test(c.recv || '') ? (() => { const [y, m, dd] = c.recv.split('-').map(Number); return new Date(y, m - 1, dd).getTime(); })() : (c.created || since);
+    const age = Math.floor((Date.now() - r0) / 864e5), lim = c.late || 15, late = !['done', 'ret'].includes(c.st) && (c.lateAge ? age > lim : d > lim);
+    info(`في «${SN[c.st]}» ${d < 1 ? 'منذ اليوم' : 'منذ ' + d + ' يوماً'}${c.lateAge && !['done', 'ret'].includes(c.st) ? ` — منذ الاستلام ${age} يوماً${late ? ` (متأخرة: أكثر من ${lim} يوماً)` : ` (تُعدّ متأخرة بعد ${lim} يوماً)`}` : ''}${h.by ? ' — آخر نقل: ' + h.by : ''}`, late ? 'late' : '');
   }
   async function refresh() { if (!cur || !cur.key) return show(null); const k = cur.key; let c = null; try { c = await window.desktop.flowGet(k); } catch (_) {} if (cur && cur.key === k) show(c); }
   function tick() {

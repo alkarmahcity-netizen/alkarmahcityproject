@@ -10,8 +10,12 @@ const path = require('path');
 
 const STAGES = ['rcv', 'aud', 'rev', 'prt', 'done', 'ret'];
 const STAGE_NAMES = { rcv: 'استلام', aud: 'تدقيق', rev: 'مراجعة', prt: 'طباعة وتوقيع', done: 'منجزة', ret: 'مُعادة' };
-const SYS = ['ad', 'co', 'du'];
-const SYS_NAMES = { ad: 'سلفة', co: 'أمر تغيير', du: 'مدة' };
+const SYS = ['ad', 'co', 'du', 'ac'];
+const SYS_NAMES = { ad: 'سلفة', co: 'أمر تغيير', du: 'مدة', ac: 'شهادة استلام' };
+/* متى تُعدّ المعاملة متأخرة: أيام منذ استلامها (تاريخ استلام الذمة) ما لم تُنجز — السلف والمدد 15، أوامر التغيير والاستلام 30 (الاستلام: حتى إصدار الشهادة) */
+const LATE_BY = { ad: 15, du: 15, co: 30, ac: 30 };
+/* الاستلام (شهادات): الأنواع الأربعة في نظام الاستلام */
+const AC_T = { pac: 'استلام أولي', pap: 'استلام أولي جزئي', fac: 'استلام نهائي', fpa: 'استلام نهائي جزئي' };
 const num = v => { const n = +String(v == null ? '' : v).replace(/[^\d.\-]/g, ''); return isFinite(n) ? n : 0; };
 const str = v => String(v == null ? '' : v).trim();
 const ymd = (t = Date.now()) => { const d = new Date(t); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
@@ -50,6 +54,13 @@ function extract(ds, o) {
     out.set(key, { key, sys: 'du', rec: r.id, fn: str(p.fileNo), pj: str(p.name), co: str(p.contractor), eng: str(p.re),
       no: str(e.no) || String(i + 1), form: str(e.formNo), days: num(e.granted || e.requested), amtL: 'المدة', status: '' });
   }
+  /* الاستلام: لقطة سجلات الشهادات (يرسلها نظام الاستلام إلى البرنامج عند كل تغيير): المعاملة = الشهادة، و«مكتمل» = صدرت (عدد وتاريخ الإصدار) */
+  if (ds === 'ac') for (const x of (o && o.recs) || []) {
+    if (!x || !x.serial || !AC_T[x.t]) continue;
+    const rid = x.t + '-' + String(x.serial).replace(/:/g, '-'), key = `ac:${rid}:1`;
+    out.set(key, { key, sys: 'ac', rec: rid, fn: str(x.fileNo), pj: str(x.pName), co: str(x.contractor), eng: str(x.resEng),
+      no: AC_T[x.t] + ' ' + str(x.serial), form: str(x.outNo), amtL: '', status: str(x.outNo) && str(x.outDate) ? 'done' : '' });
+  }
   return out;
 }
 
@@ -61,7 +72,7 @@ function worker() {
   try {
     const { Worker } = require('worker_threads');
     const code = `const { parentPort } = require('worker_threads'); const fs = require('fs');
-      const num=${num.toString()}; const str=${str.toString()};
+      const num=${num.toString()}; const str=${str.toString()}; const AC_T=${JSON.stringify(AC_T)};
       ${extract.toString()}
       parentPort.on('message', m => { let r = null; for (const f of m.files) { try { const o = JSON.parse(fs.readFileSync(f, 'utf8')); r = [...extract(m.ds, o || {}).values()]; break; } catch (_) {} }
         parentPort.postMessage({ id: m.id, r: r || [] }); });`;
@@ -127,7 +138,7 @@ module.exports = function createFlow(ctx) {
         const c = card(k); if (!c) continue;
         const to = it.status === 'review' ? 'rev' : it.status === 'done' ? 'done' : '';
         if (to && c.st !== to && (to === 'done' || ['rcv', 'aud', 'ret'].includes(c.st))) {
-          c.st = to; c.updated = now; c.hist.push({ s: to, at: now, by: who.name, dev: who.dev, auto: 1, why: to === 'rev' ? 'الحالة في النظام: قيد المراجعة' : 'الحالة في النظام: مكتمل' }); n++;
+          c.st = to; c.updated = now; c.hist.push({ s: to, at: now, by: who.name, dev: who.dev, auto: 1, why: to === 'rev' ? 'الحالة في النظام: قيد المراجعة' : ds === 'ac' ? 'صدرت الشهادة (عدد وتاريخ الإصدار)' : 'الحالة في النظام: مكتمل' }); n++;
         }
       }
     }
@@ -185,7 +196,7 @@ module.exports = function createFlow(ctx) {
     return x;
   }
   function set(k, p, who) {
-    const m = /^(ad|co|du):([^:]+):(.+)$/.exec(String(k)); if (!m) return { error: 'معاملة غير معروفة' };
+    const m = /^(ad|co|du|ac):([^:]+):(.+)$/.exec(String(k)); if (!m) return { error: 'معاملة غير معروفة' };
     p = p || {}; const why = str(p.why);
     if (p.st !== undefined && !STAGES.includes(p.st)) return { error: 'مرحلة غير معروفة' };
     if (p.st === 'ret' && !why) return { error: 'اكتب سبب الإرجاع' };
@@ -230,9 +241,13 @@ module.exports = function createFlow(ctx) {
     if (c && (c.val || '') === val) return { ok: true, same: true };
     if (!c) { c = { id, kind: 'cfg', created: now }; o.records.push(c); } Object.assign(c, { val, by: who.name, dev: who.dev, updated: now }); save(o); return { ok: true, at: now }; }
   function remove(k) { const o = load(), L = o.records.filter(r => !(r && r.id === k)); if (L.length === o.records.length) return false; o.records = L; save(o); return true; }
-  return { reconcile, board, candidates, move, add, remove, get, set, anns, annPublish, annHide, items, cfgGet, cfgSet, init: () => loadSeen() };
+  /* كل معاملات النظام الحالية «معروفة» (لا تُضاف وحدها) — أول لقطة من نظام الاستلام على هذه الحاسبة */
+  function seenAll(ds) { const S = loadSeen(); C[ds] = null; for (const [k, it] of items(ds)) { S.keys[k] = 1; S.st[ds + ':' + it.rec] = it.status; } saveSeen(); }
+  return { reconcile, board, candidates, move, add, remove, get, set, anns, annPublish, annHide, items, cfgGet, cfgSet, seenAll, init: () => loadSeen() };
 };
 module.exports.STAGES = STAGES;
 module.exports.STAGE_NAMES = STAGE_NAMES;
 module.exports.SYS_NAMES = SYS_NAMES;
+module.exports.LATE_BY = LATE_BY;
+module.exports.AC_T = AC_T;
 module.exports.extract = extract;

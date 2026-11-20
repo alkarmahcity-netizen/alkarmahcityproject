@@ -14034,7 +14034,7 @@ function apParse(tables,withMissing){const items=[];
   return items;}
 /* بيانات المشروع في رأس الملف: اسم المشروع، الشركة، رقم أمر التغيير، مبلغ المقاولة، المدة، تاريخ المباشرة */
 function apMeta(tables){const txt=tables.map(T=>[T.title||''].concat(Array.from(T.rows||[]).slice(0,14).map(r=>Array.from(r||[],c=>String(c==null?'':c)).join(' | '))).join('\n')).join('\n'),o={};
-  const g=(re,f)=>{if(o[f])return;for(const m of txt.matchAll(new RegExp(re.source,'g'))){const v=m[1].replace(/\s+/g,' ').trim();if(v&&!/^\.+/.test(v)&&!/[:：]\s*$/.test(v)){o[f]=v;return;}}};
+  const g=(re,f)=>{if(o[f])return;for(const m of txt.matchAll(new RegExp(re.source,'g'))){const v=m[1].replace(/\s+/g,' ').trim();if(v&&!/^\.+/.test(v)&&!/[:：]\s*$/.test(v)&&!/^(NaN|#[A-Z]|undefined|null)/.test(v)){o[f]=v;return;}}};
   g(/(?:اسم ال)?مشروع(?: بالكامل)?[ \t]*[:：][ \t]*(?:\|[ \t]*)*([^|\n]+?)(?=\s{3,}|\n|\||$)/,'name');
   g(/اسم (?:المقاول\s*\/\s*الشرك[ةه]|الشرك[ةه]|المقاول)[ \t]*[:：][ \t]*(?:\|[ \t]*)*([^|\n]+?)(?=\s{3,}|\n|\||$)/,'contractor');
   g(/رقم [اأ]مر التغيير(?: الحالي)?[ \t]*[:：][ \t]*(?:\|[ \t]*)*\(?\s*(\d+)/,'coNo');g(/[اأ]مر تغيير رقم\s*\(\s*(\d+)\s*\)/,'coNo');
@@ -14091,9 +14091,9 @@ function apDraw(){let ov=document.getElementById('apOv');if(!ov){ov=document.cre
      <button type="button" class="btn primary sm" data-apx="go">إنشاء المطالعة</button><button type="button" class="btn sm" data-apx="no">إلغاء</button></div></div>`;}
 function apPick(){const inp=document.createElement('input');inp.type='file';inp.accept='.docx,.xlsx,.xlsm';
   inp.onchange=async()=>{const fl=inp.files&&inp.files[0];if(!fl)return;if(/\.xls[xm]$/i.test(fl.name))await apLoadXl(fl);else await apLoad(await fl.arrayBuffer(),fl.name);};inp.click();}
-async function apLoadXl(fl){try{const sh=await AnbarReg.readSheets(fl),items=apParse(apSheetTables(sh));if(!AP)apOpen(items,fl.name);else{AP.items=items;AP.file=fl.name;apDraw();}
+async function apLoadXl(fl){try{const sh=await AnbarReg.readSheets(fl),items=apParse(apSheetTables(sh));{const W=apMetaWarn(apSheetTables(sh),R(),Math.max(0,Math.min(+R().printOrder||0,R().orders.length-1)));if(W.length)setTimeout(()=>alert('⚠ تنبيه — بيانات الملف لا تطابق ما في البرنامج:\n• '+W.join('\n• ')+'\n\nتأكد من اختيار الأمر الصحيح قبل «إنشاء المطالعة».'),50);}if(!AP)apOpen(items,fl.name);else{AP.items=items;AP.file=fl.name;apDraw();}
   flash(items.length?`قُرئت ${items.length} فقرة من «${fl.name}» — راجع الخلاصة والكميات ثم «إنشاء المطالعة».`:`لم تُقرأ فقرات من «${fl.name}».`,!items.length);return items;}catch(e){flash('تعذرت قراءة ملف Excel: '+(e.message||e),true);if(!AP)apOpen([],'');return [];}}
-async function apLoad(buf,name){try{const xml=await apUnzip(buf,'word/document.xml'),T=apTables(xml),items=apParse(T);
+async function apLoad(buf,name){try{const xml=await apUnzip(buf,'word/document.xml'),T=apTables(xml),items=apParse(T);{const W=apMetaWarn(T,R(),Math.max(0,Math.min(+R().printOrder||0,R().orders.length-1)));if(W.length)setTimeout(()=>alert('⚠ تنبيه — بيانات الملف لا تطابق ما في البرنامج:\n• '+W.join('\n• ')+'\n\nتأكد من اختيار الأمر الصحيح قبل «إنشاء المطالعة».'),50);}
     if(!AP)apOpen(items,name);else{AP.items=items;AP.file=name;apDraw();}
     flash(items.length?`قُرئت ${items.length} فقرة من «${name}» — راجع الخلاصة والكميات ثم «إنشاء المطالعة».`:`لم تُقرأ فقرات من «${name}»: تأكد أنه ملف جداول أمر التغيير (أعمدة الفقرة والكمية الأصلية والكمية بعد التغيير أو المحذوفة/المضافة)، أو أضف الفقرات يدوياً.`,!items.length);return items;}
   catch(e){flash('تعذرت قراءة ملف Word: '+(e.message||e),true);if(!AP)apOpen([],'');return [];}}
@@ -14129,6 +14129,14 @@ const rvAmt=x=>{if(x.st==='cut')return 0;if(x.st!=='fix'&&x.amt0!=null)return +x
   if(pr>0)return Math.round(q*pr);const q0=apNum(x.q0);if(x.amt0!=null&&q0>0)return Math.round(+x.amt0*q/q0);return x.amt0!=null?+x.amt0:0;};
 function rvItemsFrom(items){return items.map((x,i)=>({id:'i'+Date.now().toString(36)+i,type:x.type,no:x.no||'',desc:x.desc||'',sum:x.sum||'',unit:x.unit||'',orig:x.orig||'',full:!!x.full,after:x.after==null?null:x.after,
   q0:String(x.q),pr0:x.pr==null?null:+x.pr,amt0:x.amt==null?null:+x.amt,q:String(x.q),pr:x.pr==null?null:+x.pr,pr2:null,missing:!!x.missing,st:'file',cnote:'',note:x.note||''}));}
+/* بيانات رأس الملف (رقم أمر التغيير، مبلغ المقاولة، الشركة، المشروع) مقابل الأمر والمشروع المفتوحين — تنبيه فقط */
+function apMetaWarn(tables,r,oi){try{const m=apMeta(tables),P=r.project||{},W=[],tk=s=>new Set(APN(s).replace(/^شرك[ةه]\s+/,'').split(' ').filter(w=>w.length>2));
+  if(m.coNo&&+m.coNo!==oi+1)W.push(`رقم أمر التغيير في الملف (${m.coNo}) والأمر المفتوح في البرنامج رقم (${oi+1})`);
+  if(m.value&&+P.value&&Math.abs(m.value-(+P.value))>1)W.push(`مبلغ المقاولة في الملف (${fmt(m.value)}) وفي البرنامج (${fmt(P.value)})`);
+  const sim=(a,b)=>{const A=tk(a),B=tk(b);if(!A.size||!B.size)return 1;let n=0;A.forEach(w=>{if(B.has(w))n++;});return n/Math.min(A.size,B.size);};
+  if(m.contractor&&P.contractor&&sim(m.contractor,P.contractor)<0.5)W.push(`الشركة في الملف «${m.contractor}» وفي البرنامج «${P.contractor}»`);
+  if(m.name&&P.name&&sim(m.name,P.name)<0.4)W.push(`المشروع في الملف «${m.name}» وفي البرنامج «${P.name}»`);
+  return W;}catch(_){return [];}}
 function rvChip(r){try{const o=(r.orders||[])[rvOi(r)]||{},v=o.review,n=(o.items||[]).length;let h='';
   if(n)h+=`<button type="button" class="btn sm cm-add" data-rvshow="1" title="فقرات الأمر المحفوظة (${esc(o.itemsFile||'')}) — للجنة تعديل الكمية والسعر أو حذف الفقرة">📋 فقرات الأمر (${n})${v?(v.bad?' — ⚠ '+v.bad:' — ✓'):''}</button>`;
   else if(v)h+=`<button type="button" class="btn sm cm-add" data-rvshow="1" style="${v.bad?'color:#b42318':'color:#15803d'}">${v.bad?'⚠ '+v.bad+' ملاحظة':'✓ مطابق'} — آخر مراجعة</button>`;
@@ -14173,6 +14181,7 @@ function rvDraw(){if(!RV)return;let ov=document.getElementById('rvOv');if(!ov){o
   const anyFix=RV.items.some(x=>x.st!=='file'),cmpOk=RV.tot.every(t=>t.ok);
   ov.innerHTML=`<div class="ap-box rv-box" role="dialog" aria-label="فقرات أمر التغيير ومراجعتها"><h3>📋 فقرات أمر التغيير ومراجعتها — ${esc(r.project.name||'')} — ${esc(oname(r.orders[RV.oi],RV.oi+1))}</h3>
    <p class="ap-hint">${RV.file?`الملف: <b>${esc(RV.file)}</b> — `:''}${RV.items.length} فقرة — ${RV.bad?`<b style="color:#b42318">${RV.bad} ملاحظة تحتاج تدقيقاً</b>`:'<b style="color:#15803d">✓ لا ملاحظات</b>'}. للجنة تعديل <b>الكمية</b> و<b>سعر المفرد</b> أو <b>حذف الفقرة</b> مع ملاحظة — تُحفظ مع الأمر تلقائياً ويبقى ما في الملف ظاهراً للمقارنة.</p>
+   ${(r.orders[RV.oi].itemsWarn||[]).length?`<div style="background:#fff4e5;color:#8a4b00;border-radius:8px;padding:6px 10px;margin:4px 0">⚠ بيانات الملف لا تطابق البرنامج: ${r.orders[RV.oi].itemsWarn.map(esc).join(' — ')}</div>`:''}
    <h4>١) المجاميع</h4>
    <table class="ap-t"><thead><tr><th></th><th>البند</th><th>في الملف</th><th>بعد تعديل اللجنة</th><th>في النظام (مبالغ الأمر)</th><th>الفرق</th></tr></thead><tbody>${RV.tot.map(t=>`<tr${t.net?' style="font-weight:700"':''}><td>${ck(t.ok)}</td><td>${t.l}${t.n?` <small>(${t.n} فقرة)</small>`:''}</td><td>${fmt(t.f)}</td><td>${rvEq(t.c,t.f)?fmt(t.c):`<b style="color:#7c3aed">${fmt(t.c)}</b>`}</td><td>${fmt(t.s)}</td><td>${t.ok?'—':fmt(t.c-t.s)}</td></tr>`).join('')}</tbody></table>
    ${cmpOk?'':`<div style="margin:6px 0"><button type="button" class="btn sm" data-rvx="apply" title="تُوضع مجاميع الحذف والإضافة والاستحداث بعد تعديل اللجنة في مبالغ الأمر">↧ اعتماد المجاميع ${anyFix?'بعد تعديل اللجنة':'من الملف'} في مبالغ الأمر</button></div>`}
@@ -14196,9 +14205,10 @@ function rvRun(items,file){return rvOpen(rvItemsFrom(items),file);}
 let RVF=null;
 function rvPick(){const inp=document.createElement('input');inp.type='file';inp.accept='.docx,.xlsx,.xlsm';
   inp.onchange=async()=>{const fl=inp.files&&inp.files[0];if(!fl)return;RVF=fl;await rvLoad(fl);};inp.click();}
-async function rvLoad(fl){try{let items;if(/\.xls[xm]$/i.test(fl.name))items=apParse(apSheetTables(await AnbarReg.readSheets(fl)),true);else items=apParse(apTables(await apUnzip(await fl.arrayBuffer(),'word/document.xml')),true);
+async function rvLoad(fl){try{let items,TB;if(/\.xls[xm]$/i.test(fl.name))TB=apSheetTables(await AnbarReg.readSheets(fl));else TB=apTables(await apUnzip(await fl.arrayBuffer(),'word/document.xml'));items=apParse(TB,true);
     if(!items.length){flash(`لم تُقرأ فقرات من «${fl.name}»: تأكد أنه جدول أمر التغيير (أعمدة الفقرة والكمية والسعر والمبلغ).`,true);return null;}
     const o=R().orders[rvOi(R())];if((o.items||[]).some(x=>x.st!=='file')&&!confirm('في هذا الأمر فقرات عدّلتها اللجنة — استبدالها بفقرات الملف الجديد؟'))return null;
+    const W=apMetaWarn(TB,R(),rvOi(R()));const o0=R().orders[rvOi(R())];o0.itemsWarn=W;if(W.length&&!confirm('⚠ تنبيه — بيانات الملف لا تطابق ما في البرنامج:\n• '+W.join('\n• ')+'\n\nالاستمرار وتحميل الفقرات على هذا الأمر؟'))return null;
     return rvRun(items,fl.name);}catch(e){flash('تعذرت قراءة الملف: '+(e.message||e),true);return null;}}
 function rvXl(){if(!RV)return;const A=[['فقرات أمر التغيير ومراجعتها',R().project.name||'',oname(R().orders[RV.oi],RV.oi+1)],['الملف',RV.file],[],['البند','في الملف','بعد تعديل اللجنة','في النظام','الفرق','النتيجة']];
   RV.tot.forEach(t=>A.push([t.l,t.f,t.c,t.s,t.ok?0:t.c-t.s,t.ok?'مطابق':'غير مطابق']));A.push([]);A.push(['ت','النوع','الفقرة','الوحدة','الأصلية','الكمية (الملف)','الكمية (اللجنة)','السعر (الملف)','السعر (اللجنة)','المضافة ضمن 20%','المضافة أكثر من 20%','سعر ما زاد على 20%','المبلغ (الملف)','المبلغ (اللجنة)','الحالة','ملاحظة اللجنة','تنبيهات']);

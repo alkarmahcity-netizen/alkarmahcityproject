@@ -149,11 +149,12 @@
   /* ---------- 4) تصحيحان في الطباعة ----------
      • الترويسة: كانت تبدأ من حافة الورقة العليا (0 ملم) فتقصّ الطابعة أعلى «بسم الله الرحمن الرحيم» — تُنزَّل 1.5 ملم
        (على صفحة العرض وصفحة القياس معاً، فيبقى توزيع الصفحات صحيحاً).
+     • التذييل السفلي: كانت خلفيته بيضاء فتقطع الشريط الأخضر تحته — صارت شفافة، ورُفع قليلاً (8 ملم) ليقع فوق الشريط فلا يُكتب عليه؛ وسطر التذييل (القسم والسنة ورقم الصفحة ورمز التحقق وعبارة «أصدرت هذه الشهادة…») أُلغي بطلب القسم — يبقى رمز QR وحده.
      • «توصيات اللجنة»: قيمتها الافتراضية القديمة «accept» (من نسخة كانت الخانة فيها قائمة اختيار) كانت تُطبع بالإنجليزية
        في الاستلام الأولي والأولي الجزئي إن لم تكتب اللجنة توصيتها — تُعامل فارغة (تُطبع نقاطاً للكتابة) في العرض والحفظ والطباعة. */
   try {
     if (document.getElementById('sheet') && !document.getElementById('acHdFix')) {
-      const st = document.createElement('style'); st.id = 'acHdFix'; st.textContent = '.hd{margin-top:-8.5mm!important}'; (document.head || document.documentElement).appendChild(st);
+      const st = document.createElement('style'); st.id = 'acHdFix'; st.textContent = '.hd{margin-top:-8.5mm!important}.foot{background:transparent!important;bottom:8mm!important}.foot>div:first-child{visibility:hidden!important}'; (document.head || document.documentElement).appendChild(st);
       try { if (typeof window.render === 'function') window.render(); } catch (_) {}
     }
     const isAcc = v => /^\s*accept\s*$/i.test(String(v == null ? '' : v));

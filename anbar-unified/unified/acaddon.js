@@ -146,4 +146,21 @@
       pdfB.insertAdjacentElement('afterend', g); pdfB.insertAdjacentElement('afterend', b);
       b.addEventListener('click', e => { e.preventDefault(); gdIssue(); }); g.addEventListener('click', e => { e.preventDefault(); gdDlg(); }); } }
   window.AcqCheck = { problems, paint, bindNow, snap, gdIssue, gdDlg };
+  /* ---------- 4) تصحيحان في الطباعة ----------
+     • الترويسة: كانت تبدأ من حافة الورقة العليا (0 ملم) فتقصّ الطابعة أعلى «بسم الله الرحمن الرحيم» — تُنزَّل 1 ملم
+       (على صفحة العرض وصفحة القياس معاً، فيبقى توزيع الصفحات صحيحاً).
+     • «توصيات اللجنة»: قيمتها الافتراضية القديمة «accept» (من نسخة كانت الخانة فيها قائمة اختيار) كانت تُطبع بالإنجليزية
+       في الاستلام الأولي والأولي الجزئي إن لم تكتب اللجنة توصيتها — تُعامل فارغة (تُطبع نقاطاً للكتابة) في العرض والحفظ والطباعة. */
+  try {
+    if (document.getElementById('sheet') && !document.getElementById('acHdFix')) {
+      const st = document.createElement('style'); st.id = 'acHdFix'; st.textContent = '.hd{margin-top:-9mm!important}'; (document.head || document.documentElement).appendChild(st);
+      try { if (typeof window.render === 'function') window.render(); } catch (_) {}
+    }
+    const isAcc = v => /^\s*accept\s*$/i.test(String(v == null ? '' : v));
+    if (typeof window.collect === 'function' && !window.collect.__accFix) {
+      const c0 = window.collect, c1 = function () { const o = c0.apply(this, arguments); if (o && isAcc(o.rec)) o.rec = ''; return o; }; c1.__accFix = 1; window.collect = c1;
+    }
+    const clr = () => { const r = document.getElementById('rec'); if (r && isAcc(r.value)) { r.value = ''; try { if (typeof window.render === 'function') window.render(); } catch (_) {} } };
+    clr(); setInterval(clr, 800);
+  } catch (_) {}
 })();

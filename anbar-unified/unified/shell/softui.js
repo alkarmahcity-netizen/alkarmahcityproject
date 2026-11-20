@@ -22,6 +22,7 @@
     calc: '<rect x="5" y="2.5" width="14" height="19" rx="2"/><rect x="8" y="5.5" width="8" height="4" rx=".8"/><path d="M8.5 13h.01M12 13h.01M15.5 13h.01M8.5 17h.01M12 17h.01M15.5 17h.01"/>',
     log: '<path d="M3.5 12a8.5 8.5 0 1 0 2.5-6"/><path d="M3 4v4h4"/><path d="M12 8v4.5l3 2"/>',
     home: '<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-5h4v5"/>',
+    manual: '<path d="M12 6.5C10 5 7 4.5 3.5 5v13c3.5-.5 6.5 0 8.5 1.5 2-1.5 5-2 8.5-1.5V5C17 4.5 14 5 12 6.5z"/><path d="M12 6.5v13"/>',
     folder: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
     key: '<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3M14.5 8.5l2 2"/>',
     sync: '<path d="M20 12a8 8 0 0 1-14 5.3M4 12a8 8 0 0 1 14-5.3"/><path d="M18 3v4h-4M6 21v-4h4"/>',
@@ -84,7 +85,7 @@
     b.innerHTML = svg(/🔒/.test(t) ? 'lock' : (b.dataset.go || 'home')) + `<span>${label(t).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]))}</span>`;
   }
   function swapTiles() { document.querySelectorAll('#tiles .tile').forEach(t => { const ic = t.querySelector('.ic'); if (ic && !ic.querySelector('.ui-i')) { ic.dataset.uiOrig = ic.textContent; ic.innerHTML = svg(t.dataset.go); } const l = t.querySelector('.lock'); if (l && !l.querySelector('.ui-i')) { l.dataset.uiOrig = l.textContent; l.innerHTML = svg('lock'); } }); }
-  const BTN = [['bFolder', 'folder'], ['bPw', 'key'], ['bLock', 'lock'], ['bMail', 'mail']];
+  const BTN = [['bManual', 'manual'], ['bFolder', 'folder'], ['bPw', 'key'], ['bLock', 'lock'], ['bMail', 'mail']];
   function swapBtns() {
     BTN.forEach(([id, k]) => { const b = document.getElementById(id); if (b && !b.querySelector('.ui-i')) { b.dataset.uiOrig = b.innerHTML; b.innerHTML = svg(k); } });
     const sy = document.getElementById('bSync'); if (sy && !sy.querySelector('.ui-i')) { sy.dataset.uiOrig = sy.innerHTML; const n = [...sy.childNodes].find(x => x.nodeType === 3 && /\S/.test(x.textContent)); if (n) n.replaceWith(document.createRange().createContextualFragment(svg('sync'))); }

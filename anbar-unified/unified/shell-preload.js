@@ -29,6 +29,7 @@ contextBridge.exposeInMainWorld('desktop', {
   onAuth: cb => ipcRenderer.on('auth:ask', (_e, s) => cb(s)),
   dataDir: () => ipcRenderer.sendSync('data:dir'),
   openDataFolder: () => ipcRenderer.invoke('data:openFolder'),
+  openManual: () => ipcRenderer.invoke('manual:open'),
   mailGet: () => ipcRenderer.invoke('mail:get'),
   mailSet: c => ipcRenderer.invoke('mail:set', c),
   mailTest: c => ipcRenderer.invoke('mail:test', c),

@@ -10,6 +10,7 @@ let state={current:'home'};
 function closeDrawer(){const d=document.getElementById('drawer');if(d)d.hidden=true;}
 document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>window.desktop.go(b.dataset.go));
 $('bFolder').onclick=()=>window.desktop.openDataFolder();
+if($('bManual'))$('bManual').onclick=()=>window.desktop.openManual();
 const NAMES={co:'أوامر التغيير',du:'المدد والتوقف',ad:'لجنة تدقيق السلف',in:'إطلاق التأمينات',ac:'الاستلام',lt:'المخاطبات',fu:'مطالعات الأوامر',ar:'📥 الأرشيف',dm:'مطالعات لجنة المدد',cm:'مطالعات لجنة أوامر التغيير'};
 function markLocks(locked){document.querySelectorAll('.tab').forEach(b=>{const id=b.dataset.go;if(!NAMES[id])return;b.textContent=(locked&&locked.includes(id)?'🔒 ':'')+NAMES[id];});}
 let openCount=0;

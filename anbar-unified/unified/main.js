@@ -552,6 +552,21 @@ ipcMain.handle('report:data', async () => {
   return out;
 });
 ipcMain.handle('ac:final', async () => { try { return await acEval("JSON.stringify({fac:localStorage.getItem('fac_records_v1'),fpa:localStorage.getItem('fpa_records_v1')})"); } catch (_) { return '{}'; } });
+// دليل الاستخدام (كتالوج PDF) — يُعرض داخل البرنامج بعارض PDF المدمج؛ الملف خارج asar (extraResources/manual)
+let manualWin = null;
+function manualPath() { return app.isPackaged ? path.join(process.resourcesPath, 'manual', 'user-guide.pdf') : path.join(__dirname, 'build', 'manual', 'user-guide.pdf'); }
+function openManual() {
+  const f = manualPath();
+  if (!fs.existsSync(f)) { dialog.showMessageBox(win, { type: 'info', title: 'دليل الاستخدام', message: 'ملف دليل الاستخدام غير موجود في هذه النسخة.' }); return false; }
+  if (manualWin && !manualWin.isDestroyed()) { if (manualWin.isMinimized()) manualWin.restore(); manualWin.focus(); return true; }
+  manualWin = new BrowserWindow({ width: 1100, height: 850, parent: undefined, title: 'دليل الاستخدام — نظام الشؤون الهندسية الموحد', icon: path.join(__dirname, 'build', 'icon.png'), autoHideMenuBar: true, webPreferences: { plugins: true, contextIsolation: true, sandbox: true, nodeIntegration: false } });
+  manualWin.setMenuBarVisibility(false);
+  manualWin.on('page-title-updated', e => e.preventDefault());
+  manualWin.loadURL(require('url').pathToFileURL(f).href);
+  manualWin.on('closed', () => { manualWin = null; });
+  return true;
+}
+ipcMain.handle('manual:open', () => openManual());
 ipcMain.handle('data:openFolder', () => { shell.openPath(dataDir); return true; });
 let regVer = 0;   // يزيد مع كل حفظ للموقف (من الواجهة أو من المزامنة)
 /* الكلفة المصادقة من ملف التخطيط لكل اضبارة مرتبطة (تحسبها صفحة التخطيط في الواجهة، وتقرؤها أوامر التغيير للعرض والمقارنة فقط) */
@@ -1327,6 +1342,8 @@ else {
         { type: 'separator' }, { label: 'خروج', role: 'quit' } ] },
       { label: 'تحرير', submenu: [ { label: 'تراجع', role: 'undo' }, { label: 'إعادة', role: 'redo' }, { type: 'separator' }, { label: 'قص', role: 'cut' }, { label: 'نسخ', role: 'copy' }, { label: 'لصق', role: 'paste' }, { label: 'تحديد الكل', role: 'selectAll' } ] },
       { label: 'أدوات', submenu: [
+        { label: 'دليل الاستخدام', accelerator: 'F1', click: () => openManual() },
+        { type: 'separator' },
         { label: 'إرسال المستند الحالي بالبريد', accelerator: 'CmdOrCtrl+M', click: () => uiCmd('mail') },
         { label: 'المزامنة بين أجهزة اللجان', click: () => uiCmd('sync') },
         { label: 'حالة الحاسبات المتصلة بحاسبة القسم', click: () => uiCmd('peers') },
@@ -1346,7 +1363,7 @@ else {
     startSync();
     try { flow.init(); } catch (e) { logError('flow', String(e && e.message || e)); }
     if (prefs().wfWeb) flowWebStart();
-    global.__uni = { sync: () => sync, go, views, flow, unloadView, refreshLinks, linksAt, get viewLeft() { return viewLeft; }, get flowWin() { return flowWin; }, get win() { return win; }, APPS, layout, get current() { return current; } };
+    global.__uni = { manualWin: () => manualWin, openManual, sync: () => sync, go, views, flow, unloadView, refreshLinks, linksAt, get viewLeft() { return viewLeft; }, get flowWin() { return flowWin; }, get win() { return win; }, APPS, layout, get current() { return current; } };
   });
   app.on('before-quit', () => { try { if (sync) sync.stop(); } catch (_) {} flowWebStop(); stopAcceptance(); });
   app.on('window-all-closed', () => app.quit());

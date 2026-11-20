@@ -55,6 +55,7 @@ details.sec>summary{padding:10px 14px;font-weight:600;cursor:pointer}
 .adv-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
 .calc{background:var(--surface);border:1px dashed var(--line);border-radius:8px;padding:6px 10px;margin-top:6px;font-size:13.5px}
 .warn{color:var(--red);font-weight:600}.ok{color:var(--green-2)}
+.mnsec>summary .mnbad{color:#b42318;font-size:12px;font-weight:700;margin-inline-start:6px}.mnsec>summary .mnok{color:#15803d;font-size:12px;font-weight:700;margin-inline-start:6px}.mnwarn{background:#fef2f2;border:1px solid #f5b5ae;border-radius:8px;padding:8px 12px}.mnwarn ul{margin:4px 0 0;padding-inline-start:20px;font-weight:500}.mnokbox{background:#f0fdf4;border:1px solid #a7e3bd;color:#15803d;border-radius:8px;padding:6px 12px;font-weight:600}@media print{#mnWarn{display:none}}
 .pair{display:grid;grid-template-columns:1fr 1.4fr auto;gap:6px;margin-bottom:6px}.pair.h{grid-template-columns:84px 1fr 1.4fr auto}.pair.h2{grid-template-columns:84px 1fr 1.4fr 80px}.pair input,.pair select{padding:5px 8px;border:1px solid var(--line);border-radius:8px;background:var(--field);min-width:0}
 #toast{position:fixed;bottom:18px;inset-inline:0;margin:auto;width:fit-content;max-width:90%;background:var(--ink);color:var(--bg);padding:8px 16px;border-radius:10px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:9999}
 #toast.on{opacity:1}#toast.bad{background:var(--red);color:#fff}
@@ -3146,7 +3147,7 @@ function renderHome(){DB.records=DB.records.filter(x=>!(x.autoNew&&!substOf(x)))
 function recCard(r){const c=calc(r),last=c.rows[c.rows.length-1],st={draft:'مسودة',review:'قيد المراجعة',done:'مكتمل'}[r.status]||'مسودة';
   return `<div class="rec" data-act="open" data-id="${r.id}"><div><h3>${esc(r.project.name)||'مشروع بلا اسم'}<span class="chip ${r.status}">${st}</span>${finalOf(r)?'<span class="chip done" title="رُوّجت السلفة النهائية">✔ النهائية</span>':''}</h3>
    <div class="meta">${esc(r.project.contractor)||'الشركة غير محددة'}${r.project.fileNo?' — اضبارة '+esc(r.project.fileNo):''}</div></div>
-   <div class="meta">${r.advances.length} سلفة — التراكمي ${fmt(last.cum)} دينار (${pct1(last.fin)}%)${lastAdv(r)?`<br><span class="lastd">آخر سلفة: ${dShow(lastAdv(r))}</span>`:''}${c.rows.some(x=>x.issues.length)?'<br><span class="warn">يوجد تنبيه</span>':''}</div>
+   <div class="meta">${r.advances.length} سلفة — التراكمي ${fmt(last.cum)} دينار (${pct1(last.fin)}%)${lastAdv(r)?`<br><span class="lastd">آخر سلفة: ${dShow(lastAdv(r))}</span>`:''}${c.rows.some(x=>x.issues.length)?'<br><span class="warn">يوجد تنبيه</span>':''}${mnMissing(r).length?'<br><span class="warn">⚠ محضر لجنة التدقيق غير مكتمل</span>':''}</div>
    <div class="acts"><button class="btn sm danger" data-act="delrec" data-id="${r.id}">حذف</button></div></div>`;}
 
 /* ===================== المحرر ===================== */
@@ -3187,8 +3188,9 @@ function renderForm(){const r=R();if(!r)return;const c=calc(r);
      <label class="fld full"><span>نص المستندات (يُكتب في القرار كما هو؛ فارغ = ${esc(BASIS[2])})</span><textarea data-b="advances.${i}.basis" rows="2" placeholder="${esc(BASIS[2])}">${esc(a.basis||'')}</textarea></label>
      ${f('الخصومات (دينار) — تظهر في متن القرار',`advances.${i}.ded`,'money')}${f('سبب / نوع الخصومات (اختياري)',`advances.${i}.dedNote`)}</div>
     <div class="grid2" style="margin-top:6px"><label class="fld full"><span>التوصيات (فارغ = النص المعتمد)</span><textarea data-b="advances.${i}.rec" placeholder="توصي لجنة تدقيق السلف والمشكلة بموجب الامر الاداري ذي العدد ( ) في ... بترويج السلفة رقم ( ) ...">${esc(a.rec)}</textarea></label></div></div>`;}).join('');
-  const MN=r.minutes||{members:[]};const minutesSec=`<details class="sec"${MN.on?' open':''}><summary>📝 محضر اللجنة (اختياري)</summary><div class="sec-body grid2">
-    <label class="fld full" style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" data-mn="on" ${MN.on?'checked':''} style="width:auto"> <b>إظهار محضر اللجنة بعد استمارة السلفة</b> (إطفاؤها يخفي المحضر من العرض والطباعة)</label>
+  r.minutes=r.minutes||{members:[],docs:[]};if(!(r.minutes.members||[]).some(x=>(x.name||'').trim())&&(r.committee||[]).some(m=>(m.name||'').trim()))r.minutes.members=mnFromForm(r);
+  const MN=r.minutes;const minutesSec=`<details class="sec mnsec" id="mnSec" open><summary>📝 محضر لجنة التدقيق (إلزامي — يُطبع مع القرار) <span id="mnBadge"></span></summary><div class="sec-body grid2">
+    <div class="full" id="mnWarn"></div>
     ${f('د.م.م — الدائرة التي رفعت السلفة','minutes.dept','text','full')}
     ${f('عدد كتاب الشركة','minutes.letterNo')}${f('تاريخ كتاب الشركة','minutes.letterDate','date')}
     <p class="hint full" style="margin:0">الأمر الإداري بتشكيل اللجنة واسم المشروع والشركة والمبالغ تُؤخذ من بيانات المشروع والسلفة المعروضة. خانتا «صح / خطأ» أمام كل مستند تُملآن يدوياً بعد الطباعة.</p>
@@ -3232,7 +3234,19 @@ function renderForm(){const r=R();if(!r)return;const c=calc(r);
 function updateLive(){const r=R();if(!r)return;const c=calc(r);
   r.advances.forEach((a,i)=>{const el=document.getElementById('ac-'+i),x=c.rows[i];if(!el)return;
     el.innerHTML=`الصافي: <b>${fmt(x.net)}</b> دينار — الانجاز المالي: <b>${pct1(x.fin)}%</b>${x.cum?` <span class="hint">(${AnbarAnnex.tafqit(x.net>0?x.net:0)} دينار)</span>`:''}${x.issues.map(t=>`<div class="warn">⚠ ${esc(t)}</div>`).join('')}`;});
-  const t=document.getElementById('edTitle');if(t)t.textContent=r.project.name||'مشروع بلا اسم';}
+  const t=document.getElementById('edTitle');if(t)t.textContent=r.project.name||'مشروع بلا اسم';mnPaint(r);}
+/* محضر لجنة التدقيق إلزامي مع القرار: ما ينقصه يُعرض للمدقق في أعلى قسم المحضر، وعلى زر القسم، ويُنبَّه إليه عند الطباعة وحفظ PDF */
+function mnMissing(r){const M=r.minutes||{},L=[],e=v=>!String(v==null?'':v).trim();
+  if(e(r.order&&r.order.no)||e(r.order&&r.order.date))L.push('رقم وتاريخ الأمر الإداري بتشكيل اللجنة');
+  if(e(M.dept))L.push('الدائرة التي رفعت السلفة (د.م.م)');
+  if(e(M.letterNo)||e(M.letterDate))L.push('عدد وتاريخ كتاب الشركة');
+  const nd=MIN_DOCS.filter((_,k)=>!((M.docs||[])[k]||{}).v).length;if(nd)L.push(`تأشير «يوجد / لا يوجد» لـ ${nd} من ${MIN_DOCS.length} مستنداً`);
+  const mem=(M.members||[]).filter(m=>m&&(m.title||m.name)),nn=mem.filter(m=>!String(m.name||'').trim()).length;
+  if(!mem.length)L.push('أعضاء اللجنة في المحضر');else if(nn)L.push('اسم: '+mem.filter(m=>!String(m.name||'').trim()).map(m=>m.title||'عضو').join('، '));
+  return L;}
+function mnPaint(r){const w=document.getElementById('mnWarn'),b=document.getElementById('mnBadge');if(!w&&!b)return;const L=mnMissing(r);
+  if(b)b.innerHTML=L.length?`<span class="mnbad">⚠ غير مكتمل (${L.length})</span>`:'<span class="mnok">✓ مكتمل</span>';
+  if(w)w.innerHTML=L.length?`<div class="warn mnwarn"><b>⚠ محضر لجنة التدقيق إلزامي ويُطبع مع القرار — على المدقق إكمال:</b><ul>${L.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:'<div class="mnokbox">✓ المحضر مكتمل ويُطبع بعد استمارة السلفة.</div>';}
 /* ===================== الصفحة المطبوعة ===================== */
 const D=s=>s?`<span dir="ltr">${esc(s)}</span>`:'';
 const BASIS=['دفتر الذرعة وجدول الكميات والفحوصات المختبرية','دفتر الذرعة وجدول الكميات وأوامر التغيير والفحوصات المختبرية','دفتر الذرعة وجدول الكميات واوامر التغيير ومستندات الادخال المخزني والفحوصات المختبرية','دفتر الذرعة النهائي وجدول الكميات ومحضر لجنة الاستلام الاولي وأوامر التغيير ومستندات الادخال المخزني والفحوصات المختبرية','دفتر الذرعة النهائي وجدول الكميات ومحضر لجنة الاستلام الاولي وأوامر التغيير والفحوصات المختبرية','دفتر الذرعة وعقد الاشراف','دفتر الذرعة وجدول الكميات وذرعة المحطات وأوامر التغيير والفحوصات المختبرية','دفتر الذرعة النهائي وجدول الكميات ومحضر لجنة الاستلام الاولي وذرعة المحطات وأوامر التغيير ومستندات الادخال المخزني والفحوصات المختبرية','دفتر الذرعة النهائي وجدول الكميات ومحضر لجنة الاستلام الاولي وذرعة المحطات وأوامر التغيير والفحوصات المختبرية','دفتر الذرعة النهائي وجدول الكميات وشهادة لجنة الاستلام الاولي وذرعة المحطات وأوامر التغيير ومستندات الادخال المخزني والفحوصات المختبرية'];
@@ -3317,7 +3331,7 @@ function pageMinutes(r,c,i){const P=r.project,a=r.advances[i],x=c.rows[i],M=r.mi
   </div></div>`;}
 function doRender(){const r=R();if(!r||view!=='edit')return;const c=calc(r),pg=document.getElementById('pages');if(!pg)return;
   const i=Math.min(r.printIdx|0,r.advances.length-1),all=r.printAll;
-  const mn=k=>r.minutes&&r.minutes.on?pageMinutes(r,c,k):'';
+  const mn=k=>pageMinutes(r,c,k);   // المحضر إلزامي: يُطبع دائماً بعد استمارة السلفة
   pg.innerHTML=(all?r.advances.map((_,k)=>pageAdvance(r,c,k)+mn(k)).join(''):pageAdvance(r,c,i)+mn(i));
   const ps=[...pg.querySelectorAll('.pg')];if(PO().digits)ps.forEach(arDigits);ps.forEach(fitPage);if(ps.length)ps[ps.length-1].classList.add('lastp');fitPreview();}
 function fitPreview(){const box=document.getElementById('prevBox'),pg=document.getElementById('pages');if(!box||!pg||!box.clientWidth)return;
@@ -3395,7 +3409,10 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(
     case 'datadir':if(DESK)DESK.openDataFolder();break;
   }});
 function issueOk(){const r=R(),c=calc(r),x=c.rows[r.printIdx];if(!c.cost){flash('أدخل كلفة المشروع أولاً',true);return false;}
-  if(x.issues.some(t=>/تتجاوز كلفة|صفر أو سالب/.test(t))){flash('لا يمكن الطباعة: '+x.issues[0],true);return false;}return true;}
+  if(x.issues.some(t=>/تتجاوز كلفة|صفر أو سالب/.test(t))){flash('لا يمكن الطباعة: '+x.issues[0],true);return false;}
+  const mm=mnMissing(r);if(mm.length){const d=document.getElementById('mnSec');if(d){d.open=true;d.scrollIntoView({block:'start',behavior:'smooth'});}
+    if(!confirm('محضر لجنة التدقيق غير مكتمل، وهو إلزامي ويُطبع مع القرار:\n\n• '+mm.join('\n• ')+'\n\nالأفضل إكمال المحضر أولاً. هل تريد المتابعة رغم ذلك؟\n(الخانات الفارغة تُطبع فارغة لتُملأ يدوياً)')){flash('أكمل محضر لجنة التدقيق ثم اطبع',true);return false;}}
+  return true;}
 function doPrint(){if(!issueOk())return;persist();doRender();setTimeout(()=>{try{window.print();}catch(e){flash('تعذّر فتح نافذة الطباعة',true);}},150);}
 function baseName(r){return `استمارة-سلفة_${(r.project.name||'مشروع').replace(/[\\/:*?"<>|]+/g,' ').trim().slice(0,50)}_${ord(r.printIdx)}`;}
 async function doPDF(){if(!issueOk())return;const r=R();persist();doRender();await new Promise(z=>setTimeout(z,200));

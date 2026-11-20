@@ -42,8 +42,11 @@ function render(){shown=filt();
       <td><span class="lgop ${e.op}">${OP[e.op]||e.op}</span>${e.n>1?`<div class="co">${e.n} مرة حفظ</div>`:''}</td>
       <td><b>${esc(e.editor||'(بلا اسم)')}</b></td>
       <td class="co">${esc(e.device||e.pc)}${e.winUser?`<br>${esc(e.winUser)}`:''}</td>
-      <td>${e.photo?`<img class="lgph" data-ph="${esc(e.photo)}" alt="صورة المعدِّل" title="اضغط للتكبير">`:`<span class="co">${esc(e.photoErr||'—')}</span>`}</td></tr>`).join('')}</tbody></table>${shown.length>600?`<p class="hint">يُعرض أحدث 600 قيد — استعمل التصفية أو التصدير لرؤية الباقي.</p>`:''}`:'<div class="empty"><p>لا توجد تعديلات مسجّلة بعد. كل إضافة أو تعديل أو حذف في السلف أو أوامر التغيير أو المدد أو الاستلام تظهر هنا باسم المعدِّل وصورته.</p></div>';
+      <td>${phCell(e)}</td></tr>`).join('')}</tbody></table>${shown.length>600?`<p class="hint">يُعرض أحدث 600 قيد — استعمل التصفية أو التصدير لرؤية الباقي.</p>`:''}`:'<div class="empty"><p>لا توجد تعديلات مسجّلة بعد. كل إضافة أو تعديل أو حذف في السلف أو أوامر التغيير أو المدد أو الاستلام تظهر هنا باسم المعدِّل وصورته.</p></div>';
   lazy();}
+/* صور القيد: الأولى ثم صور الاستمرار في التعديل (صورة لكل حفظ بعد دقيقة من آخر صورة) — تُعرض أحدث 4 */
+function phCell(e){const L=[e.photo?{file:e.photo,at:e.first}:null,...(e.photos||[])].filter(Boolean);if(!L.length)return `<span class="co">${esc(e.photoErr||'—')}</span>`;
+  const sh=L.length>4?[L[0],...L.slice(-3)]:L;return `<div class="lgphs">${sh.map(x=>`<img class="lgph" data-ph="${esc(x.file)}" alt="صورة المعدِّل" title="${esc(dt(x.at))} — اضغط للتكبير">`).join('')}</div>${L.length>1?`<div class="co">${L.length} صور${L.length>4?' (تُعرض 4)':''}</div>`:''}`;}
 async function lazy(){for(const im of document.querySelectorAll('#lgTbl img[data-ph]:not([src])')){const k=im.dataset.ph;if(!photos[k])photos[k]=await window.desktop.auditPhoto(k);if(photos[k])im.src=photos[k];}}
 async function load(){all=await window.desktop.auditList();render();}
 ['lgQ','lgSys','lgEd','lgPer','lgOp'].forEach(id=>$(id).addEventListener(id==='lgQ'?'input':'change',render));
@@ -52,7 +55,7 @@ $('lgBig').onclick=()=>{$('lgBig').hidden=true;};
 $('lgDir').onclick=()=>window.desktop.auditDir();
 $('lgXl').onclick=async()=>{if(!window.XLW){flash('التصدير غير متاح',true);return;}const X=XLW.S,T=v=>({v:v==null?'':String(v),s:X.txt}),C=['ت','الوقت (البداية)','آخر حفظ','النظام','نوع السجل','رقم الاضبارة','المشروع','العملية','مرات الحفظ','المعدِّل','الحاسبة','مستخدم ويندوز','ملف الصورة'];
   const rows=[[{v:'محافظة الأنبار — قسم الشؤون الهندسية',s:X.title},...C.slice(1).map(()=>({s:X.title}))],[{v:'سجل التعديلات في أنظمة السلف وأوامر التغيير والمدد والاستلام',s:X.org}],[{v:`${shown.length} قيداً — صُدّر ${dt(Date.now())}`,s:X.sub}],C.map(h=>({v:h,s:X.head}))];
-  shown.forEach((e,i)=>rows.push([{v:i+1,s:X.int},T(dt(e.first)),T(dt(e.last)),T(e.sysName),T(e.sub),T(e.fileNo),T(e.label),T(OP[e.op]||e.op),{v:e.n,s:X.int},T(e.editor||'(بلا اسم)'),T(e.device||e.pc),T(e.winUser),T(e.photo||e.photoErr)]));
+  shown.forEach((e,i)=>rows.push([{v:i+1,s:X.int},T(dt(e.first)),T(dt(e.last)),T(e.sysName),T(e.sub),T(e.fileNo),T(e.label),T(OP[e.op]||e.op),{v:e.n,s:X.int},T(e.editor||'(بلا اسم)'),T(e.device||e.pc),T(e.winUser),T([e.photo,...(e.photos||[]).map(x=>x.file)].filter(Boolean).join(' ، ')||e.photoErr)]));
   const L=XLW.colL(C.length-1);const buf=XLW.book([{name:'سجل التعديلات',cols:[6,17,17,18,18,11,44,9,9,24,20,16,34],rows,merges:[`A1:${L}1`,`A2:${L}2`,`A3:${L}3`],freeze:4,titles:4,filter:`A4:${L}4`,heights:{1:30,2:26,4:28},zoom:90}],{title:'سجل التعديلات',author:'قسم الشؤون الهندسية — محافظة الأنبار'});
   const r=await window.desktop.saveFile(`سجل-التعديلات_${new Date().toISOString().slice(0,10)}.xlsx`,buf);if(r==='ok')flash('تم حفظ سجل التعديلات');else if(r==='error')flash('تعذّر الحفظ',true);};
 const prev=window.onNav;window.onNav=function(s){try{if(prev)prev.apply(this,arguments);}finally{$('pg-log').hidden=s.current!=='log';if(s.current==='log')load();whoChip();}};

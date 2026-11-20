@@ -3,7 +3,9 @@
    يُسجَّل باسم المعدِّل (الاسم المكتوب عند فتح النظام) ومستخدم ويندوز واسم الحاسبة والوقت، مع صورة من كاميرا الحاسبة.
    - التعديلات المتتالية على السجل نفسه من الشخص نفسه خلال 10 دقائق تُجمع في قيد واحد (عدد مرات الحفظ ووقت آخر حفظ)،
      فلا تتكرر القيود والصور مع كل حرف يُكتب (الأنظمة تحفظ تلقائياً مع كل تعديل).
-   - الصورة تُلتقط عند بداية كل قيد جديد (وتُعاد صورة آخر دقيقة إن وُجدت)، وتُحفظ ملفاً في مجلد البيانات: audit/photos.
+   - لكل تعديل صورته: تُلتقط صورة جديدة لكل قيد جديد (لا تُعاد صورة الدخول أو صورة قيد سابق)، وإذا استمر التعديل على القيد نفسه
+     تُضاف إليه صورة جديدة مع كل حفظ يأتي بعد دقيقة على الأقل من آخر صورة له (photos)، فيظهر من عدّل فعلاً لا من دخل أولاً.
+     الكاميرا لا تُشغَّل مرتين في الوقت نفسه (طابور)، وتُحفظ الصور ملفات في مجلد البيانات: audit/photos.
    - السجل للقراءة فقط: لا يوجد في البرنامج ما يحذف قيداً أو صورة. */
 const fs = require('fs');
 const path = require('path');
@@ -13,7 +15,7 @@ const crypto = require('crypto');
 const SYS = { co: 'أوامر التغيير', du: 'المدد والتوقف', ad: 'لجنة تدقيق السلف', ac: 'الاستلام' };
 const NOTE_SYS = { pl: 'مشاريع التخطيط', sit: 'الموقف العام', lt: 'المخاطبات', wf: 'سير المعاملات' };   // أسماء القيود التي بلا تعديل بيانات
 const AC_KIND = { pac: 'استلام أولي', pap: 'استلام أولي جزئي', fac: 'استلام نهائي', fpa: 'استلام نهائي جزئي' };
-const GROUP_MS = 10 * 60 * 1000, PHOTO_REUSE_MS = 60 * 1000, MAX_ENTRIES = 20000;
+const GROUP_MS = 10 * 60 * 1000, PHOTO_EVERY_MS = 60 * 1000, MAX_PHOTOS = 30, MAX_ENTRIES = 20000;
 // حقول لا تُعدّ تعديلاً (وقت الحفظ، واختيار الصفحة المعروضة للطباعة، والحالة المؤقتة للواجهة)
 const IGN = /^(updated|created|printIdx|printAll|printOrder|cur|lastBackup|view|tab|sel|v2)$/;
 const strip = v => { try { return JSON.stringify(v, (k, x) => (IGN.test(k) ? undefined : x)); } catch (_) { return ''; } };
@@ -83,8 +85,9 @@ module.exports = function createAudit(ctx) {
     if (now) { clearTimeout(saveT); w(); } else if (!saveT) saveT = setTimeout(w, 400);
   }
   const winUser = () => { try { return os.userInfo().username; } catch (_) { return ''; } };
-  async function photo() {
-    if (lastPhoto && Date.now() - lastPhoto.at < PHOTO_REUSE_MS && lastPhoto.who === (who && who.name)) return { file: lastPhoto.file };
+  let camQ = Promise.resolve();
+  function photo() { const p = camQ.then(shoot, shoot); camQ = p.catch(() => {}); return p; }
+  async function shoot() {
     let d = null; try { d = await ctx.capture(); } catch (_) { d = null; }
     if (!d || !/^data:image\/jpeg;base64,/.test(d)) return { err: d && String(d).startsWith('ERR:') ? String(d).slice(4) : 'تعذّر تشغيل الكاميرا' };
     const day = new Date().toISOString().slice(0, 7), rel = path.join('photos', day, crypto.randomBytes(8).toString('hex') + '.jpg');
@@ -92,6 +95,8 @@ module.exports = function createAudit(ctx) {
     lastPhoto = { at: Date.now(), file: rel, who: who && who.name };
     return { file: rel };
   }
+  // صورة إضافية لقيد مستمر: تُضاف إلى قائمة صوره (الأولى تبقى في photo)
+  const addShot = (e, p, at) => { if (!p.file) return; if (!e.photo) { e.photo = p.file; e.photoErr = ''; } else { e.photos = (e.photos || []).concat({ at, file: p.file }).slice(-MAX_PHOTOS); } e.photoAt = at; };
   /* تُستدعى بعد كل حفظ: تقارن النسخة السابقة بالجديدة وتسجّل ما تغيّر */
   async function record(sys, oldText, newText) {
     if (!SYS[sys] || oldText == null) return 0;   // أول حفظ بلا نسخة سابقة: أساس المقارنة لا تعديل
@@ -99,10 +104,10 @@ module.exports = function createAudit(ctx) {
     if (!ch.length) return 0;
     load(); const now = Date.now(), name = who ? who.name : '';
     if (!who && ctx.ask) ctx.ask();
-    let fresh = [];
+    let fresh = [], again = [];
     for (const c of ch) {
       const e = entries.find(x => x.sys === sys && x.rid === c.rid && x.editor === name && now - x.last < GROUP_MS && !(x.op === 'del') && c.op !== 'del');
-      if (e) { e.last = now; e.n++; if (c.op === 'add' && e.op !== 'add') e.op = 'add'; e.label = c.label || e.label; e.fileNo = c.fileNo || e.fileNo; continue; }
+      if (e) { e.last = now; e.n++; if (c.op === 'add' && e.op !== 'add') e.op = 'add'; e.label = c.label || e.label; e.fileNo = c.fileNo || e.fileNo; if (now - (e.photoAt || e.first) >= PHOTO_EVERY_MS && !again.includes(e)) again.push(e); continue; }
       const n = { id: crypto.randomBytes(6).toString('hex'), sys, sysName: SYS[sys], rid: c.rid, op: c.op, label: c.label, fileNo: c.fileNo, sub: c.sub || '',
         editor: name, winUser: winUser(), pc: os.hostname(), device: (ctx.device && ctx.device()) || '', first: now, last: now, n: 1, photo: '', photoErr: '' };
       entries.push(n); fresh.push(n);
@@ -111,10 +116,11 @@ module.exports = function createAudit(ctx) {
     persist();
     if (fresh.length) {
       const p = await photo();
-      fresh.forEach(n => { if (p.file) n.photo = p.file; else n.photoErr = p.err || ''; });
+      fresh.forEach(n => { if (p.file) { n.photo = p.file; n.photoAt = now; } else n.photoErr = p.err || ''; });
       persist();
       if (ctx.notify) ctx.notify({ n: fresh.length, sys: SYS[sys], label: fresh[0].label, editor: name, photo: !!p.file, err: p.err || '' });
     }
+    if (again.length) { again.forEach(e => { e.photoAt = now; }); const p = await photo(); again.forEach(e => addShot(e, p, now)); persist(); }
     return ch.length;
   }
   function setWho(name) {
@@ -132,7 +138,7 @@ module.exports = function createAudit(ctx) {
     const n = { id: crypto.randomBytes(6).toString('hex'), sys: sys || '', sysName: SYS[sys] || NOTE_SYS[sys] || (sys ? sys : 'البرنامج'), rid: '', op, label, fileNo: '', sub: '',
       editor: name, winUser: winUser(), pc: os.hostname(), device: (ctx.device && ctx.device()) || '', first: now, last: now, n: 1, photo: '', photoErr: '' };
     entries.push(n); if (entries.length > MAX_ENTRIES) entries.splice(0, entries.length - MAX_ENTRIES); persist();
-    const p = await photo(); if (p.file) n.photo = p.file; else n.photoErr = p.err || ''; persist();
+    const p = await photo(); if (p.file) { n.photo = p.file; n.photoAt = now; } else n.photoErr = p.err || ''; persist();
     if (ctx.notify) ctx.notify({ n: 1, sys: n.sysName, label, editor: name, photo: !!p.file, err: p.err || '', op });
     return n;
   }

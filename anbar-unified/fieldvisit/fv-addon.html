@@ -102,6 +102,6 @@ body{padding-top:46px}
   if (DB.records.length) { $('fvDash').hidden = false; dash(); }
   /* «تحديث من Google Drive» في الصفحة الأصلية يملأ الحقول دون أحداث كتابة: يُحفظ بعده */
   if (typeof window.loadSheet === 'function') { const ol = window.loadSheet; window.loadSheet = async function(){ const r = await ol.apply(this, arguments); dirty = true; saveNow(); return r; }; }
-  window.FieldVisit = { db: () => DB, open: openRec, newRec, save: () => { dirty = true; saveNow(); }, dash: () => { $('fvDash').hidden = false; dash(); } };
+  window.FieldVisit = { cur: () => DB.records.find(x => x.id === curId) || null, db: () => DB, open: openRec, newRec, save: () => { dirty = true; saveNow(); }, dash: () => { $('fvDash').hidden = false; dash(); } };
 })();
 </script>

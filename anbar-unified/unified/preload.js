@@ -33,6 +33,9 @@ contextBridge.exposeInMainWorld('desktop', {
   accessImport: () => ipcRenderer.invoke(APP === 'co' ? 'co:accessImport' : 'ad:accessImport'),
   numState: () => ipcRenderer.sendSync('mgr:numState'),
   numUnlock: pw => ipcRenderer.invoke('mgr:numUnlock', pw),
+  /* Google Drive لبريد القسم: إصدار المستند ورفع PDF تلقائياً (رمز QR يفتحه عند الجميع) */
+  gdStatus: () => ipcRenderer.invoke('gd:status'), gdSetApp: (id, sec) => ipcRenderer.invoke('gd:setApp', id, sec), gdConnect: hint => ipcRenderer.invoke('gd:connect', hint),
+  gdDisconnect: () => ipcRenderer.invoke('gd:disconnect'), gdReserve: name => ipcRenderer.invoke('gd:reserve', name), gdUpload: (id, name) => ipcRenderer.invoke('gd:upload', id, name), gdOwns: id => ipcRenderer.invoke('gd:owns', id),
   flowGet: key => ipcRenderer.invoke('wf:get', key),
   flowSet: (key, patch) => ipcRenderer.invoke('wf:set', key, patch),
   onFlow: cb => ipcRenderer.on('wf:changed', () => cb()),

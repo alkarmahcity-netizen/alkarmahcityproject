@@ -36,7 +36,7 @@ module.exports = function createDrive(ctx) {
     if (clientSecret.length < 10) return { error: 'سرّ التطبيق (Client secret) غير صحيح' };
     const c = load(); if (dec(c.cid) !== clientId) { delete c.rt; delete c.email; delete c.folder; } c.cid = enc(clientId); c.cs = enc(clientSecret); save(c); access = null; return { ok: true };
   }
-  function disconnect() { const c = load(); delete c.rt; delete c.email; delete c.folder; save(c); access = null; return { ok: true }; }
+  function disconnect() { const c = load(); delete c.rt; delete c.email; delete c.folder; delete c.folders; save(c); access = null; return { ok: true }; }
   /* تسجيل الدخول: المتصفح ← Google ← يعود إلى عنوان محلي مؤقت في هذه الحاسبة برمز التفويض */
   function connect(hint) {
     const c = load(), cid = dec(c.cid), cs = dec(c.cs); if (!cid || !cs) return Promise.resolve({ error: 'أدخل معرّف التطبيق وسرّه أولاً' });
@@ -53,7 +53,7 @@ module.exports = function createDrive(ctx) {
           const r = await req('POST', TOKEN, { headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: form({ code, client_id: cid, client_secret: cs, redirect_uri: redirect, grant_type: 'authorization_code', code_verifier: verifier }) });
           if (r.status !== 200 || !r.json || !r.json.refresh_token) throw gerr(r, 'تعذّر الحصول على التفويض');
           let email = ''; try { email = JSON.parse(Buffer.from(String(r.json.id_token || '').split('.')[1] || '', 'base64url').toString()).email || ''; } catch (_) {}
-          const c2 = load(); c2.rt = enc(r.json.refresh_token); c2.email = email; delete c2.folder; save(c2);
+          const c2 = load(); c2.rt = enc(r.json.refresh_token); c2.email = email; delete c2.folder; delete c2.folders; save(c2);
           access = { token: r.json.access_token, until: Date.now() + (r.json.expires_in || 3000) * 1000 - 60000 };
           page(true, 'رُبط البرنامج بـ ' + (email || 'حساب Google')); fin({ ok: true, email }, srv);
         } catch (e) { page(false, 'تعذّر إكمال الربط'); fin({ error: String(e.message || e) }, srv); }
@@ -74,18 +74,21 @@ module.exports = function createDrive(ctx) {
     access = { token: r.json.access_token, until: Date.now() + (r.json.expires_in || 3000) * 1000 - 60000 }; return access.token;
   }
   const auth = async () => ({ Authorization: 'Bearer ' + await token() });
-  async function folder() {
-    const c = load(); if (c.folder) return c.folder;
-    const r = await req('POST', API + '/drive/v3/files?fields=id', { headers: await auth(), body: { name: FOLDER, mimeType: 'application/vnd.google-apps.folder' } });
-    if (r.status !== 200 || !r.json || !r.json.id) throw gerr(r, 'تعذّر إنشاء مجلد الشهادات في Drive');
-    const c2 = load(); c2.folder = r.json.id; save(c2); return r.json.id;
+  /* مجلد لكل نظام (شهادات الاستلام، المخاطبات، المدد، السلف، تقارير الزيارة) — يُنشأ مرة ويُحفظ معرّفه */
+  async function folder(name) {
+    name = String(name || FOLDER); const c = load(); if (name === FOLDER && c.folder) return c.folder; if (c.folders && c.folders[name]) return c.folders[name];
+    const r = await req('POST', API + '/drive/v3/files?fields=id', { headers: await auth(), body: { name, mimeType: 'application/vnd.google-apps.folder' } });
+    if (r.status !== 200 || !r.json || !r.json.id) throw gerr(r, 'تعذّر إنشاء مجلد «' + name + '» في Drive');
+    const c2 = load(); if (name === FOLDER) c2.folder = r.json.id; else c2.folders = Object.assign({}, c2.folders, { [name]: r.json.id }); save(c2); return r.json.id;
   }
+  /* الملفات التي أنشأها البرنامج (نطاق drive.file لا يسمح بتعديل غيرها): إعادة الإصدار على الرابط نفسه لهذه فقط */
+  const owns = id => { const c = load(); return !!(c.ids && c.ids.includes(String(id))); };
   /* حجز ملف PDF ورابطه قبل الطباعة، ومشاركته «أي شخص لديه الرابط ← عارض» */
-  async function reserve(name) {
-    const parent = await folder();
+  async function reserve(name, folderName) {
+    const parent = await folder(folderName);
     const r = await req('POST', API + '/drive/v3/files?fields=id', { headers: await auth(), body: { name: String(name || 'شهادة.pdf').slice(0, 150), mimeType: 'application/pdf', parents: [parent] } });
     if (r.status !== 200 || !r.json || !r.json.id) throw gerr(r, 'تعذّر إنشاء ملف الشهادة في Drive');
-    const id = r.json.id;
+    const id = r.json.id; { const c = load(); c.ids = [String(id)].concat((c.ids || []).filter(x => x !== String(id))).slice(0, 20000); save(c); }
     const p = await req('POST', API + `/drive/v3/files/${id}/permissions?fields=id`, { headers: await auth(), body: { role: 'reader', type: 'anyone' } });
     const shared = p.status === 200;
     return { id, url: `https://drive.google.com/file/d/${id}/view`, shared, shareError: shared ? '' : 'لم تُفتح مشاركة الملف لأي شخص لديه الرابط — قد تمنعها إعدادات Google Workspace للمحافظة؛ فيفتح الرمز لحسابات المحافظة فقط' };
@@ -98,5 +101,5 @@ module.exports = function createDrive(ctx) {
     if (name) { try { await req('PATCH', API + `/drive/v3/files/${id}?fields=id`, { headers: await auth(), body: { name: String(name).slice(0, 150) } }); } catch (_) {} }
     return { ok: true, id, url: `https://drive.google.com/file/d/${id}/view` };
   }
-  return { status, setApp, connect, disconnect, reserve, upload };
+  return { status, setApp, connect, disconnect, reserve, upload, owns };
 };

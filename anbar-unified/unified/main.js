@@ -885,6 +885,8 @@ function ensureView(id) {
   v.webContents.on('dom-ready', () => { v.webContents.executeJavaScript("if(window.desktop&&window.desktop.print){window.print=function(){return window.desktop.print();};}").catch(() => {}); });
   if (GLASS_IDS.has(id)) v.webContents.on('dom-ready', () => { v.webContents.__glassKey = null; applyGlass(v.webContents); });   // المظهر يُعاد بعد كل تحميل للصفحة
   if (['ad', 'co', 'du', 'ac'].includes(id)) v.webContents.on('did-finish-load', () => { const js = flowPanelJs(id); if (js) v.webContents.executeJavaScript(js).catch(e => logError('flowpanel-' + id, String(e && e.message || e))); });
+  /* «☁ إصدار ورفع إلى Drive» في المخاطبات والمطالعات والسلف والمدد وتقارير الزيارة (gdissue.js) */
+  if (['lt', 'dm', 'cm', 'ad', 'du', 'fv'].includes(id)) v.webContents.on('did-finish-load', () => { try { const js = fs.readFileSync(path.join(__dirname, 'gdissue.js'), 'utf8').replace("'__SYS__'", JSON.stringify(id)); v.webContents.executeJavaScript(js).catch(e => logError('gdissue-' + id, String(e && e.message || e))); } catch (_) {} });
   /* نظام الاستلام: لقطة الشهادات للوحة + تنبيه رمز QR عند الإصدار (acaddon.js) — يُحقن في كل صفحة من صفحاته */
   if (id === 'ac') v.webContents.on('did-finish-load', () => { try { const js = fs.readFileSync(path.join(__dirname, 'acaddon.js'), 'utf8'); v.webContents.executeJavaScript(js).catch(e => logError('acaddon', String(e && e.message || e))); } catch (_) {} });
   v.webContents.on('before-input-event', touchActivity);
@@ -1145,15 +1147,20 @@ ipcMain.handle('ac:flowSnap', async (e, snap) => { try {
   flowSoon('ac'); return true; } catch (err) { logError('ac:flowSnap', String(err && err.message || err)); return false; } });
 /* Google Drive لبريد القسم: إصدار شهادة الاستلام مع رفع PDF تلقائياً، ورمز QR يفتح الملف نفسه عند الجميع (gdrive.js) */
 let gd = null; const gdEnsure = () => (gd = gd || require('./gdrive')({ file: () => path.join(dataDir, 'gdrive-config.json'), safeStorage, openExternal: u => { if (process.env.UNI_GD_AUTH && /^http:\/\/127\.0\.0\.1:/.test(u)) require('http').get(u, r => r.resume()).on('error', () => {}); /* اختبار: خادم Google وهمي محلي */ else shell.openExternal(u); }, log: m => logError('gdrive', m) }));
-const gdFrom = e => (views.ac && e.sender === views.ac.webContents) || (win && e.sender === win.webContents);
+/* الأنظمة التي تُصدر مستنداتها مع رفع PDF إلى Drive (مجلد لكل نظام) */
+const GD_SYS = { ac: 'شهادات الاستلام — قسم الشؤون الهندسية', lt: 'المخاطبات والمطالعات — قسم الشؤون الهندسية', dm: 'مطالعات لجنة المدد — قسم الشؤون الهندسية', cm: 'مطالعات لجنة أوامر التغيير — قسم الشؤون الهندسية',
+  du: 'المدد والتوقف — قسم الشؤون الهندسية', ad: 'لجنة تدقيق السلف — قسم الشؤون الهندسية', fv: 'تقارير زيارة مشاريع التنفيذ أمانة — قسم الشؤون الهندسية' };
+const gdSys = e => Object.keys(GD_SYS).find(id => views[id] && e.sender === views[id].webContents && isOpen(id)) || '';
+const gdFrom = e => !!gdSys(e) || (win && e.sender === win.webContents);
 ipcMain.handle('gd:status', e => (gdFrom(e) ? gdEnsure().status() : null));
 ipcMain.handle('gd:setApp', (e, id, sec) => (gdFrom(e) ? gdEnsure().setApp(id, sec) : { error: 'غير مسموح' }));
 ipcMain.handle('gd:connect', async (e, hint) => { if (!gdFrom(e)) return { error: 'غير مسموح' }; const r = await gdEnsure().connect(hint); if (r.ok) audit.note('ac', 'gdrive', 'ربط البرنامج بـ Google Drive: ' + (r.email || '')).catch(() => {}); return r; });
 ipcMain.handle('gd:disconnect', e => (gdFrom(e) ? gdEnsure().disconnect() : { error: 'غير مسموح' }));
-ipcMain.handle('gd:reserve', async (e, name) => { if (!views.ac || e.sender !== views.ac.webContents || !isOpen('ac')) return { error: 'غير مسموح' }; try { return await gdEnsure().reserve(name); } catch (err) { return { error: String(err.message || err) }; } });
-ipcMain.handle('gd:upload', async (e, id, name) => { if (!views.ac || e.sender !== views.ac.webContents || !isOpen('ac')) return { error: 'غير مسموح' };
+ipcMain.handle('gd:reserve', async (e, name) => { const sys = gdSys(e); if (!sys) return { error: 'غير مسموح' }; try { return await gdEnsure().reserve(name, GD_SYS[sys]); } catch (err) { return { error: String(err.message || err) }; } });
+ipcMain.handle('gd:owns', (e, id) => (gdSys(e) ? gdEnsure().owns(id) : false));
+ipcMain.handle('gd:upload', async (e, id, name) => { const sys = gdSys(e); if (!sys) return { error: 'غير مسموح' };
   try { const buf = await e.sender.printToPDF({ printBackground: true, preferCSSPageSize: true, pageSize: 'A4', margins: { top: 0, bottom: 0, left: 0, right: 0 } });
-    const r = await gdEnsure().upload(id, buf, name); audit.note('ac', 'gdrive', `رفع شهادة «${name || id}» إلى Drive (${Math.round(buf.length / 1024)} ك.ب)`).catch(() => {}); return { ...r, kb: Math.round(buf.length / 1024) }; }
+    const r = await gdEnsure().upload(id, buf, name); audit.note(sys, 'gdrive', `رفع «${name || id}» إلى Drive (${Math.round(buf.length / 1024)} ك.ب)`).catch(() => {}); return { ...r, kb: Math.round(buf.length / 1024) }; }
   catch (err) { return { error: String(err.message || err) }; } });
 let FLOWPANEL_JS = null;
 const flowPanelJs = id => { if (FLOWPANEL_JS == null) { try { FLOWPANEL_JS = fs.readFileSync(path.join(__dirname, 'flowpanel.js'), 'utf8'); } catch (_) { FLOWPANEL_JS = ''; } } return FLOWPANEL_JS.replace("'__SYS__'", JSON.stringify(id)); };

@@ -889,6 +889,8 @@ function ensureView(id) {
   v.webContents.on('dom-ready', () => { v.webContents.executeJavaScript("if(window.desktop&&window.desktop.print){window.print=function(){return window.desktop.print();};}").catch(() => {}); });
   if (GLASS_IDS.has(id)) v.webContents.on('dom-ready', () => { v.webContents.__glassKey = null; applyGlass(v.webContents); });   // المظهر يُعاد بعد كل تحميل للصفحة
   if (['ad', 'co', 'du', 'ac'].includes(id)) v.webContents.on('did-finish-load', () => { const js = flowPanelJs(id); if (js) v.webContents.executeJavaScript(js).catch(e => logError('flowpanel-' + id, String(e && e.message || e))); });
+  /* «📎 كشف كميات السلفة» و«📊 مقارنة كميات السلف» في تدقيق السلف (adqty.js) */
+  if (id === 'ad') v.webContents.on('did-finish-load', () => { try { v.webContents.executeJavaScript(fs.readFileSync(path.join(__dirname, 'adqty.js'), 'utf8') + ';1').catch(e => logError('adqty', String(e && e.message || e))); } catch (_) {} });
   /* كاتب Excel المشترك لأوامر التغيير («⬇ حفظ المراجعة (Excel)») */
   if (id === 'co') v.webContents.on('did-finish-load', () => { try { v.webContents.executeJavaScript(fs.readFileSync(path.join(__dirname, 'shell', 'xlwriter.js'), 'utf8') + ';1').catch(e => logError('xlw-co', String(e && e.message || e))); } catch (_) {} });
   /* «☁ إصدار ورفع إلى Drive» في المخاطبات والمطالعات والسلف والمدد وتقارير الزيارة (gdissue.js) */

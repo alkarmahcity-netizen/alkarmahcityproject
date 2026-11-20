@@ -65,12 +65,23 @@
       if (/^(المجموع|مجموع|الاجمالي|الإجمالي|المجموع الكلي|الكلي)/.test(N(desc)) || (!desc && nums && /المجموع|مجموع|الاجمالي/.test(N(r.join(' '))))) {
         ['ap', 'ac', 'am'].forEach(k => { const v = num(g(r, k)); if (v != null) tot[k] = v; }); continue; }
       if (!desc || desc.length < 2 || !nums) continue;
+      /* سطر «↳ زيادة ضمن 20%» أو «↳ زيادة أكثر من 20%» تحت الفقرة: جزء منها (كميته ومبلغه يُضافان إليها) */
+      const dn = N(desc).replace(/^[↳\-–>\s]+/, '');
+      if (items.length && (/^[↳]/.test(desc.trim()) || /^زياده (ضمن|اكثر|أكثر)/.test(dn))) {
+        const P = items[items.length - 1], part = { k: /اكثر|أكثر|تجاوز/.test(dn) ? 'o20' : 'w20', q: num(g(r, 'cm')) != null ? num(g(r, 'cm')) : num(g(r, 'q')), pr: num(g(r, 'pr')), am: num(g(r, 'am')) };
+        (P.parts = P.parts || [{ k: 'base', q: P.cm, pr: P.pr, am: P.am }]).push(part);
+        if (part.q != null) P.cm = +((P.cm || 0) + part.q).toFixed(4); if (part.am != null) P.am = (P.am || 0) + part.am; continue; }
       const it = { no: String(g(r, 'no') || '').trim(), desc, unit: String(g(r, 'unit') || '').trim() };
       ['cq', 'pr', 'pq', 'q', 'cm', 'ap', 'ac', 'am'].forEach(k => { it[k] = num(g(r, k)); });
+      if (/استحداث|مستحدث/.test(N(g(r, 'cq')))) { it.isNew = 1; it.cq = null; }
       if ([it.pq, it.q, it.cm, it.ap, it.ac, it.am].every(v => v == null)) continue;   // عنوان مجموعة
       items.push(it);
     }
-    return { items, tot, cols: Object.keys(col) };
+    /* رأس الكشف وخلاصته في أوراق الملف: رقم السلفة وتاريخها، مجموع الأعمال المنجزة، المصروف سابقاً، مبلغ هذه السلفة */
+    const meta = {}, lab = (re, k, big) => { if (meta[k] != null) return; for (const T of tables) for (const r0 of T.rows || []) { const r = Array.from(r0 || [], c => c == null ? '' : String(c)); const j = r.findIndex(c => re.test(N(c)));
+      if (j < 0) continue; for (let c = j + 1; c < r.length; c++) { const v = num(r[c]); if (v != null && isNum(r[c]) && (!big || v > 1)) { meta[k] = v; return; } } } };
+    lab(/^رقم السلفه$/, 'no'); lab(/^مجموع مبالغ الاعمال المنجزه/, 'cum', 1); lab(/^ينزل.*(المصروفه|السابقه)/, 'prev', 1); lab(/^مبلغ الاعمال المنجزه لهذه/, 'net', 1);
+    return { items, tot, cols: Object.keys(col), meta };
   }
   /* Word: الجداول من word/document.xml بلا مكتبات */
   async function docxTables(buf) {
@@ -102,32 +113,45 @@
       const x = c.rows[i] || {}, cell = {}, iss = [], rowsOut = [];
       let sAm = 0, sAc = 0, hasAm = false, hasAc = false;
       qx.items.forEach(it => {
-        const k = keyOf(it); if (!keys.has(k)) keys.set(k, { k, desc: it.desc, unit: it.unit, cq: it.cq, pr: it.pr, no: it.no });
+        const k = keyOf(it); if (!keys.has(k)) keys.set(k, { k, desc: it.desc, unit: it.unit, cq: it.cq, pr: it.pr, no: it.no, isNew: it.isNew });
         const K = keys.get(k); if (K.cq == null && it.cq != null) K.cq = it.cq; if (K.pr == null && it.pr != null) K.pr = it.pr;
         const before = prevCum[k] != null ? prevCum[k] : null;
         const cum = it.cm != null ? it.cm : (it.q != null ? (before || 0) + it.q : (it.pq != null ? it.pq : null));
         const cur = it.q != null ? it.q : (it.cm != null && before != null ? +(it.cm - before).toFixed(3) : null);
         const f = [];
-        if (it.pr > 0) {
+        if (it.parts) { const L = { base: 'الكمية الأصلية', w20: 'الزيادة ضمن 20%', o20: 'الزيادة أكثر من 20%' };
+          it.parts.forEach(pp => { if (pp.pr > 0 && pp.q != null && pp.am != null && !eq(pp.q * pp.pr, pp.am)) f.push({ t: 'calc', m: `${L[pp.k]}: ${f3(pp.q)} × ${f0(pp.pr)} = ${f0(pp.q * pp.pr)} والمبلغ ${f0(pp.am)}` }); });
+          const w = it.parts.filter(pp => pp.k === 'w20').reduce((a, pp) => a + (pp.q || 0), 0), o = it.parts.filter(pp => pp.k === 'o20').reduce((a, pp) => a + (pp.q || 0), 0), b = (it.parts[0] || {}).q;
+          if (it.cq > 0 && w > it.cq * 0.2 + 0.001) f.push({ t: 'w20', m: `الزيادة ضمن 20% (${f3(w)}) أكبر من 20% من كمية الكشف (${f3(it.cq * 0.2)})` });
+          if (it.cq > 0 && o > 0 && w < it.cq * 0.2 - 0.001) f.push({ t: 'w20', m: `زيادة أكثر من 20% (${f3(o)}) قبل استيفاء الزيادة ضمن 20% (${f3(w)} من ${f3(it.cq * 0.2)})` });
+          if (it.cq > 0 && b != null && b < it.cq - 0.001 && (w || o)) f.push({ t: 'w20', m: `زيادة على الكمية قبل استيفاء كمية الكشف (${f3(b)} من ${f3(it.cq)})` }); }
+        if (it.pr == null && it.am == null) f.push({ t: 'calc', m: 'الفقرة بلا سعر وبلا مبلغ في الكشف' });
+        if (it.pr > 0 && !it.parts) {
           if (it.cm != null && it.am != null && !eq(it.cm * it.pr, it.am)) f.push({ t: 'calc', m: `الكمية التراكمية × السعر = ${f0(it.cm * it.pr)} والمبلغ ${f0(it.am)}` });
           if (it.q != null && it.ac != null && !eq(it.q * it.pr, it.ac)) f.push({ t: 'calc', m: `الكمية الحالية × السعر = ${f0(it.q * it.pr)} والمبلغ ${f0(it.ac)}` });
           if (it.pq != null && it.ap != null && !eq(it.pq * it.pr, it.ap)) f.push({ t: 'calc', m: `الكمية السابقة × السعر = ${f0(it.pq * it.pr)} والمبلغ ${f0(it.ap)}` });
         }
         if (it.pq != null && it.q != null && it.cm != null && !eqQ(it.pq + it.q, it.cm)) f.push({ t: 'calc', m: `السابقة ${f3(it.pq)} + الحالية ${f3(it.q)} = ${f3(it.pq + it.q)} والتراكمية ${f3(it.cm)}` });
         if (before != null && it.pq != null && !eqQ(it.pq, before)) f.push({ t: 'prev', m: `الكمية السابقة في الكشف ${f3(it.pq)} وتراكمي السلفة السابقة ${f3(before)}` });
-        if (before != null && cum != null && cum < before - 0.0005) f.push({ t: 'drop', m: `الكمية التراكمية نزلت من ${f3(before)} (السلفة ${esc(ord(prevAdv[k]))}) إلى ${f3(cum)} — النقص ${f3(before - cum)}${it.unit ? ' ' + it.unit : ''}`, need: 1 });
-        if (K.cq > 0 && cum != null && cum > K.cq * 1.0005) f.push({ t: 'over', m: `التراكمية ${f3(cum)} تتجاوز كمية العقد ${f3(K.cq)} — تحتاج أمر تغيير`, need: 1 });
-        const am = it.am != null ? it.am : (it.pr > 0 && cum != null ? Math.round(cum * it.pr) : null), ac = it.ac != null ? it.ac : (it.pr > 0 && cur != null ? Math.round(cur * it.pr) : null);
+        if (before != null && cum != null && cum < before - 0.0005) f.push({ t: 'drop', m: `الكمية التراكمية نزلت من ${f3(before)} (السلفة ${esc(ano(prevAdv[k]))}) إلى ${f3(cum)} — النقص ${f3(before - cum)}${it.unit ? ' ' + it.unit : ''}`, need: 1 });
+        if (K.cq > 0 && cum != null && cum > K.cq * 1.0005 && !it.parts) f.push({ t: 'over', m: `التراكمية ${f3(cum)} تتجاوز كمية الكشف ${f3(K.cq)} بلا زيادة مؤشرة بأمر تغيير`, need: 1 });
+        const am = it.am != null ? it.am : (it.pr > 0 && cum != null ? Math.round(cum * it.pr) : null), ac = it.ac != null ? it.ac : null;   // مبلغ السلفة الحالية يُقارن فقط إن ذكره الكشف
         if (am != null) { sAm += am; hasAm = true; } if (ac != null) { sAc += ac; hasAc = true; }
         f.forEach(z => { z.dec = z.need ? decOf(r, a.id, k + '|' + z.t) : null; z.k = k; z.i = i; z.desc = it.desc; iss.push(z); });
         cell[k] = { cum, cur, before, f, it };
         if (cum != null) { prevCum[k] = cum; prevAdv[k] = i; }
       });
-      Object.keys(prevCum).forEach(k => { if (!cell[k] && prevAdv[k] < i && prevCum[k] > 0) { const z = { t: 'gone', m: `الفقرة غير موجودة في كشف هذه السلفة وكان تراكميها ${f3(prevCum[k])} في السلفة ${esc(ord(prevAdv[k]))}`, need: 1, k, i, desc: keys.get(k).desc }; z.dec = decOf(r, a.id, k + '|gone'); iss.push(z); cell[k] = { gone: 1, f: [z] }; } });
+      Object.keys(prevCum).forEach(k => { if (!cell[k] && prevAdv[k] < i && prevCum[k] > 0) { const z = { t: 'gone', m: `الفقرة غير موجودة في كشف هذه السلفة وكان تراكميها ${f3(prevCum[k])} في السلفة ${esc(ano(prevAdv[k]))}`, need: 1, k, i, desc: keys.get(k).desc }; z.dec = decOf(r, a.id, k + '|gone'); iss.push(z); cell[k] = { gone: 1, f: [z] }; } });
       const tAm = qx.tot && qx.tot.am != null ? qx.tot.am : (hasAm ? sAm : null), tAc = qx.tot && qx.tot.ac != null ? qx.tot.ac : (hasAc ? sAc : null), tot = [];
       if (qx.tot && qx.tot.am != null && hasAm && !eq(sAm, qx.tot.am)) tot.push({ ok: 0, m: `مجموع مبالغ الفقرات ${f0(sAm)} ومجموع الكشف ${f0(qx.tot.am)}` });
       if (tAm != null && num(a.cumulative)) tot.push(eq(tAm, num(a.cumulative), 1000) ? { ok: 1, m: `المبلغ التراكمي في الكشف ${f0(tAm)} = التراكمي في البرنامج` } : { ok: 0, m: `المبلغ التراكمي في الكشف ${f0(tAm)} والتراكمي في البرنامج ${f0(a.cumulative)} (فرق ${f0(tAm - num(a.cumulative))})` });
       if (tAc != null && x.net) tot.push(eq(tAc, x.net, 1000) ? { ok: 1, m: `مبلغ السلفة الحالية في الكشف ${f0(tAc)} = الصافي في البرنامج` } : { ok: 0, m: `مبلغ السلفة الحالية في الكشف ${f0(tAc)} والصافي في البرنامج ${f0(x.net)} (فرق ${f0(tAc - x.net)})` });
+      const M = qx.meta || {};
+      if (M.no != null && String(M.no) !== String(ano(i)).trim()) tot.push({ ok: 0, m: `رقم السلفة في الكشف (${M.no}) يختلف عن رقمها في البرنامج (${esc(ano(i))})` });
+      if (M.cum != null && tAm != null && !eq(M.cum, tAm, 1)) tot.push({ ok: 0, m: `مجموع الأعمال المنجزة في خلاصة السلفة ${f0(M.cum)} ومجموع ورقة السلفة ${f0(tAm)}` });
+      if (M.prev != null) { const pc = i > 0 ? num(A[i - 1].cumulative) : (x.prev != null ? x.prev : null);
+        if (pc != null) tot.push(eq(M.prev, pc, 1000) ? { ok: 1, m: `المصروف سابقاً في الخلاصة ${f0(M.prev)} = تراكمي السلفة السابقة` } : { ok: 0, m: `المصروف سابقاً في الخلاصة ${f0(M.prev)} وتراكمي السلفة السابقة في البرنامج ${f0(pc)} (فرق ${f0(M.prev - pc)})` }); }
+      if (M.net != null && x.net) tot.push(eq(M.net, x.net, 1000) ? { ok: 1, m: `مبلغ هذه السلفة في الخلاصة ${f0(M.net)} = الصافي في البرنامج` } : { ok: 0, m: `مبلغ هذه السلفة في الخلاصة ${f0(M.net)} والصافي في البرنامج ${f0(x.net)} (فرق ${f0(M.net - x.net)})` });
       const open = iss.filter(z => !(z.need && z.dec && (z.dec.st === 'ok' || z.dec.st === 'rej'))).length + tot.filter(t => !t.ok).length;
       cols.push({ i, a, qx, cell, iss, tot, open });
     });
@@ -146,7 +170,7 @@
       const p = await readFile(fl);
       if (!p || !p.items.length) { say(`لم تُقرأ فقرات من «${fl.name}»: تأكد أنه كشف السلفة (أعمدة الفقرة والكميات السابقة/الحالية/التراكمية وسعر المفرد والمبلغ).`, true); return null; }
       if (r.advances[i].qx && !confirm(`للسلفة ${ord(i)} كشف محمَّل (${r.advances[i].qx.file}) — استبداله بـ «${fl.name}»؟`)) return null;
-      r.advances[i].qx = { file: fl.name, at: new Date().toISOString(), items: p.items, tot: p.tot, cols: p.cols };
+      r.advances[i].qx = { file: fl.name, at: new Date().toISOString(), items: p.items, tot: p.tot, cols: p.cols, meta: p.meta || {} };
       touch(); ensure(true); const o = openOf(r, i);
       say(`قُرئت ${p.items.length} فقرة من كشف السلفة ${ord(i)}${o ? ` — ${o} ملاحظة للتدقيق` : ' — لا ملاحظات'}`, !!o);
       if (o) show(i); return p;
@@ -166,9 +190,9 @@
       <p style="margin:0 0 8px;color:#475569">لكل سلفة: <b>التراكمية</b> ثم <b>الحالية</b> (تُجمع من السلف السابقة إن لم تُذكر في الكشف). الأحمر ⬇ = نزول الكمية التراكمية عن السلفة السابقة — يُطلب تفسيره أو يُرفض. للتدقيق فقط ولا يغيّر مبالغ السلف.</p>
       ${C.length ? '' : '<p style="color:#b42318">لم يُحمَّل كشف لأي سلفة بعد — اضغط «📎 تحميل كشف السلفة» في السلفة.</p>'}
       <div style="overflow:auto"><table class="aq-t" style="border-collapse:collapse;width:100%;font-size:12.5px"><thead>
-        <tr><th rowspan="2">ت</th><th rowspan="2">الفقرة</th><th rowspan="2">الوحدة</th><th rowspan="2">كمية العقد</th><th rowspan="2">سعر المفرد</th>${C.map(c => `<th colspan="2" style="${c.i === focus ? 'background:#dbeafe' : ''}">السلفة ${esc(ano(c.i))} (${esc(ord(c.i))})<br><small>${esc(c.qx.file)}</small></th>`).join('')}</tr>
+        <tr><th rowspan="2">ت</th><th rowspan="2">الفقرة</th><th rowspan="2">الوحدة</th><th rowspan="2">كمية الكشف (العقد)</th><th rowspan="2">سعر المفرد</th>${C.map(c => `<th colspan="2" style="${c.i === focus ? 'background:#dbeafe' : ''}">السلفة ${esc(ano(c.i))} (${esc(ord(c.i))})<br><small>${esc(c.qx.file)}</small></th>`).join('')}</tr>
         <tr>${C.map(() => '<th>التراكمية</th><th>الحالية</th>').join('')}</tr></thead><tbody>
-        ${Au.keys.map((K, n) => `<tr><td>${esc(K.no || n + 1)}</td><td style="text-align:right;min-width:18em">${esc(K.desc)}</td><td>${esc(K.unit)}</td><td>${f3(K.cq)}</td><td>${f0(K.pr)}</td>${C.map(c => cellH(c, K.k)).join('')}</tr>`).join('')}
+        ${Au.keys.map((K, n) => `<tr><td>${esc(K.no || n + 1)}</td><td style="text-align:right;min-width:18em">${esc(K.desc)}</td><td>${esc(K.unit)}</td><td>${K.cq != null ? f3(K.cq) : K.isNew ? '<small>استحداث</small>' : ''}</td><td>${f0(K.pr)}</td>${C.map(c => cellH(c, K.k)).join('')}</tr>`).join('')}
       </tbody></table></div>
       <h4 style="margin:12px 0 4px">المجاميع والمبالغ</h4>
       ${C.map(c => `<div><b>السلفة ${esc(ord(c.i))}:</b> ${c.tot.length ? c.tot.map(t => `${t.ok ? '<span style="color:#15803d">✓</span>' : '<span style="color:#b42318">⚠</span>'} ${t.m}`).join(' &nbsp;—&nbsp; ') : '<span style="color:#64748b">لا مبالغ في الكشف للمقارنة</span>'}</div>`).join('')}

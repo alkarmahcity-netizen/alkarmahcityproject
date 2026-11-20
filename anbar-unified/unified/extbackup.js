@@ -55,12 +55,14 @@ module.exports = function createExtBackup(ctx) {
         files++;
         try { const b = await copyIfChanged(path.join(src, rel), path.join(mirror, rel)); if (b) { copied++; bytes += b; } } catch (e) { if (e && e.code === 'ENOSPC') throw new Error('لا توجد مساحة كافية في مكان النسخة الاحتياطية'); }
       }
-      // نسخة يومية من ملفات البيانات (صغيرة) — للرجوع إلى يوم سابق
-      const day = new Date().toISOString().slice(0, 10), dd = path.join(base, 'يومي', day);
+      // نسخة يومية بملف واحد لكل الأنظمة («يومي/نسخة-الشؤون-الهندسية_<التاريخ>.zip») — للرجوع إلى يوم سابق؛ تُسترجع من «↺ استرجاع نسخة احتياطية»
+      const day = new Date().toISOString().slice(0, 10), dd = path.join(base, 'يومي');
       await fsp.mkdir(dd, { recursive: true });
-      for (const n of await fsp.readdir(src)) if (/\.json$/i.test(n)) { try { await fsp.copyFile(path.join(src, n), path.join(dd, n)); } catch (_) {} }
+      if (ctx.bundle) await ctx.bundle(path.join(dd, 'نسخة-الشؤون-الهندسية_' + day + '.zip'));
+      else { const d1 = path.join(dd, day); await fsp.mkdir(d1, { recursive: true }); for (const n of await fsp.readdir(src)) if (/\.json$/i.test(n)) { try { await fsp.copyFile(path.join(src, n), path.join(d1, n)); } catch (_) {} } }
       const keep = Math.max(3, +c.keepDays || 30);
-      try { const ds = (await fsp.readdir(path.join(base, 'يومي'))).filter(n => /^\d{4}-\d{2}-\d{2}$/.test(n)).sort(); while (ds.length > keep) await fsp.rm(path.join(base, 'يومي', ds.shift()), { recursive: true, force: true }); } catch (_) {}
+      try { const zs = (await fsp.readdir(dd)).filter(n => /^نسخة-الشؤون-الهندسية_\d{4}-\d{2}-\d{2}\.zip$/.test(n)).sort(); while (zs.length > keep) await fsp.unlink(path.join(dd, zs.shift())); } catch (_) {}
+      try { const ds = (await fsp.readdir(dd)).filter(n => /^\d{4}-\d{2}-\d{2}$/.test(n)).sort(); while (ds.length > keep) await fsp.rm(path.join(dd, ds.shift()), { recursive: true, force: true }); } catch (_) {}
       await fsp.writeFile(path.join(base, 'آخر-نسخة.txt'), `آخر نسخة احتياطية: ${new Date().toLocaleString('en-GB')}\r\nالحاسبة: ${ctx.device()}\r\nإصدار البرنامج: ${ctx.version}\r\nعدد الملفات: ${files}\r\n`, 'utf8');
       save({ lastOk: Date.now(), lastErr: '', copied, bytes, files });
       return { ok: true, copied, files, bytes, folder: base };

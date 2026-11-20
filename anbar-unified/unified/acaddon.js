@@ -22,8 +22,11 @@
   }
   let last = '';
   function push() { try { const s = snap(), j = JSON.stringify(s); if (j === last) return; last = j; if (D.acFlowSnap) D.acFlowSnap(s); } catch (_) {} }
-  push(); setInterval(push, 4000);
-  window.addEventListener('beforeunload', push);
+  /* سجلات الشهادات الأربع كما هي ← نسخة في مجلد البيانات (تدخل النسخة الاحتياطية بملف واحد) */
+  let lastR = '';
+  function pushRecs() { try { const d = {}; for (const [t, k] of Object.entries(TYPES)) d[t] = localStorage.getItem(k); const j = JSON.stringify(d); if (j === lastR) return; lastR = j; if (D.acRecsSave) D.acRecsSave(d); } catch (_) {} }
+  push(); pushRecs(); setInterval(() => { push(); pushRecs(); }, 4000);
+  window.addEventListener('beforeunload', () => { push(); pushRecs(); });
 
   /* ---------- 2) رمز QR مقابل المطبوع ---------- */
   const T = (() => { try { return typeof KEY !== 'undefined' ? Object.keys(TYPES).find(t => TYPES[t] === KEY) : null; } catch (_) { return null; } })();   // KEY: مفتاح سجلات الصفحة

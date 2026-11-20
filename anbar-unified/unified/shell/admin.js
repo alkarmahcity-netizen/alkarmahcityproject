@@ -17,7 +17,7 @@
   const mkOv = (id, html) => { let o = $(id); if (!o) { o = document.createElement('div'); o.className = 'ov'; o.id = id; o.hidden = true; document.body.appendChild(o); } o.innerHTML = html; return o; };
   const open = id => { if (typeof openOv === 'function') openOv(id); else $(id).hidden = false; };
   const close = id => { if (typeof closeOv === 'function') closeOv(id); else $(id).hidden = true; };
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') for (const id of ['xbOv', 'pzOv']) if ($(id) && !$(id).hidden) { close(id); break; } });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') for (const id of ['xbOv', 'pzOv', 'rbOv']) if ($(id) && !$(id).hidden) { close(id); break; } });
 
   /* ---------- النسخ الاحتياطي الخارجي ---------- */
   function xbHtml(st) {
@@ -31,8 +31,8 @@
       <label class="ml">مكان النسخة<div style="display:flex;gap:6px"><input id="xbDest" value="${esc(st.dest)}" readonly style="direction:ltr;flex:1" placeholder="لم يُختر"><button class="btn" id="xbPick" type="button">📂 اختيار…</button></div></label>
       <label class="ml">الاحتفاظ بالنسخ اليومية (أيام)<input id="xbKeep" inputmode="numeric" value="${esc(st.keepDays)}" style="width:90px;text-align:center"></label>
       <div class="adm-box">${status}${st.dest && st.lastOk ? `<br><small>عدد الملفات: ${st.files} — نُسخ في آخر مرة: ${st.copied} ملف (${mb(st.bytes)})</small>` : ''}${st.folder ? `<br><small style="direction:ltr;display:inline-block">${esc(st.folder)}</small>` : ''}</div>
-      <p class="hint">المجلد: «نسخة-نظام-الشؤون-الهندسية» ← اسم هذه الحاسبة ← «الأحدث» (صورة كاملة لمجلد البيانات) و«يومي» (ملفات البيانات لكل يوم). للاسترجاع: انسخ محتوى «الأحدث» إلى مجلد البيانات، أو استوردها من «📥 استيراد ملفات JSON». إن لم تُعمل النسخة يومين يظهر تنبيه أحمر أعلى البرنامج.</p>
-      <div class="row"><button class="btn" id="xbNo">إغلاق</button>${st.dest ? '<button class="btn" id="xbOpen">📁 فتح مجلد النسخة</button>' : ''}<button class="btn pri" id="xbRun"${st.dest ? '' : ' disabled'}>💾 نسخ الآن</button></div></div>`;
+      <p class="hint">المجلد: «نسخة-نظام-الشؤون-الهندسية» ← اسم هذه الحاسبة ← «الأحدث» (صورة كاملة لمجلد البيانات) و«يومي» (ملف واحد لكل يوم يضم كل الأنظمة). للاسترجاع: «↺ استرجاع نسخة…». إن لم تُعمل النسخة يومين يظهر تنبيه أحمر أعلى البرنامج.</p>
+      <div class="row"><button class="btn" id="xbNo">إغلاق</button>${D.bkList ? '<button class="btn" id="xbRestore">↺ استرجاع نسخة…</button>' : ''}${st.dest ? '<button class="btn" id="xbOpen">📁 فتح مجلد النسخة</button>' : ''}<button class="btn pri" id="xbRun"${st.dest ? '' : ' disabled'}>💾 نسخ الآن</button></div></div>`;
   }
   function xbShow() {
     const o = mkOv('xbOv', xbHtml(D.xbGet())); open('xbOv');
@@ -41,6 +41,7 @@
       if (b.id === 'xbNo') return close('xbOv');
       if (b.id === 'xbPick') { const d = await D.xbPick(); if (d) { await D.xbSet({ dest: d, keepDays: +$('xbKeep').value || 30 }); o.innerHTML = xbHtml(D.xbGet()); fl('اختير مكان النسخة الاحتياطية — اضغط «نسخ الآن» للنسخة الأولى'); } return; }
       if (b.id === 'xbOpen') return D.xbOpen();
+      if (b.id === 'xbRestore') { close('xbOv'); return rbShow(); }
       if (b.id === 'xbRun') { await D.xbSet({ keepDays: +$('xbKeep').value || 30 }); b.disabled = true; o.innerHTML = xbHtml(Object.assign(D.xbGet(), { running: true }));
         const r = await D.xbRun(); o.innerHTML = xbHtml(D.xbGet()); fl(r && r.ok ? `✔ تمت النسخة الاحتياطية: ${r.copied} ملف جديد أو معدّل من ${r.files}` : '✗ ' + ((r && r.msg) || 'تعذّرت النسخة'), !(r && r.ok)); banner(D.xbGet()); }
     };
@@ -111,6 +112,41 @@
     };
   }
   if (D.onUpd) { D.onUpd(updBar); setTimeout(() => updBar(D.updGet()), 6000); }
-  if (D.onCmd) D.onCmd(c => { if (c === 'xbackup') xbShow(); else if (c === 'peers') pzShow(); });
-  window.AnbarAdmin = { xbShow, pzShow, banner: () => banner(D.xbGet()), updBar: () => updBar(D.updGet()) };
+  /* ---------- ↺ استرجاع نسخة احتياطية / 💾 حفظ نسخة كاملة (ملف واحد لكل الأنظمة) ---------- */
+  let rbL = [], rbSel = null, rbInfo = null;
+  const dmy = s => { const d = new Date(s); if (isNaN(d)) return String(s || '').slice(0, 10); return d.getDate() + '/' + (d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
+  function rbHtml() {
+    const rows = rbL.map(x => `<tr class="rb-r${rbSel === x.key ? ' on' : ''}" data-rb="${x.key}" style="cursor:pointer${rbSel === x.key ? ';background:rgba(31,107,58,.12)' : ''}"><td><input type="radio" name="rbk" ${rbSel === x.key ? 'checked' : ''}></td>
+      <td dir="ltr" style="text-align:right">${esc(dmy(x.at))}</td><td>${esc(x.where)}${x.safe ? ' <small class="adm-warn">(قبل استرجاع سابق)</small>' : ''}${x.legacy ? ' <small>(قديمة: ملف لكل نظام)</small>' : ''}</td>
+      <td>${Object.keys(x.sys || {}).length} نظاماً${x.attachments ? ' + مرفقات الأرشيف' : ''}</td><td>${x.size ? mb(x.size) : ''}</td></tr>`).join('');
+    const det = !rbInfo ? '<p class="hint">اختر نسخة من القائمة لتظهر أنظمتها.</p>' : rbInfo.error ? `<div class="adm-box adm-bad">${esc(rbInfo.error)}</div>`
+      : `<table class="adm-t"><thead><tr><th><input type="checkbox" id="rbAll" checked></th><th>النظام</th><th>السجلات في النسخة</th><th>السجلات الآن</th></tr></thead><tbody>${rbInfo.rows.map(r => `<tr${r.has ? '' : ' style="opacity:.45"'}><td><input type="checkbox" data-rbs="${r.id}" ${r.has ? 'checked' : 'disabled'}></td><td>${esc(r.t)}${r.arf ? ` <small>(${r.arf} ملف مرفق)</small>` : ''}</td><td>${r.has ? (r.inB == null ? '✓' : r.inB) : '—'}</td><td>${r.now == null ? '—' : r.now}</td></tr>`).join('')}</tbody></table>`;
+    return `<div class="dlg" style="width:min(820px,100%);max-height:92vh;overflow:auto"><h3>↺ استرجاع نسخة احتياطية</h3>
+      <p class="hint" style="margin-top:0">كل نسخة <b>ملف واحد</b> يضم كل الأنظمة. اختر النسخة، ثم الأنظمة التي تُسترجع. قبل الاسترجاع يحفظ البرنامج تلقائياً نسخة «قبل الاسترجاع» من الحالة الحالية، فيمكن التراجع باسترجاعها.</p>
+      <div style="max-height:260px;overflow:auto;border:1px solid var(--line,#ddd);border-radius:8px"><table class="adm-t" style="margin:0"><thead><tr><th></th><th>التاريخ</th><th>المكان</th><th>المحتوى</th><th>الحجم</th></tr></thead><tbody>${rows || '<tr><td colspan="5">لا توجد نسخ بعد — تُعمل أول نسخة يومية بعد دقيقة من تشغيل البرنامج.</td></tr>'}</tbody></table></div>
+      <div class="row" style="justify-content:flex-start"><button class="btn" id="rbPick">📂 ملف نسخة آخر…</button><button class="btn" id="rbSave">💾 حفظ نسخة كاملة الآن (ملف واحد)</button></div>
+      ${det}
+      ${rbInfo && !rbInfo.error ? `<label class="ml">كلمة سر المدير (للاسترجاع)<input id="rbPw" type="password" autocomplete="off" style="width:220px"></label>
+      <p class="hint">السجلات في الأنظمة المختارة تُستبدل بما في النسخة. إن كانت الحاسبة متزامنة مع حاسبات أخرى فقد تعيد المزامنة إليها التعديلات الأحدث الموجودة على تلك الحاسبات.</p>` : ''}
+      <div class="row"><button class="btn" id="rbNo">إغلاق</button>${rbInfo && !rbInfo.error ? '<button class="btn pri" id="rbGo">↺ استرجاع الأنظمة المحددة</button>' : ''}</div></div>`;
+  }
+  async function rbShow() { rbSel = null; rbInfo = null; const L = await D.bkList(); rbL = Array.isArray(L) ? L : []; const o = mkOv('rbOv', rbHtml()); open('rbOv');
+    o.onclick = async e => { const b = e.target.closest('button'), tr = e.target.closest('[data-rb]');
+      if (e.target === o) return close('rbOv');
+      if (tr && !b) { rbSel = +tr.dataset.rb; rbInfo = { rows: [] }; o.innerHTML = rbHtml(); rbInfo = await D.bkInspect(rbSel); o.innerHTML = rbHtml(); return; }
+      if (e.target.id === 'rbAll') { o.querySelectorAll('[data-rbs]:not([disabled])').forEach(c => { c.checked = e.target.checked; }); return; }
+      if (!b) return;
+      if (b.id === 'rbNo') return close('rbOv');
+      if (b.id === 'rbPick') { const k = await D.bkPick(); if (k == null) return; rbL.push({ key: k, where: 'ملف مختار', at: '', size: 0, sys: {} }); rbSel = k; rbInfo = await D.bkInspect(k); o.innerHTML = rbHtml(); return; }
+      if (b.id === 'rbSave') { const r = await D.bkSave(true); if (r && r.ok) fl('✔ حُفظت نسخة كاملة بملف واحد: ' + r.file + ' (' + mb(r.size) + ')'); else if (r && r.error) fl('✗ ' + r.error, true); return; }
+      if (b.id === 'rbGo') { const ids = [...o.querySelectorAll('[data-rbs]:checked')].map(c => c.dataset.rbs); if (!ids.length) return fl('اختر نظاماً واحداً على الأقل', true);
+        const x = rbL.find(y => y.key === rbSel) || {};
+        if (!confirm(`استرجاع ${ids.length} نظاماً من نسخة ${dmy(x.at)}؟\nستُستبدل السجلات الحالية لهذه الأنظمة بما في النسخة (تُحفظ قبلها نسخة «قبل الاسترجاع»).`)) return;
+        b.disabled = true; b.textContent = '⏳ جارٍ الاسترجاع…'; const r = await D.bkRestore(rbSel, ids, ($('rbPw') || {}).value || '');
+        if (r && r.ok) { close('rbOv'); fl(`✔ استُرجع ${r.done.length} نظاماً${r.skipped.length ? ' — لم يُسترجع: ' + r.skipped.join('، ') : ''}. تُعاد تهيئة البرنامج…`); }
+        else { b.disabled = false; b.textContent = '↺ استرجاع الأنظمة المحددة'; fl('✗ ' + ((r && r.error) || 'تعذّر الاسترجاع'), true); } } };
+  }
+  async function bkSave() { const r = await D.bkSave(true); if (r && r.ok) fl('✔ حُفظت نسخة كاملة بملف واحد: ' + r.file + ' (' + mb(r.size) + ')'); else if (r && r.error) fl('✗ ' + r.error, true); }
+  if (D.onCmd) D.onCmd(c => { if (c === 'xbackup') xbShow(); else if (c === 'peers') pzShow(); else if (c === 'restore' && D.bkList) rbShow(); else if (c === 'bksave' && D.bkSave) bkSave(); });
+  window.AnbarAdmin = { xbShow, pzShow, rbShow, bkSave, banner: () => banner(D.xbGet()), updBar: () => updBar(D.updGet()) };
 })();

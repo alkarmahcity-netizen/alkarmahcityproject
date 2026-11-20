@@ -37,6 +37,8 @@ contextBridge.exposeInMainWorld('desktop', {
   fullscreen: on => ipcRenderer.invoke('ui:fullscreen', on),
   onFs: cb => ipcRenderer.on('ui:fs', (_e, v) => cb(v)),
   onCmd: cb => ipcRenderer.on('ui:cmd', (_e, c) => cb(c)),
+  bkList: () => ipcRenderer.invoke('bk:list'), bkPick: () => ipcRenderer.invoke('bk:pick'), bkInspect: k => ipcRenderer.invoke('bk:inspect', k),
+  bkSave: withFiles => ipcRenderer.invoke('bk:save', withFiles), bkRestore: (k, ids, pw) => ipcRenderer.invoke('bk:restore', k, ids, pw),
   xbGet: () => ipcRenderer.sendSync('xb:get'),
   xbSet: c => ipcRenderer.invoke('xb:set', c),
   xbRun: () => ipcRenderer.invoke('xb:run'),

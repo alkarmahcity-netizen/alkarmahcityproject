@@ -40,5 +40,5 @@ function open(L){ensure();openOv('jiOv');if(L){list=L;render();}else run(()=>win
 window.__jsonImport={open,list:()=>list};
 if(window.desktop&&window.desktop.onJsonFound)window.desktop.onJsonFound(L=>open(L));
 /* زر في الصفحة الرئيسية */
-const info=$('homeInfo');if(info&&window.desktop&&window.desktop.jsonScan){const b=document.createElement('div');b.style.cssText='margin-top:10px;text-align:center';b.innerHTML='<button class="btn" id="bJsonImp" title="البحث في الحاسبة عن ملفات الأنظمة واستيرادها">📥 استيراد ملفات JSON من الحاسبة (نسخ احتياطية وبرامج قديمة)</button>';info.after(b);$('bJsonImp').onclick=()=>open();}
+const info=$('homeInfo');if(info&&window.desktop&&window.desktop.jsonScan){const b=document.createElement('div');b.style.cssText='margin-top:10px;text-align:center';b.innerHTML='<button class="btn" id="bJsonImp" title="البحث في الحاسبة عن ملفات الأنظمة واستيرادها">📥 استيراد ملفات JSON من الحاسبة (نسخ احتياطية وبرامج قديمة)</button><button class="btn" id="bRestoreBk" title="استرجاع نسخة احتياطية (ملف واحد لكل الأنظمة)" style="margin-inline-start:6px">↺ استرجاع نسخة احتياطية</button>';info.after(b);$('bJsonImp').onclick=()=>open();const rb=$('bRestoreBk');if(rb)rb.onclick=()=>{if(window.AnbarAdmin&&window.AnbarAdmin.rbShow)window.AnbarAdmin.rbShow();};}
 })();

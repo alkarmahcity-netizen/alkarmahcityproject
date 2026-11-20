@@ -91,19 +91,19 @@ function atomicWrite(file, text) {
   try { if (fs.existsSync(file)) fs.copyFileSync(file, file + '.bak'); } catch (_) {}
   fs.renameSync(tmp, file);
 }
+/* النسخة اليومية الداخلية: ملف واحد لكل الأنظمة في اليوم («backups/نسخة-الشؤون-الهندسية_<التاريخ>.zip»، آخر 15 يوماً) — backupset.js.
+   تُعمل بعد التشغيل بدقيقة (لا تؤخر فتح البرنامج)، وتُحدَّث كل ساعتين إن تغيّرت البيانات، فتحمل آخر عمل اليوم */
+let bs = null, bsLast = 0;
+const ACR_FILE = () => path.join(dataDir, 'Acceptance-Records.json');   // نسخة من سجلات شهادات الاستلام (تُخزَّن في نافذة الاستلام نفسها)
+const bsEnsure = () => { if (!bs) bs = require('./backupset')({ dataDir: () => dataDir, version: APP_VER(), keep: MAX_BACKUPS, device: () => deviceName(),
+  file: ds => ds === 'acr' ? ACR_FILE() : (APPS[ds] || EXTRA_DATA[ds]) ? dataFile(ds) : null, regFile: () => regFile(), archDir: () => archDir(), planDir: () => path.join(dataDir, 'planning'),
+  extDirs: () => { try { const st = xbEnsure().state(); const d = st.folder ? path.join(st.folder, 'يومي') : ''; return d && fs.existsSync(d) ? [d] : []; } catch (_) { return []; } },
+  write: (f, t) => atomicWrite(f, t) }); return bs; };
 function dailyBackup() {
-  try {
-    const bdir = path.join(dataDir, 'backups'); fs.mkdirSync(bdir, { recursive: true });
-    const day = new Date().toISOString().slice(0, 10);
-    for (const id of ['co', 'du', 'ad', 'in', 'lt', 'fu', 'ar', 'wf', 'dm', 'cm', 'fv']) {
-      const f = dataFile(id); if (!fs.existsSync(f)) continue;
-      const base = APPS[id].data.replace(/\.json$/, '');
-      const target = path.join(bdir, `${base}_${day}.json`);
-      if (!fs.existsSync(target)) fs.copyFileSync(f, target);
-      const all = fs.readdirSync(bdir).filter(n => n.startsWith(base + '_')).sort();
-      while (all.length > MAX_BACKUPS) fs.unlinkSync(path.join(bdir, all.shift()));
-    }
-  } catch (_) {}
+  const run = force => bsEnsure().daily(force).then(() => { bsLast = Date.now(); }).catch(e => logError('backup', String(e && e.message || e)));
+  setTimeout(() => run(false), +process.env.UNI_BK_FIRST_MS || 60000);
+  setInterval(() => { try { const z = path.join(dataDir, 'backups', bsEnsure().PREFIX + new Date().toISOString().slice(0, 10) + '.zip'); const zt = fs.existsSync(z) ? fs.statSync(z).mtimeMs : 0;
+    const changed = Object.keys(APPS).concat(Object.keys(EXTRA_DATA)).some(id => { try { return fs.statSync(dataFile(id)).mtimeMs > zt; } catch (_) { return false; } }); if (changed) run(true); } catch (_) {} }, 2 * 3600 * 1000);
 }
 // أول تشغيل: إن وُجد ملف بيانات قديم للنظام المستقل بجانب البرنامج أو في «المستندات» يُنسخ إلى مجلد البيانات الموحد
 function legacyCandidates(id) {
@@ -305,7 +305,9 @@ function saveAsync(id, text) {
     return ok;
   })();
 }
-ipcMain.handle('data:save', (_e, id, text) => { try { if (!okId(id) || !looksJson(text)) return false; return saveAsync(id, text); } catch (_) { return false; } });
+/* بعد استرجاع نسخة احتياطية: صفحة النظام المفتوحة تحمل البيانات القديمة في ذاكرتها — يُتجاهل حفظها لثوانٍ حتى تُعاد بالبيانات المسترجعة */
+const bkHold = {}; const held = id => (bkHold[id] || 0) > Date.now();
+ipcMain.handle('data:save', (_e, id, text) => { try { if (!okId(id) || !looksJson(text)) return false; if (held(id)) return true; return saveAsync(id, text); } catch (_) { return false; } });
 /* لجنة السلف: إزالة ملفات الأرشيف القديم المستوردة (معرّفاتها oldadv…) دفعة واحدة — شاهد حذف لكل ملف (يُحذف من كل الحاسبات بالمزامنة)،
    وقيد واحد في سجل التعديلات بدل قيد لكل ملف. الاستمارات المُدخلة في البرنامج لا تُمس. */
 ipcMain.handle('ad:purgeLegacy', e => {
@@ -538,7 +540,7 @@ ipcMain.handle('finx:link', (_e, fileNo, fid) => { fileNo = String(fileNo || '')
   if (fid === undefined) delete L[fileNo]; else L[fileNo] = fid === null ? '' : String(fid); p.financeLinks = L; atomicWrite(prefsFile(), JSON.stringify(p));
   audit.note('sit', 'finlink', `ربط الاضبارة ${fileNo} ${fid ? 'بمشروع المالية ' + fid : fid === null ? ': لا يوجد مقابل في المالية' : ': إعادة الربط التلقائي'}`).catch(() => {}); return true; });
 ipcMain.handle('co:accessImport', e => accessImport('co', e));
-ipcMain.on('data:saveSync', (e, id, text) => { try { if (!okId(id)) throw 0; if (e.sender && e.sender.__bgLinks) { e.returnValue = true; return; }   /* نسخة الخلفية لملخص الموقف تُغلق بلا حفظ */ JSON.parse(text); { const q = saveGen(id); q.next = null; q.syncAfter = ++q.gen; }   // حفظ الإغلاق هو الأحدث: لا تكتب فوقه كتابة غير متزامنة قديمة
+ipcMain.on('data:saveSync', (e, id, text) => { try { if (!okId(id)) throw 0; if (held(id)) { e.returnValue = true; return; } if (e.sender && e.sender.__bgLinks) { e.returnValue = true; return; }   /* نسخة الخلفية لملخص الموقف تُغلق بلا حفظ */ JSON.parse(text); { const q = saveGen(id); q.next = null; q.syncAfter = ++q.gen; }   // حفظ الإغلاق هو الأحدث: لا تكتب فوقه كتابة غير متزامنة قديمة
   const old = AUDITED.has(id) ? readData(id) : null; atomicWrite(dataFile(id), text); auditSave(id, old, text); if (sync) sync.changed(); flowSoon(id); e.returnValue = true; } catch (_) { e.returnValue = false; } });
 // قراءة فقط لملف نظام آخر (يستعملها «إطلاق التأمينات» لسحب بيانات المشروع من لجنة السلف)
 ipcMain.on('data:peek', (e, id) => { e.returnValue = okId(id) ? readData(id) : null; });
@@ -647,10 +649,30 @@ ipcMain.on('sync:mode', e => { try { e.returnValue = sync ? (sync.getConfig() ||
 /* لجنة تسجّل الدخول على جهاز عميل: تُحذف من هذا الجهاز مرفقات الكتب التي ليست في صندوقها */
 ipcMain.handle('arch:purge', (_e, keep) => { const K = new Set((keep || []).map(String)); let n = 0; try { for (const d of fs.readdirSync(archDir())) if (okRec(d) && !K.has(d)) { fs.rmSync(path.join(archDir(), d), { recursive: true, force: true }); n++; } } catch (_) {} return n; });
 ipcMain.on('device:name', e => { let n = ''; try { n = (sync && sync.getConfig && (sync.getConfig() || {}).name) || ''; } catch (_) {} e.returnValue = n || require('os').hostname(); });
+/* ---------- النسخة الاحتياطية بملف واحد واسترجاعها ---------- */
+let bkList = [];
+ipcMain.handle('bk:list', async () => { try { bkList = await bsEnsure().list(); return bkList.map((x, i) => ({ key: i, where: x.where, at: x.at, size: x.size, safe: !!x.safe, legacy: x.kind === 'legacy', attachments: x.attachments, sys: x.sys, device: x.device || '', name: x.file ? path.basename(x.file) : '' })); } catch (e) { return { error: String(e && e.message || e) }; } });
+ipcMain.handle('bk:pick', async () => { const f = process.env.UNI_TEST_BK_FILE || ((await dialog.showOpenDialog(win, { title: 'اختر ملف النسخة الاحتياطية', filters: [{ name: 'نسخة احتياطية', extensions: ['zip'] }], properties: ['openFile'] })).filePaths || [])[0];
+  if (!f) return null; bkList.push({ kind: 'zip', file: f, where: 'ملف مختار', at: '', size: 0, sys: {} }); return bkList.length - 1; });
+ipcMain.handle('bk:inspect', async (_e, key) => { const it = bkList[+key]; if (!it) return { error: 'النسخة غير موجودة' }; try { return await bsEnsure().inspect(it); } catch (e) { return { error: String(e && e.message || e) }; } });
+ipcMain.handle('bk:save', async (_e, withFiles) => { try { const name = bsEnsure().PREFIX + new Date().toISOString().slice(0, 10) + (withFiles ? '-كاملة' : '') + '.zip'; const f = await askPath(name); if (!f) return { cancel: true };
+  const r = await bsEnsure().writeTo(f, { attachments: !!withFiles }); return { ok: true, file: r.file, size: r.size }; } catch (e) { return { error: String(e && e.message || e) }; } });
+ipcMain.handle('bk:restore', async (_e, key, ids, pw) => { const it = bkList[+key]; if (!it) return { error: 'النسخة غير موجودة' };
+  const m = checkMaster(pw); if (m !== true) return { error: m === 'wait' ? 'محاولات كثيرة — انتظر دقيقة' : 'كلمة سر المدير غير صحيحة' };
+  { const until = Date.now() + 15000; for (const g of bsEnsure().GROUPS) if ((ids || []).includes(g.id)) for (const ds of g.ds) bkHold[ds] = until; }
+  try { const r = await bsEnsure().restore(it, (ids || []).map(String), { after: async (g, o) => {
+      if (g.id === 'ac' && o.data.acr) { try { const d = JSON.parse(o.data.acr); await acEval(`(()=>{const d=${JSON.stringify(d)};for(const k of ['pac','pap','fac','fpa']){if(typeof d[k]==='string')localStorage.setItem(k+'_records_v1',d[k]);else localStorage.removeItem(k+'_records_v1');}return 1})()`); } catch (e) { logError('bk:ac', String(e && e.message || e)); } } } });
+    audit.note('home', 'restore', `استرجاع نسخة احتياطية (${it.file ? path.basename(it.file) : it.at}) للأنظمة: ${r.done.join('، ')}`).catch(() => {});
+    if (sync) try { sync.changed(); } catch (_) {}
+    setTimeout(() => { for (const id of Object.keys(views)) { try { const wc = views[id].webContents; if (bkHold[id]) wc.once('did-finish-load', () => setTimeout(() => { delete bkHold[id]; }, 1500)); wc.reload(); } catch (_) {} } try { flowNotify(); } catch (_) {} try { if (win && !win.isDestroyed()) win.webContents.reload(); } catch (_) {} }, 400);
+    return Object.assign({ ok: true }, r); } catch (e) { return { error: String(e && e.message || e) }; } });
+/* سجلات شهادات الاستلام: نسخة في مجلد البيانات (تدخل النسخ الاحتياطية) كلما تغيّرت في نافذة الاستلام */
+ipcMain.handle('ac:recs', (e, d) => { try { if (!views.ac || e.sender !== views.ac.webContents || !d || typeof d !== 'object') return false; const o = {}; for (const k of ['pac', 'pap', 'fac', 'fpa']) o[k] = typeof d[k] === 'string' ? d[k] : null;
+  const t = JSON.stringify(o); let old = ''; try { old = fs.readFileSync(ACR_FILE(), 'utf8'); } catch (_) {} if (old !== t) atomicWrite(ACR_FILE(), t); return true; } catch (_) { return false; } });
 /* ---------- النسخ الاحتياطي الخارجي (فلاشة / قرص ثانٍ / مجلد شبكة) ---------- */
 const deviceName = () => { let n = ''; try { n = (sync && sync.getConfig && (sync.getConfig() || {}).name) || ''; } catch (_) {} return n || require('os').hostname(); };
 let xb = null;
-const xbEnsure = () => { if (!xb) xb = require('./extbackup')({ dataDir: () => dataDir, device: deviceName, version: APP_VER(),
+const xbEnsure = () => { if (!xb) xb = require('./extbackup')({ dataDir: () => dataDir, device: deviceName, version: APP_VER(), bundle: f => bsEnsure().writeTo(f, { attachments: false }),
   getCfg: () => prefs().extBackup || {}, setCfg: c => { try { const p = prefs(); p.extBackup = c; atomicWrite(prefsFile(), JSON.stringify(p)); } catch (_) {} },
   onState: st => { try { if (win && !win.isDestroyed()) win.webContents.send('xb:state', st); } catch (_) {} } }); return xb; };
 ipcMain.on('xb:get', e => { e.returnValue = xbEnsure().state(); });
@@ -1309,6 +1331,8 @@ else {
         { label: 'المزامنة بين أجهزة اللجان', click: () => uiCmd('sync') },
         { label: 'حالة الحاسبات المتصلة بحاسبة القسم', click: () => uiCmd('peers') },
         { label: 'النسخ الاحتياطي الخارجي (فلاشة / قرص ثانٍ)', click: () => uiCmd('xbackup') },
+        { label: '↺ استرجاع نسخة احتياطية', click: () => uiCmd('restore') },
+        { label: '💾 حفظ نسخة احتياطية كاملة (ملف واحد)', click: () => uiCmd('bksave') },
         { type: 'separator' },
         { label: 'قفل كل الأنظمة', accelerator: 'CmdOrCtrl+L', click: () => uiCmd('lock') },
         { label: 'تغيير كلمات السر', click: () => uiCmd('pw') },

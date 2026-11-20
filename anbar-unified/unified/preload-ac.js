@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld('desktop', {
   flowSet: (key, patch) => ipcRenderer.invoke('wf:set', key, patch),
   onFlow: cb => ipcRenderer.on('wf:changed', () => cb()),
   acFlowSnap: snap => ipcRenderer.invoke('ac:flowSnap', snap),
+  acRecsSave: d => ipcRenderer.invoke('ac:recs', d),
   /* Google Drive لبريد القسم: إصدار الشهادة ورفع PDF تلقائياً */
   gdStatus: () => ipcRenderer.invoke('gd:status'), gdSetApp: (id, sec) => ipcRenderer.invoke('gd:setApp', id, sec), gdConnect: hint => ipcRenderer.invoke('gd:connect', hint),
   gdDisconnect: () => ipcRenderer.invoke('gd:disconnect'), gdReserve: name => ipcRenderer.invoke('gd:reserve', name), gdUpload: (id, name) => ipcRenderer.invoke('gd:upload', id, name)

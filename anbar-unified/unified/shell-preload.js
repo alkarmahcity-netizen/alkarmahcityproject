@@ -65,7 +65,7 @@ contextBridge.exposeInMainWorld('desktop', {
   jsonApply: files => ipcRenderer.invoke('jsonimp:apply', files),
   onJsonFound: cb => ipcRenderer.on('jsonimp:found', (_e, L) => cb(L)),
   finUnlock: (pw, always) => ipcRenderer.invoke('fin:unlock', pw, always),
-  plan: { get: () => ipcRenderer.invoke('pl:get'), import: () => ipcRenderer.invoke('pl:import'), export: (u, o) => ipcRenderer.invoke('pl:export', u, o), clean: o => ipcRenderer.invoke('pl:clean', o), cmpOpen: projects => ipcRenderer.invoke('pl:cmpOpen', projects), cmpSave: o => ipcRenderer.invoke('pl:cmpSave', o) },
+  plan: { get: () => ipcRenderer.invoke('pl:get'), import: () => ipcRenderer.invoke('pl:import'), export: (u, o) => ipcRenderer.invoke('pl:export', u, o), clean: o => ipcRenderer.invoke('pl:clean', o), cmpOpen: projects => ipcRenderer.invoke('pl:cmpOpen', projects), cmpSave: o => ipcRenderer.invoke('pl:cmpSave', o), apSet: m => ipcRenderer.send('pl:apSet', m) },
   finx: { get: () => ipcRenderer.invoke('finx:get'), choose: () => ipcRenderer.invoke('finx:choose'), link: (fileNo, fid) => ipcRenderer.invoke('finx:link', fileNo, fid), search: () => ipcRenderer.invoke('finx:search'), onProgress: cb => ipcRenderer.on('finx:progress', (_e, s) => cb(s)) },
   finHide: () => ipcRenderer.invoke('fin:hide'),
   onFin: cb => ipcRenderer.on('fin:state', (_e, s) => cb(s)),

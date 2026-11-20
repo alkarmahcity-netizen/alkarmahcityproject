@@ -32,7 +32,8 @@ const PORT = 48475, GPORT = 48476;
     s.writeHead(404); s.end('{}'); }); });
   await new Promise(r => gsrv.listen(GPORT, '127.0.0.1', r));
   const GB = `http://127.0.0.1:${GPORT}`;
-  const app = await electron.launch({ executablePath: require('electron'), args: ['--no-sandbox', __dirname], env: { ...process.env, UNI_MULTI: mk('u'), UNI_DATA_DIR: mk('d'), ANBAR_REG_DIR: mk('r'), UNI_AC_PORT: String(PORT), UNI_NO_JSONSCAN: '1', UNI_NO_LINKREFRESH: '1', UNI_GD_API: GB, UNI_GD_AUTH: GB + '/auth', UNI_GD_TOKEN: GB + '/token' } });
+  const DD = mk('d'); if (!process.env.UNI_TEST_AC_PW) fs.writeFileSync(path.join(DD, 'auth.json'), JSON.stringify({ ac: null }));   // قفل الاستلام مُعطّل في مجلد بيانات الاختبار المؤقت فقط
+  const app = await electron.launch({ executablePath: require('electron'), args: ['--no-sandbox', __dirname], env: { ...process.env, UNI_MULTI: mk('u'), UNI_DATA_DIR: DD, ANBAR_REG_DIR: mk('r'), UNI_AC_PORT: String(PORT), UNI_NO_JSONSCAN: '1', UNI_NO_LINKREFRESH: '1', UNI_GD_API: GB, UNI_GD_AUTH: GB + '/auth', UNI_GD_TOKEN: GB + '/token' } });
   const pg = await app.firstWindow(); await pg.waitForLoadState('domcontentloaded'); await sleep(1500);
   if (process.env.UNI_TEST_AC_PW) await pg.evaluate(pw => window.desktop.unlock('ac', pw), process.env.UNI_TEST_AC_PW);
   await pg.evaluate(() => window.desktop.go('ac')); await sleep(2500);

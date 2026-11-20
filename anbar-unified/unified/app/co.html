@@ -13937,7 +13937,7 @@ const cmDate=m=>{const d=String(m.date||(m.entry&&m.entry.date)||'');if(/^\d{4}-
 const cmDmy=x=>{const [y,mo,d]=String(x).split('-');return `${d}/${mo}/${y}`;};
 function renderCoMemos(){const box=document.getElementById('coMemos'),D=window.desktop;if(!box)return;if(!(D&&D.go&&D.peek)){box.hidden=true;return;}
   const r=R();if(!r){box.hidden=true;return;}const fn=String(r.project&&r.project.fileNo||'').trim(),L=cmMemosOf(fn).sort((a,b)=>cmDate(a)<cmDate(b)?-1:1);box.hidden=false;
-  box.innerHTML=`<b>📝 مطالعات لجنة أوامر التغيير لهذا المشروع</b>${L.length?L.map(m=>{const sub=String(m.subject||'').trim(),bd=String(m.body||'').replace(/\s+/g,' ').trim();return `<button type="button" class="cm-it" data-cmopen="${esc(m.id)}" title="${esc(bd.slice(0,200))}"><span>${esc(sub&&sub!=='مطالعة'?sub:'مطالعة')}${/^order:\d+$/.test(String(m.ltEv||''))?' — أمر '+(+String(m.ltEv).slice(6)+1):''}</span><small dir="ltr">${cmDmy(cmDate(m))}</small>${m.no?`<small>العدد ${esc(m.no)}</small>`:''}</button>`;}).join(''):`<span class="cm-none">${fn?'لا توجد مطالعات بعد.':'اكتب رقم الاضبارة في بيانات المشروع لتُربط المطالعات به.'}</span>`}<button type="button" class="btn sm cm-add" data-cmnew="1">+ مطالعة</button><button type="button" class="btn sm cm-add" data-cmapp="1" title="تُستورد جداول أمر التغيير من ملف Word وتُختار خلاصة كل فقرة وكمياتها">📄 مطالعة الموافقة الأصولية (من Excel أو Word)</button>`;}
+  box.innerHTML=`<b>📝 مطالعات لجنة أوامر التغيير لهذا المشروع</b>${L.length?L.map(m=>{const sub=String(m.subject||'').trim(),bd=String(m.body||'').replace(/\s+/g,' ').trim();return `<button type="button" class="cm-it" data-cmopen="${esc(m.id)}" title="${esc(bd.slice(0,200))}"><span>${esc(sub&&sub!=='مطالعة'?sub:'مطالعة')}${/^order:\d+$/.test(String(m.ltEv||''))?' — أمر '+(+String(m.ltEv).slice(6)+1):''}</span><small dir="ltr">${cmDmy(cmDate(m))}</small>${m.no?`<small>العدد ${esc(m.no)}</small>`:''}</button>`;}).join(''):`<span class="cm-none">${fn?'لا توجد مطالعات بعد.':'اكتب رقم الاضبارة في بيانات المشروع لتُربط المطالعات به.'}</span>`}<button type="button" class="btn sm cm-add" data-cmnew="1">+ مطالعة</button><button type="button" class="btn sm cm-add" data-rvgo="1" title="يُقرأ ملف أمر التغيير (Excel أو Word) وتُراجع حساباته ومجاميعه مع مبالغ الأمر في النظام ومع المطالعات">🔍 مراجعة ملف أمر التغيير</button>${rvChip(r)}<button type="button" class="btn sm cm-add" data-cmapp="1" title="تُستورد جداول أمر التغيير من ملف Word وتُختار خلاصة كل فقرة وكمياتها">📄 مطالعة الموافقة الأصولية (من Excel أو Word)</button>`;}
 document.addEventListener('click',e=>{const D=window.desktop;if(!(D&&D.go))return;const op=e.target.closest('[data-cmopen]');if(op){CMC=null;D.go('cm','memo:'+op.dataset.cmopen);return;}
   if(!e.target.closest('[data-cmnew]'))return;const r=R();if(!r)return;const fn=String(r.project&&r.project.fileNo||'').trim();if(!fn){flash('اكتب رقم الاضبارة في بيانات المشروع أولاً — المطالعة تُربط بالمشروع برقم الاضبارة.',true);return;}
   const i=Math.min(+r.printOrder||0,(r.orders||[]).length-1),o=(r.orders||[])[i],ex={f:fn,nm:String(r.project.name||'').trim(),co:String(r.project.contractor||'').trim(),cn:String(r.project.contractNo||'').trim(),s:'مطالعة لجنة أوامر التغيير'};
@@ -14026,7 +14026,7 @@ function apParse(tables){const items=[];
         if(!type||!(q>0))continue;   // عنوان مجموعة أو سطر بلا كمية
         const am=multi.amount.filter(x=>x.kind===type),am2=am.length?am:multi.amount.filter(x=>!x.kind);let amt=am2.map(x=>apNum(r[x.c])).filter(v=>v!=null).reduce((a,b)=>a+b,0)||null;
         if(amt==null&&multi.price.length){const pr=apNum(r[multi.price[0].c]);if(pr>0)amt=Math.round(pr*q);}
-        items.push({on:true,type,full,no,desc,sum:apShort(g('desc'))||desc.split(/\s+/).slice(0,7).join(' '),q:String(+(+q).toFixed(3)),orig:orig==null?'':String(orig),unit,amt,note:String(g('note')||'').replace(/\s+/g,' ').trim()});}});}
+        items.push({on:true,type,full,no,desc,sum:apShort(g('desc'))||desc.split(/\s+/).slice(0,7).join(' '),q:String(+(+q).toFixed(3)),orig:orig==null?'':String(orig),unit,amt,note:String(g('note')||'').replace(/\s+/g,' ').trim(),pr:multi.price.length?apNum(r[multi.price[0].c]):null,after:after==null?null:after});}});}
   return items;}
 /* بيانات المشروع في رأس الملف: اسم المشروع، الشركة، رقم أمر التغيير، مبلغ المقاولة، المدة، تاريخ المباشرة */
 function apMeta(tables){const txt=tables.map(T=>[T.title||''].concat(Array.from(T.rows||[]).slice(0,14).map(r=>Array.from(r||[],c=>String(c==null?'':c)).join(' | '))).join('\n')).join('\n'),o={};
@@ -14105,6 +14105,80 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-apx],[data
   if(a==='row'){AP.items.push({on:true,type:'new',full:false,desc:'',sum:'',q:'',orig:'',unit:''});apDraw();return;}
   if(a==='go'){const r=R(),D=window.desktop;if(!AP.items.some(x=>x.on)&&!confirm('لم تُختر أي فقرة — إنشاء المطالعة بدون الحذف والإضافة والاستحداث؟'))return;
     const ex=apBuild(r,AP.oi,AP.f,AP.items);close();CMC=null;if(D&&D.go)D.go('cm',JSON.stringify(ex));}});
+/* ===== «🔍 مراجعة ملف أمر التغيير» (Excel أو Word): يُقرأ الملف بقارئ الجداول نفسه ثم يُراجع:
+   ١) حساب كل فقرة: الكمية × سعر المفرد = المبلغ، والكمية بعد التغيير − الأصلية = الكمية المحذوفة/المضافة
+   ٢) مجاميع الحذف والإضافة والاستحداث والصافي في الملف مقابل مبالغ الأمر المُدخلة في النظام
+   ٣) المطالعات المرتبطة بالأمر (مطالعة أوامر التغيير ومطالعة الموافقة الأصولية): هل ذُكرت كل فقرة بكميتها، وهل مبالغها تطابق.
+   للقراءة والتنبيه فقط — لا يغيّر مبالغ الأمر ولا المطالعات؛ تُحفظ خلاصة آخر مراجعة مع الأمر ===== */
+const rvD=s=>String(s==null?'':s).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d));
+const rvN=s=>APN(rvD(s)).replace(/(\d)[,٬](?=\d{3})/g,'$1').replace(/(\d)\.(?=\d)/g,'$1٫').replace(/[«»"'()\[\]{}*_#:،,.؛\-–]/g,' ').replace(/\s+/g,' ').trim();
+const rvNums=t=>{const o=[];for(const m of rvD(t).matchAll(/\d[\d,٬]*(?:[.٫]\d+)?/g)){const v=+m[0].replace(/[,٬]/g,'').replace('٫','.');if(isFinite(v))o.push(v);}return o;};
+const rvEq=(a,b)=>a!=null&&b!=null&&Math.abs(a-b)<=Math.max(1,Math.abs(b)*0.0005);
+const rvTxt=m=>[m.subject,m.body,m.full,...(Array.isArray(m.tables)?m.tables.map(t=>JSON.stringify(t.rows||[])):[])].filter(Boolean).join('\n');
+function rvChip(r){try{const i=Math.min(+r.printOrder||0,(r.orders||[]).length-1),v=(r.orders[i]||{}).review;if(!v)return '';
+  return `<button type="button" class="btn sm cm-add" data-rvshow="1" style="${v.bad?'color:#b42318;border-color:#f3b7b0':'color:#15803d;border-color:#a7dcb8'}" title="آخر مراجعة: ${esc(v.file)} — ${esc(cmDmy(String(v.at).slice(0,10)))}">${v.bad?'⚠ '+v.bad+' ملاحظة':'✓ مطابق'} — آخر مراجعة</button>`;}catch(_){return '';}}
+function rvRun(items,file){const r=R(),oi=Math.max(0,Math.min(+r.printOrder||0,r.orders.length-1)),o=r.orders[oi],fn=String(r.project.fileNo||'').trim();
+  const T={del:0,add:0,new:0},TN={del:0,add:0,new:0},rows=[];let bad=0;
+  items.forEach(x=>{const q=apNum(x.q),pr=x.pr,am=x.amt,iss=[];
+    if(pr>0&&q>0&&am!=null&&!rvEq(q*pr,am)){iss.push(`الكمية × السعر = ${apFmt(Math.round(q*pr))} والمبلغ في الملف ${apFmt(am)} (فرق ${apFmt(Math.round(Math.abs(q*pr-am)))})`);}
+    const og=apNum(x.orig);if(x.type!=='new'&&og!=null&&x.after!=null&&q!=null&&Math.abs(Math.abs(x.after-og)-q)>0.001)iss.push(`الكمية بعد التغيير (${apFmt(x.after)}) − الأصلية (${apFmt(og)}) = ${apFmt(+Math.abs(x.after-og).toFixed(3))} وليست ${apFmt(q)}`);
+    if(x.type==='del'&&og!=null&&q>og+0.001)iss.push(`الكمية المحذوفة (${apFmt(q)}) أكبر من الكمية الأصلية (${apFmt(og)})`);
+    if(am!=null){T[x.type]+=am;TN[x.type]++;}else iss.push('لا يوجد مبلغ للفقرة في الملف');
+    bad+=iss.length;rows.push({x,iss});});
+  const sys={del:+o.del||0,add:+o.add||0,new:+o.nw||0},tot=[];
+  [['del','الأعمال المحذوفة'],['add','الأعمال المضافة'],['new','الأعمال المستحدثة']].forEach(([k,l])=>{if(!TN[k]&&!sys[k])return;const ok=rvEq(T[k],sys[k]);if(!ok)bad++;tot.push({l,f:T[k],s:sys[k],ok,n:TN[k]});});
+  const netF=T.add+T.new-T.del,netS=sys.add+sys.new-sys.del,netOk=rvEq(netF,netS);if(!netOk)bad++;tot.push({l:'صافي أمر التغيير',f:netF,s:netS,ok:netOk,net:1});
+  /* المطالعات */
+  const all=cmMemosOf(fn),mine=all.filter(m=>String(m.ltEv||'')==='order:'+oi),L=(mine.length?mine:all).slice(-4),memos=[];
+  L.forEach(m=>{const raw=rvTxt(m),N=rvN(raw),nums=rvNums(raw),it=[];
+    rows.forEach(({x})=>{const w=rvN(x.sum||x.desc).split(' ').filter(t=>t.length>1),key=w.slice(0,Math.min(3,w.length)).join(' ');const q=apNum(x.q);
+      if(!key){it.push({x,st:'?'});return;}const i=N.indexOf(key);if(i<0){it.push({x,st:'miss'});bad++;return;}
+      const win=rvNums(N.slice(i+key.length,i+key.length+140).replace(/(^|\s)(م|متر|م ط)\s?[23](?=\s|$)/g,' '));if(q==null||win.some(v=>Math.abs(v-q)<0.001))it.push({x,st:'ok'});else{it.push({x,st:'diff',found:win.slice(0,1)});bad++;}});
+    const big=[...new Set(nums.filter(v=>v>=10000))],has=v=>v>0&&big.some(b=>rvEq(b,v));
+    const am=[];[['صافي الأمر في النظام',Math.abs(netS)],['صافي الملف',Math.abs(netF)]].forEach(([l,v])=>{if(v>0)am.push({l,v,ok:has(v)});});
+    const strange=big.filter(b=>b>=100000&&![netS,netF,sys.del,sys.add,sys.new,T.del,T.add,T.new,+r.project.value,+r.project.approved].some(v=>v&&rvEq(b,Math.abs(v)))&&!(r.orders||[]).some(oo=>[oo.del,oo.add,oo.nw].some(v=>v&&rvEq(b,+v))));
+    memos.push({id:m.id,s:String(m.subject||'مطالعة'),no:m.no||'',d:cmDate(m),app:/الموافق[ةه] الاصولي[ةه]|الموافقة الأصولية/.test(APN(m.subject||'')),it,am,strange:strange.slice(0,6)});});
+  const R0={oi,file,at:new Date().toISOString(),rows,tot,memos,bad,fn};
+  o.review={file,at:R0.at,bad,n:items.length,net:netF};touch();try{renderCoMemos();}catch(_){}
+  RV=R0;rvDraw();return R0;}
+let RV=null;
+function rvDraw(){if(!RV)return;let ov=document.getElementById('rvOv');if(!ov){ov=document.createElement('div');ov.id='rvOv';ov.className='ap-ov';document.body.appendChild(ov);}
+  const r=R(),T={del:'حذف',add:'إضافة',new:'استحداث'},ck=b=>b?'<b style="color:#15803d">✓</b>':'<b style="color:#b42318">⚠</b>';
+  const memoH=RV.memos.length?RV.memos.map(m=>`<div class="rv-m"><h4>${m.app?'📄':'📝'} ${esc(m.s)} ${m.no?'— العدد '+esc(m.no):''} <small dir="ltr">${cmDmy(m.d)}</small> <button type="button" class="btn sm" data-cmopen="${esc(m.id)}">فتح</button></h4>
+      <div>${m.am.map(a=>`${ck(a.ok)} ${esc(a.l)} (${fmt(a.v)}) ${a.ok?'مذكور في المطالعة':'<b style="color:#b42318">غير مذكور في المطالعة</b>'}`).join(' &nbsp; ')}</div>
+      ${m.strange.length?`<div style="color:#8a4b00">مبالغ في المطالعة لا تطابق أي مبلغ في النظام أو الملف: ${m.strange.map(v=>fmt(v)).join(' — ')}</div>`:''}
+      <div class="rv-q">${m.it.map(i=>i.st==='ok'?'':`<div>${i.st==='miss'?'✕ لم تُذكر':'⚠ ذُكرت بكمية مختلفة'}: «${esc(i.x.sum||i.x.desc)}» (${T[i.x.type]} ${apFmt(apNum(i.x.q))}${i.x.unit?' '+esc(i.x.unit):''})${i.found&&i.found.length?` — في المطالعة: ${i.found.map(apFmt).join('، ')}`:''}</div>`).join('')||'<span style="color:#15803d">✓ كل فقرات الملف مذكورة في المطالعة بكمياتها</span>'}</div></div>`).join('')
+    :`<div class="ap-none">لا توجد مطالعات لهذا المشروع بعد${RV.fn?'':' (اكتب رقم الاضبارة في بيانات المشروع)'} — أنشئ «📄 مطالعة الموافقة الأصولية» من الملف نفسه ثم أعد المراجعة.</div>`;
+  ov.innerHTML=`<div class="ap-box" role="dialog" aria-label="مراجعة ملف أمر التغيير"><h3>🔍 مراجعة ملف أمر التغيير — ${esc(r.project.name||'')} — ${esc(oname(r.orders[RV.oi],RV.oi+1))}</h3>
+   <p class="ap-hint">الملف: <b>${esc(RV.file)}</b> — ${RV.rows.length} فقرة — ${RV.bad?`<b style="color:#b42318">${RV.bad} ملاحظة تحتاج تدقيقاً</b>`:'<b style="color:#15803d">✓ لا ملاحظات: الحسابات والمجاميع والمطالعات متطابقة</b>'}. المراجعة للتنبيه فقط ولا تغيّر شيئاً.</p>
+   <h4>١) المجاميع: الملف مقابل مبالغ الأمر في النظام</h4>
+   <table class="ap-t"><thead><tr><th></th><th>البند</th><th>في الملف</th><th>في النظام</th><th>الفرق</th></tr></thead><tbody>${RV.tot.map(t=>`<tr${t.net?' style="font-weight:700"':''}><td>${ck(t.ok)}</td><td>${t.l}${t.n?` <small>(${t.n} فقرة)</small>`:''}</td><td>${fmt(t.f)}</td><td>${fmt(t.s)}</td><td>${t.ok?'—':fmt(t.f-t.s)}</td></tr>`).join('')}</tbody></table>
+   <h4>٢) الفقرات: الكميات والأسعار والمبالغ</h4>
+   <div class="ap-tw"><table class="ap-t"><thead><tr><th></th><th>ت</th><th>النوع</th><th>الفقرة</th><th>الكمية</th><th>الأصلية</th><th>الوحدة</th><th>سعر المفرد</th><th>المبلغ</th><th>الملاحظة</th></tr></thead><tbody>
+   ${RV.rows.map(({x,iss})=>`<tr${iss.length?' style="background:#fff4f2"':''}><td>${ck(!iss.length)}</td><td>${esc(x.no)}</td><td>${T[x.type]}</td><td title="${esc(x.desc)}">${esc(x.sum||x.desc)}</td><td>${apFmt(apNum(x.q))}</td><td>${esc(x.orig)}</td><td>${esc(x.unit)}</td><td>${x.pr!=null?apFmt(x.pr):''}</td><td>${x.amt!=null?fmt(x.amt):''}</td><td style="color:#b42318">${iss.map(esc).join('<br>')}</td></tr>`).join('')||'<tr><td colspan="10" class="ap-none">لم تُقرأ فقرات من الملف.</td></tr>'}</tbody></table></div>
+   <h4>٣) المطالعات (مطالعة أوامر التغيير ومطالعة الموافقة الأصولية)</h4>${memoH}
+   <div class="ap-b"><button type="button" class="btn sm" data-rvx="file">📂 ملف آخر</button><button type="button" class="btn sm" data-rvx="xl">⬇ حفظ المراجعة (Excel)</button><span style="flex:1"></span><button type="button" class="btn sm" data-rvx="no">إغلاق</button></div></div>`;}
+let RVF=null;
+function rvPick(){const inp=document.createElement('input');inp.type='file';inp.accept='.docx,.xlsx,.xlsm';
+  inp.onchange=async()=>{const fl=inp.files&&inp.files[0];if(!fl)return;RVF=fl;await rvLoad(fl);};inp.click();}
+async function rvLoad(fl){try{let items;if(/\.xls[xm]$/i.test(fl.name))items=apParse(apSheetTables(await AnbarReg.readSheets(fl)));else items=apParse(apTables(await apUnzip(await fl.arrayBuffer(),'word/document.xml')));
+    if(!items.length){flash(`لم تُقرأ فقرات من «${fl.name}»: تأكد أنه جدول أمر التغيير (أعمدة الفقرة والكمية والسعر والمبلغ).`,true);return null;}
+    return rvRun(items,fl.name);}catch(e){flash('تعذرت قراءة الملف: '+(e.message||e),true);return null;}}
+function rvXl(){if(!RV)return;const T={del:'حذف',add:'إضافة',new:'استحداث'},A=[['مراجعة ملف أمر التغيير',R().project.name||'',oname(R().orders[RV.oi],RV.oi+1)],['الملف',RV.file],[],['البند','في الملف','في النظام','الفرق','النتيجة']];
+  RV.tot.forEach(t=>A.push([t.l,t.f,t.s,t.ok?0:t.f-t.s,t.ok?'مطابق':'غير مطابق']));A.push([]);A.push(['ت','النوع','الفقرة','الكمية','الأصلية','الوحدة','سعر المفرد','المبلغ','الملاحظات']);
+  RV.rows.forEach(({x,iss})=>A.push([x.no,T[x.type],x.desc,apNum(x.q),x.orig,x.unit,x.pr,x.amt,iss.join(' / ')||'✓']));
+  RV.memos.forEach(m=>{A.push([]);A.push(['المطالعة',m.s,m.no?'العدد '+m.no:'',cmDmy(m.d)]);m.am.forEach(a=>A.push([a.l,a.v,a.ok?'مذكور':'غير مذكور']));m.it.forEach(i=>{if(i.st!=='ok')A.push([i.st==='miss'?'لم تُذكر':'كمية مختلفة',i.x.sum||i.x.desc,apNum(i.x.q),(i.found||[]).join('، ')]);});});
+  if(window.XLW&&XLW.book){const X=XLW.S,cell=(v,i)=>v==null||v===''?null:{v,s:typeof v==='number'?X.int:(i===2?X.wrap:X.txt)};
+    const rows=A.map((r,ri)=>r.map((v,i)=>ri===0&&i===0?{v,s:X.title}:/^(البند|ت|المطالعة)$/.test(String(r[0]))&&r.length>3?{v,s:X.head}:cell(v,i)));
+    const u8=XLW.book([{name:'مراجعة أمر التغيير',cols:[14,16,48,14,14,10,14,16,50],rows}]);
+    saveFile(baseName(R())+'_مراجعة-أمر-'+(RV.oi+1)+'.xlsx',new Blob([u8],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');return;}
+  const csv='﻿'+A.map(r=>r.map(c=>{c=c==null?'':String(c);return /[",\n]/.test(c)?'"'+c.replace(/"/g,'""')+'"':c;}).join(',')).join('\r\n');
+  saveFile(baseName(R())+'_مراجعة-أمر-'+(RV.oi+1)+'.csv',new Blob([csv],{type:'text/csv'}),'text/csv');}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-rvgo],[data-rvx],[data-rvshow]');if(!b)return;
+  if(b.dataset.rvgo){const r=R();if(!r)return;rvPick();return;}
+  if(b.dataset.rvshow){if(RV&&RV.oi===Math.min(+R().printOrder||0,R().orders.length-1))rvDraw();else{flash('اختر ملف أمر التغيير لإعادة المراجعة (الملف لا يُحفظ داخل النظام).');rvPick();}return;}
+  const a=b.dataset.rvx;if(a==='no'){const ov=document.getElementById('rvOv');if(ov)ov.remove();return;}if(a==='file')return rvPick();if(a==='xl')return rvXl();});
+window.CoReview={load:rvLoad,run:rvRun,last:()=>RV};
 const sgLabel=()=>{const v=DB.settings.sgs||0;return (v>0?'+':'')+v+' ملم';};
 function renderBar(){const r=R(),c=calc(r);
   document.getElementById('edBar').innerHTML=`<button class="btn sm" data-act="home">→ المشاريع</button>
@@ -14181,7 +14255,7 @@ function renderForm(){const r=R();
     ${f('مدة العقد الأصلية (يوم)','project.duration','number')}${f('المدد الممنوحة سابقاً (يوم)','project.prevDays','number')}${f('تاريخ المباشرة','project.startDate','date')}
     ${f('الجهة المستفيدة','project.beneficiary')}${f('جهة الإشراف','project.supervisor')}
     ${f('الموقع','project.location')}${f('لجنة متابعة مشاريع (القضاء) - في صورة عنه الى','project.followDist')}${f('جهة التخصيص (التمويل)','project.fund')}
-    ${f('المبلغ المصادق عليه للمشروع (دينار)','project.approved','money')}${ctOf(r)==='works'?`<label class="fld"><span>معادلة الإشراف والمراقبة حسب تاريخ إبرام العقد</span><select data-b="supEra">
+    ${f('المبلغ المصادق عليه للمشروع (دينار)','project.approved','money')}${apHint(r)}${ctOf(r)==='works'?`<label class="fld"><span>معادلة الإشراف والمراقبة حسب تاريخ إبرام العقد</span><select data-b="supEra">
       <option value="" ${!r.supEra?'selected':''}>تلقائي من تاريخ العقد (حالياً: ${supEraOf(r)==='pre'?'قبل 2026':'2026 فما بعد'})</option>
       <option value="pre" ${r.supEra==='pre'?'selected':''}>عقد مبرم قبل 2026: تصاعدي 5% / 4% / 3% / 2% / 1%</option>
       <option value="post" ${r.supEra==='post'?'selected':''}>عقد مبرم 2026 فما بعد: 4% / 3% / 2% / 1% على كامل المبلغ</option></select></label>`:''}
@@ -14522,6 +14596,7 @@ main.addEventListener('input',e=>{const el=e.target,p=el.dataset.b;if(!p||view!=
 
 document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act,r=R(),i=+b.dataset.i,k=+b.dataset.k;
   switch(a){
+    case 'apUse':{if(!r)break;r.project.approved=+b.dataset.v||0;touch();renderForm();renderPreview(true);break;}
     case 'new':{const nr=newRecord();nr.orders[0].formNo=nextForm();DB.records.push(nr);persist();tab='form';openRec(nr.id);break;}
     case 'demo':{const d=demo();DB.records.push(d);persist();openRec(d.id);break;}
     case 'open':openRec(b.dataset.id);break;
@@ -14579,6 +14654,13 @@ function canIssue(){const r=R(),c=calc(r),x=c.rows[r.printOrder];
   if(x.exceeds){flash(`لا يمكن إصدار أمر التغيير رقم ${r.printOrder+1}: ${x.issues.join('؛ ')}`,true);setTab('prev');return false;}
   return true;}
 function doPrint(){if(!canIssue())return;persist();doRender();setTimeout(()=>{try{window.print();}catch(e){flash('الطباعة غير متاحة هنا، استخدم «حفظ PDF»',true);}},300);}
+function apHint(r){try{const P=r.project||{},cur=+P.approved||0,L=[];
+  const m=window.AnbarReg&&AnbarReg.matchProject?AnbarReg.matchProject(P.fileNo,P.name,P.contractNo):null,fn=m?m.fileNo:P.fileNo;
+  const pl=fn&&window.desktop&&window.desktop.plApproved?window.desktop.plApproved(fn):null;
+  if(pl&&+pl.v>0)L.push({v:+pl.v,t:'ملف التخطيط ('+pl.src+(pl.name?' «'+pl.name+'»':'')+')'});
+  if(m&&+m.approvedCost>0)L.push({v:+m.approvedCost,t:'الموقف العام (اضبارة '+m.fileNo+')'});
+  if(!L.length)return '';
+  return `<div class="fld full" id="apHint" style="font-size:12.5px;line-height:1.9;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px;padding:6px 10px">${L.map(x=>`<div>الكلفة المصادقة في ${esc(x.t)}: <b>${fmt(x.v)}</b> دينار ${cur===x.v?'<span style="color:#15803d">✓ مطابقة</span>':`${cur?`<span style="color:#b42318">⚠ تختلف عن المُدخل بـ ${fmt(Math.abs(cur-x.v))}</span> `:''}<button class="btn sm" type="button" data-act="apUse" data-v="${x.v}">اعتمادها</button>`}</div>`).join('')}</div>`;}catch(_){return '';}}
 function baseName(r){const n=(r.project.name||'مشروع').replace(/[\\/:*?"<>|]+/g,' ').trim().slice(0,50);return `أمر-تغيير_${n}_رقم-${r.printOrder+1}`;}
 async function doPDF(){if(!canIssue())return;const r=R();
   if(DESK){persist();doRender();flash('جارٍ إنشاء ملف PDF…');try{const res=await DESK.pdf(baseName(r)+'.pdf');if(res==='ok')flash('تم حفظ ملف PDF');else if(res!=='cancel')flash('تعذّر إنشاء PDF',true);}catch(e){flash('تعذّر إنشاء PDF',true);}fitPreview();return;}

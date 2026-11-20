@@ -9,7 +9,8 @@ const T = path.join(os.tmpdir(), 'uni-wfdate'); fs.rmSync(T, { recursive: true, 
 const mk = n => { const d = path.join(T, n); fs.mkdirSync(d, { recursive: true }); return d; }; const sleep = ms => new Promise(r => setTimeout(r, ms));
 const R = []; const ok = (n, c, d = '') => R.push([c ? 'PASS' : 'FAIL', n, d]);
 (async () => {
-  const app = await electron.launch({ executablePath: require('electron'), args: ['--no-sandbox', __dirname], env: { ...process.env, UNI_MULTI: mk('u'), UNI_DATA_DIR: mk('d'), ANBAR_REG_DIR: mk('r'), UNI_AC_PORT: '48447', UNI_NO_JSONSCAN: '1', UNI_NO_LINKREFRESH: '1' } });
+  const DD = mk('d'); if (!process.env.UNI_TEST_DU_PW) fs.writeFileSync(path.join(DD, 'auth.json'), JSON.stringify({ du: null }));   // قفل المدد مُعطّل في مجلد بيانات الاختبار المؤقت فقط
+  const app = await electron.launch({ executablePath: require('electron'), args: ['--no-sandbox', __dirname], env: { ...process.env, UNI_MULTI: mk('u'), UNI_DATA_DIR: DD, ANBAR_REG_DIR: mk('r'), UNI_AC_PORT: '48447', UNI_NO_JSONSCAN: '1', UNI_NO_LINKREFRESH: '1' } });
   const pg = await app.firstWindow(); await pg.waitForLoadState('domcontentloaded'); await sleep(1500);
   // كلمة سر النظام تُمرَّر من البيئة فقط (لا تُكتب في الملف): UNI_TEST_DU_PW
   if (process.env.UNI_TEST_DU_PW) await pg.evaluate(pw => window.desktop.unlock('du', pw), process.env.UNI_TEST_DU_PW);

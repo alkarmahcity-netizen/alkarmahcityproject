@@ -18,15 +18,17 @@ const GPORT = 48478;
     let m;
     if (q.method === 'POST' && u.pathname === '/drive/v3/files') { const o = JSON.parse(body.toString()); const id = (o.mimeType === 'application/pdf' ? 'FILE' : 'FOLDER') + String(++G.n).padStart(12, '0'); G.files[id] = o; return J({ id }); }
     if (q.method === 'POST' && (m = u.pathname.match(/^\/drive\/v3\/files\/(\w+)\/permissions$/))) { G.perms[m[1]] = 1; return J({ id: 'p' }); }
-    if (q.method === 'PATCH' && (m = u.pathname.match(/^\/upload\/drive\/v3\/files\/(\w+)$/))) { G.uploads.push({ id: m[1], size: body.length, pdf: body.slice(0, 4).toString() }); return J({ id: m[1] }); }
+    if (q.method === 'PATCH' && (m = u.pathname.match(/^\/upload\/drive\/v3\/files\/(\w+)$/))) { G.uploads.push({ id: m[1], size: body.length, pdf: body.slice(0, 4).toString() }); if (process.env.UNI_TEST_GD_OUT) fs.writeFileSync(path.join(process.env.UNI_TEST_GD_OUT, m[1] + '.pdf'), body); return J({ id: m[1] }); }
     if (q.method === 'PATCH') return J({});
     s.writeHead(404); s.end('{}'); }); });
   await new Promise(r => gsrv.listen(GPORT, '127.0.0.1', r)); const GB = `http://127.0.0.1:${GPORT}`;
-  const app = await electron.launch({ executablePath: require('electron'), args: ['--no-sandbox', __dirname], env: { ...process.env, UNI_MULTI: mk('u'), UNI_DATA_DIR: mk('d'), ANBAR_REG_DIR: mk('r'), UNI_AC_PORT: '48479', UNI_NO_JSONSCAN: '1', UNI_NO_LINKREFRESH: '1', UNI_GD_API: GB, UNI_GD_AUTH: GB + '/auth', UNI_GD_TOKEN: GB + '/token' } });
+  const DD = mk('d'); if (!process.env.UNI_TEST_AD_PW) fs.writeFileSync(path.join(DD, 'auth.json'), JSON.stringify({ ad: null, co: null, du: null }));   // قفل الأنظمة مُعطّل في مجلد بيانات الاختبار المؤقت فقط
+  const app = await electron.launch({ executablePath: require('electron'), args: ['--no-sandbox', __dirname], env: { ...process.env, UNI_MULTI: mk('u'), UNI_DATA_DIR: DD, ANBAR_REG_DIR: mk('r'), UNI_AC_PORT: '48479', UNI_NO_JSONSCAN: '1', UNI_NO_LINKREFRESH: '1', UNI_GD_API: GB, UNI_GD_AUTH: GB + '/auth', UNI_GD_TOKEN: GB + '/token' } });
   const pg = await app.firstWindow(); await pg.waitForLoadState('domcontentloaded'); await sleep(1500);
   for (const [s, k] of [['ad', 'UNI_TEST_AD_PW'], ['du', 'UNI_TEST_DU_PW']]) if (process.env[k]) await pg.evaluate(([s, pw]) => window.desktop.unlock(s, pw), [s, process.env[k]]);
   const V = id => c => app.evaluate(async (_, [id, c]) => global.__uni.views[id].webContents.executeJavaScript(c), [id, c]);
   const go = async id => { await pg.evaluate(id => window.desktop.go(id), id); await sleep(2500); };
+  const has = id => app.evaluate((_, id) => !!(global.__uni.views[id] && global.__uni.views[id].webContents), id);
   const fileOf = url => (/file\/d\/(\w+)\//.exec(url || '') || [])[1];
   // المخاطبات: الربط مرة واحدة ثم إصدار كتاب
   await go('lt'); const lt = V('lt');
@@ -41,15 +43,25 @@ const GPORT = 48478;
   ok('letters: re-issue keeps the same link and replaces the PDF', (await lt(`R().drive`)) === ltUrl && G.uploads.filter(u => u.id === ltId).length === 2);
   // السلف
   await go('ad'); const ad = V('ad');
-  if (await ad(`!!document.querySelector('[data-act=demo]')`)) {
+  if (await has('ad') && await ad(`!!document.querySelector('[data-act=demo]')`)) {
     await ad(`(()=>{document.querySelector('[data-act=demo]').click();return 1})()`); await sleep(1500);
     await ad(`window.GdIssue.issue().then(()=>1)`); await sleep(500);
     const adUrl = await ad(`(()=>{const r=R();return r.advances[r.printIdx].driveUrl||''})()`), adId = fileOf(adUrl);
     ok('advances: the advance\'s QR link is set and its form PDF uploaded (folder «لجنة تدقيق السلف»)', adId && G.uploads.some(u => u.id === adId) && /السلف/.test(G.files[G.files[adId].parents[0]].name), adUrl);
   } else ok('advances: open (password from UNI_TEST_AD_PW)', false, 'locked');
+  // أوامر التغيير
+  await go('co'); const co = V('co');
+  if (await has('co') && await co(`!!document.querySelector('[data-act=demo]')`)) {
+    await co(`(()=>{window.confirm=()=>true;document.querySelector('[data-act=demo]').click();return 1})()`); await sleep(1800);
+    ok('change orders: the button is next to «تحميل رمز QR»', await co(`!!document.querySelector('#edBar #btnGdIssue')`));
+    await co(`window.GdIssue.issue().then(()=>1)`); await sleep(800);
+    const coUrl = await co(`(()=>{const r=R();return r.orders[r.printOrder].link||''})()`), coId = fileOf(coUrl);
+    ok('change orders: the order\'s QR link field gets the link and the PDF is uploaded (folder «لجنة أوامر التغيير»)', coId && G.uploads.some(u => u.id === coId && u.pdf === '%PDF') && /أوامر التغيير/.test(G.files[G.files[coId].parents[0]].name), coUrl + ' ' + await co(`(document.querySelector('.flash,#flash,.toast')||{}).textContent||''`));
+    ok('change orders: the printed QR now carries the link', (await co(`(()=>{const r=R();return qrInfo(r,r.printOrder,calc(r).rows[r.printOrder]).text})()`)) === coUrl);
+  } else ok('change orders: open', false, 'locked');
   // المدد
   await go('du'); const du = V('du');
-  if (await du(`!!document.getElementById('bDemo')`)) {
+  if (await has('du') && await du(`!!document.getElementById('bDemo')`)) {
     await du(`(()=>{document.getElementById('bDemo').click();return 1})()`); await sleep(2000);
     await du(`window.GdIssue.issue().then(()=>1)`); await sleep(500);
     const it = JSON.parse(await du(`JSON.stringify((S.sel.t==='ext'?S.exts[S.cur]:S.cases[S.cc])||{})`)), duId = fileOf(it.qr);

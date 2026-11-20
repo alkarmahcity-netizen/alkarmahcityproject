@@ -1,4 +1,4 @@
-/* «☁ إصدار ورفع إلى Drive» في المخاطبات (والمطالعات) والسلف والمدد وتقارير الزيارة (يُحقن من البرنامج في صفحة النظام؛ الاستلام له acaddon.js).
+/* «☁ إصدار ورفع إلى Drive» في المخاطبات (والمطالعات) وأوامر التغيير والسلف والمدد وتقارير الزيارة (يُحقن من البرنامج في صفحة النظام؛ الاستلام له acaddon.js).
    رابط ثابت يُحجز في Google Drive لبريد القسم ← يوضع في حقل رابط رمز QR للمستند ← يُنشأ PDF المستند ← يُرفع على الرابط نفسه.
    فيفتح رمز QR المطبوع الملف المطبوع نفسه عند الجميع؛ وإعادة الإصدار بعد تعديل تستبدل المحتوى على الرابط نفسه. */
 (function (SYS) {
@@ -27,6 +27,12 @@
         return clean(`${t} — ${p.name || 'مشروع'}${sel && sel !== 'all' ? ' (' + (($('printSel').selectedOptions[0] || {}).textContent || sel) + ')' : ''}`).slice(0, 120) + '.pdf'; },
       link() { return (this.item() || {}).qr || ''; },
       set(u) { const it = this.item(); if (!it) return; it.qr = u; upd(); const f = document.querySelector('input[data-k=qr]'); if (f && f.value !== u) f.value = u; }, wait: 1200 },
+    co: { ready: () => typeof view !== 'undefined' && view === 'edit' && typeof R === 'function' && !!R() && (R().orders || []).length > 0,
+      anchor: () => document.querySelector('#edBar [data-act=qrdl]'), where: 'afterend',
+      check: () => (typeof canIssue === 'function' ? canIssue() : true),
+      name: () => { const r = R(), i = Math.min(r.printOrder | 0, r.orders.length - 1); return clean(baseName(r)).slice(0, 110) + ' — أمر ' + (i + 1) + '.pdf'; },
+      link: () => { const r = R(), i = Math.min(r.printOrder | 0, r.orders.length - 1); return (r.orders[i] || {}).link || ''; },
+      set: u => { const r = R(), o = r.orders[Math.min(r.printOrder | 0, r.orders.length - 1)]; if (!o) return; o.link = u; touch(); try { persist(); } catch (_) {} try { renderForm(); } catch (_) {} try { renderPreview(true); } catch (_) {} try { doRender(); } catch (_) {} }, wait: 1200 },
     fv: { ready: () => !!window.FieldVisit && !!$('f_project'), anchor: () => document.querySelector('#fvBar [data-fv=save]'), where: 'afterend',
       name: () => clean('تقرير زيارة — ' + ((($('f_project') || {}).value) || 'مشروع')).slice(0, 120) + '.pdf', link: () => (($('f_pdfLink') || {}).value) || '',
       set: u => { const f = $('f_pdfLink'); f.value = u; f.dispatchEvent(new Event('input', { bubbles: true })); try { render(); } catch (_) {} try { FieldVisit.save(); } catch (_) {} },

@@ -18,6 +18,7 @@ contextBridge.exposeInMainWorld('desktop', {
   openDataFolder: () => ipcRenderer.invoke('data:openFolder'),
   tomb: id => ipcRenderer.send('data:tomb', APP, id),
   regLoad: () => ipcRenderer.sendSync('reg:load'),
+  plApproved: fn => ipcRenderer.sendSync('pl:apGet', fn),
   regStamp: () => ipcRenderer.sendSync('reg:stamp'),
   regSave: text => ipcRenderer.sendSync('reg:save', text),
   peek: id => ipcRenderer.sendSync('data:peek', id),

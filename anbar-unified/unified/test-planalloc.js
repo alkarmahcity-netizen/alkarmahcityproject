@@ -17,7 +17,8 @@ const R = []; const ok = (n, c, d = '') => R.push([c ? 'PASS' : 'FAIL', n, d]);
   const RG = mk('r'); fs.writeFileSync(path.join(RG, 'registry.json'), JSON.stringify({ projects: [
     { fileNo: '9001', name: c0.name, contractor: c0.company, contractNo: c0.contractNo, actualPct: 77, planPct: 81, status: 'متلكئ', orig: 1000000, total: 1250000, changeCost: 250000, dur: 365 },
     { fileNo: '9002', name: 'مشروع غير موجود في التخطيط إطلاقاً', contractor: 'شركة س', contractNo: '999999' }], source: 'test', updated: '2026-11-19' }));
-  const app = await electron.launch({ executablePath: require('electron'), args: ['--no-sandbox', __dirname], env: { ...process.env, UNI_MULTI: mk('u'), UNI_DATA_DIR: mk('d'), ANBAR_REG_DIR: RG, UNI_AC_PORT: '48441', UNI_NO_JSONSCAN: '1', UNI_NO_LINKREFRESH: '1', UNI_TEST_PLAN_FILE: F } });
+  const DD = mk('d'); fs.writeFileSync(path.join(DD, 'auth.json'), JSON.stringify({ co: null }));   // قفل أوامر التغيير مُعطّل في مجلد بيانات الاختبار المؤقت فقط
+  const app = await electron.launch({ executablePath: require('electron'), args: ['--no-sandbox', __dirname], env: { ...process.env, UNI_MULTI: mk('u'), UNI_DATA_DIR: DD, ANBAR_REG_DIR: RG, UNI_AC_PORT: '48441', UNI_NO_JSONSCAN: '1', UNI_NO_LINKREFRESH: '1', UNI_TEST_PLAN_FILE: F } });
   const pg = await app.firstWindow(); await pg.waitForLoadState('domcontentloaded'); await sleep(1500);
   await pg.evaluate(() => window.desktop.go('pl')); await sleep(800);
   const imp = await pg.evaluate(() => window.desktop.plan.import());
@@ -42,6 +43,22 @@ const R = []; const ok = (n, c, d = '') => R.push([c ? 'PASS' : 'FAIL', n, d]);
   await pg.evaluate(() => window.desktop.go('pl')); await sleep(600);
   const ex = await pg.evaluate(() => window.PlanLink.updates().find(u => u.fn === '9001'));
   ok('«⬇ تصدير ملف التخطيط المحدَّث» uses the same live values (actual 88)', ex && ex.set.actPct === 88, JSON.stringify(ex && ex.set));
+  // الكلفة المصادقة في صفحة التخطيط (عمود ومؤشر) وفي أوامر التغيير
+  await pg.evaluate(() => { const c = document.getElementById('plOurs'); c.checked = true; c.dispatchEvent(new Event('change', { bubbles: true })); }); await sleep(400);
+  const th = await pg.evaluate(() => [...document.querySelectorAll('#plTree th')].map(x => x.textContent));
+  const kp = await pg.evaluate(() => document.getElementById('plKpis').textContent);
+  const tr = await pg.evaluate(() => document.getElementById('plTree').textContent);
+  ok('planning page: «الكلفة المصادقة» column with the component value (or 🔒 while amounts are hidden), and a KPI total', th.includes('الكلفة المصادقة') && (tr.includes(apTxt) || /🔒/.test(tr)) && /الكلفة المصادقة/.test(kp), th.join('|') + ' ' + kp.slice(0, 200));
+  await sleep(8500);
+  await pg.evaluate(() => window.desktop.go('co')); await sleep(2500);
+  const co = c => app.evaluate(async (_, c) => global.__uni.views.co.webContents.executeJavaScript(c), c);
+  await co(`(()=>{window.confirm=()=>true;document.querySelector('[data-act=new]').click();return 1})()`); await sleep(1200);
+  await co(`(()=>{const r=R();r.project.fileNo='9001';r.project.approved=1000;touch();renderForm();return 1})()`); await sleep(500);
+  const h1 = await co(`(document.getElementById('apHint')||{}).textContent||''`);
+  ok('change orders: next to «المبلغ المصادق عليه» the planning approved cost is shown with the difference', h1.includes(apTxt) && /ملف التخطيط/.test(h1) && /تختلف/.test(h1), h1);
+  await co(`(()=>{document.querySelector('#apHint [data-act=apUse]').click();return 1})()`); await sleep(500);
+  ok('«اعتمادها» puts it in the field and it shows as matching', (await co(`R().project.approved`)) === Math.round(c0.approved) || (await co(`R().project.approved`)) === c0.approved, String(await co(`R().project.approved`)));
+  ok('…and shows ✓ مطابقة', /مطابقة/.test(await co(`(document.getElementById('apHint')||{}).textContent||''`)));
   const e = await app.evaluate(() => (global.__uniErrors || []).slice()); ok('no JavaScript errors', e.length === 0, e.join(' | ').slice(0, 400));
   await app.close();
   R.forEach(x => console.log(x[0], x[1], x[2] ? '— ' + String(x[2]).slice(0, 500) : '')); console.log(`${R.filter(x => x[0] === 'PASS').length}/${R.length}`); process.exit(R.every(x => x[0] === 'PASS') ? 0 : 1);

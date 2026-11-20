@@ -101,6 +101,7 @@ function kpis(){const m=view(),mm=matchAll()||{byComp:{},byFn:{}},FV=finVis();
     +k('المكوّنات (العقود)',m.comps.length,Object.keys(STL).filter(x=>cnt[x]).map(x=>`<span style="color:${STC[x]}">${STL[x]} ${cnt[x]}</span>`).join(' · '))
     +k('مكوّنات لجاننا',ours,`${regM} من ${regN} مشروعاً في الموقف مرتبط بملف التخطيط${regN>regM?` — <a href="#" data-plgaps="1" style="color:#b33;font-weight:700">${regN-regM} غير مرتبط: لماذا؟</a>`:''}`,'#2563a8')
     +kf('الكلفة التخمينية (المشاريع التخطيطية)',`<span title="${money(cost)}">${compact(cost)}</span>`,money(cost)+' دينار','#b08a2e')
+    +(()=>{const ap=real.reduce((s,p)=>s+num(p.approved),0);return ap>0?kf('الكلفة المصادقة (المشاريع التخطيطية)',`<span title="${money(ap)}">${compact(ap)}</span>`,money(ap)+' دينار','#7c3aed'):'';})()
     +kf('مجموع المصروف (المكوّنات)',`<span title="${money(spent)}">${compact(spent)}</span>`,cost?((spent/cost*100).toFixed(1)+'% من الكلفة التخمينية'):'','#2f8a45');}
 function bars(title,map,color){const e=Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,10),mx=Math.max(1,...e.map(x=>x[1]));
   return `<div class="card"><h4>${title}</h4>${e.map(([l,n])=>`<div class="hbr"><span title="${esc(l)}">${esc(l||'غير محدد')}</span><i style="width:${Math.max(2,n/mx*100)}%;background:${typeof color==='function'?color(l):color}"></i><b>${n}</b></div>`).join('')}</div>`;}
@@ -111,11 +112,11 @@ function tree(){const L=filtered(),mm=matchAll()||{byComp:{}},FV=finVis();const 
   const comp=c=>{const o=mm.byComp[c.key];return `<tr class="plc${o?' ours':''}"><td class="pk">${o?`<button class="btn sm" data-plopen="${esc(o.fn)}" title="فتح في الموقف العام">اضبارة ${esc(o.fn)}</button>`:''}</td>
     <td><div class="pn">${esc(c.name)}</div>${c._live&&c._live.length?`<span class="chip" style="background:#2563a822;color:#2563a8;font-size:11px" title="محدَّث من الموقف العام (اضبارة ${esc(c._fn)}): ${esc(c._live.join('، '))}">↻ من الموقف</span>`:''}<div class="co">${esc(c.company||'')}${c.contractNo?' — عقد '+esc(c.contractNo):''}${c.contractDate?' / '+esc(dmy(c.contractDate)):''}${c.resident?' — المقيم: '+esc(c.resident):''}</div></td>
     <td>${esc(c.fund||'')}</td><td>${esc(c.directorate||'')}</td><td>${esc(String(c.district||'').trim())}</td><td><span class="chip" style="background:${STC[stK(c.status)]}22;color:${STC[stK(c.status)]}">${esc(c.status||'—')}</span></td>
-    <td class="n">${has(c.actPct)?num(c.actPct)+'%':''}</td><td class="n">${FV&&has(c.contractAfter||c.contract)?money(c.contractAfter||c.contract):FV?'':'🔒'}</td><td class="n">${FV&&has(c.spent)?money(c.spent):FV?'':'🔒'}</td></tr>`;};
-  return `<div class="tw"><table class="pltab"><thead><tr><th></th><th>المشروع التخطيطي / المكوّن</th><th>التمويل</th><th>الجهة المستفيدة</th><th>القضاء</th><th>الحالة</th><th>الإنجاز الفني</th><th>مبلغ العقد</th><th>المصروف</th></tr></thead><tbody>
+    <td class="n">${has(c.actPct)?num(c.actPct)+'%':''}</td><td class="n">${FV&&has(c.contractAfter||c.contract)?money(c.contractAfter||c.contract):FV?'':'🔒'}</td><td class="n">${FV&&has(c.approved)?money(c.approved):FV||!has(c.approved)?'':'🔒'}</td><td class="n">${FV&&has(c.spent)?money(c.spent):FV?'':'🔒'}</td></tr>`;};
+  return `<div class="tw"><table class="pltab"><thead><tr><th></th><th>المشروع التخطيطي / المكوّن</th><th>التمويل</th><th>الجهة المستفيدة</th><th>القضاء</th><th>الحالة</th><th>الإنجاز الفني</th><th>مبلغ العقد / الكلفة</th><th>الكلفة المصادقة</th><th>المصروف</th></tr></thead><tbody>
     ${shown.map(({p,comps})=>{const op=ui.open.has(p.key)||!!ui.q||ui.ours;const nOurs=p.comps.filter(k=>mm.byComp[k]).length;
       return `<tr class="plp" data-plk="${esc(p.key)}"><td class="pk">${comps.length?(op?'▾':'▸'):''}</td><td colspan="2"><b>${esc(p.name)}</b><div class="co">${codeOf(p)?'الترميز '+esc(codeOf(p))+' — ':''}${esc(p.ministry||'')}${p.plan?' — '+esc(p.plan):''} — ${p.comps.length} مكوّن${nOurs?` — <b style="color:#2563a8">${nOurs} من لجاننا</b>`:''}</div></td>
-        <td colspan="3"></td><td class="n">${has(p.actPct)?num(p.actPct)+'%':''}</td><td class="n">${FV&&has(p.cost)?'<span title="الكلفة التخمينية">'+money(p.cost)+'</span>':FV&&has(p.approved)?'<span title="الكلفة المصادقة">'+money(p.approved)+'</span>':''}</td><td class="n">${FV&&has(p.spent)?money(p.spent):''}</td></tr>${op?comps.map(comp).join(''):''}`;}).join('')}</tbody></table></div>
+        <td colspan="3"></td><td class="n">${has(p.actPct)?num(p.actPct)+'%':''}</td><td class="n">${FV&&has(p.cost)?'<span title="الكلفة التخمينية">'+money(p.cost)+'</span>':''}</td><td class="n">${FV&&has(p.approved)?'<b title="الكلفة المصادقة للمشروع التخطيطي">'+money(p.approved)+'</b>':FV||!has(p.approved)?'':'🔒'}</td><td class="n">${FV&&has(p.spent)?money(p.spent):''}</td></tr>${op?comps.map(comp).join(''):''}`;}).join('')}</tbody></table></div>
     ${L.length>shown.length?`<div style="text-align:center;margin:8px"><button class="btn" data-plmore="1">عرض المزيد (${L.length-shown.length})</button></div>`:''}`;}
 function render(){
   const pg=$('pg-pl');if(!pg||pg.hidden)return;const m=view();
@@ -215,6 +216,12 @@ const prev=window.onNav;window.onNav=function(s){try{if(prev)prev.apply(this,arg
 try{window.desktop&&window.desktop.onSyncData&&window.desktop.onSyncData(s=>{if(s&&s.ds==='pl')load().then(()=>{render();try{window.SitRender&&window.SitRender();}catch(_){} });});}catch(_){}
 /* تحديث تلقائي: إن تغيّر الموقف العام والصفحة ظاهرة تُعاد الرسوم بالقيم الجديدة */
 setInterval(()=>{try{const pg=$('pg-pl');if(!pg||pg.hidden||!model()||!V)return;const s=liveSig();if(s&&s!==vKey)render();}catch(_){}},4000);
+/* الكلفة المصادقة لكل اضبارة مرتبطة ← البرنامج (تقرؤها أوامر التغيير) */
+let apSent='';function pushAp(){try{if(!window.desktop||!window.desktop.plan||!window.desktop.plan.apSet)return;const mm=matchAll();if(!mm)return;const o={};
+  Object.keys(mm.byFn).forEach(fn=>{const c=mm.byFn[fn].c,pr=projOf(c.proj)||{};const v=has(c.approved)?num(c.approved):has(pr.approved)?num(pr.approved):0;
+    if(v>0)o[fn]={v,src:has(c.approved)?'المكوّن':'المشروع التخطيطي',name:c.name||'',proj:pr.name||''};});
+  const j=JSON.stringify(o);if(j!==apSent){apSent=j;window.desktop.plan.apSet(o);}}catch(_){}}
+setInterval(pushAp,8000);
 window.PlanLink={load,apply,section,matchAll,updates,model,view,render,gaps,data:()=>R};
-load().then(()=>{try{window.SitRender&&window.SitRender();}catch(_){}});
+load().then(()=>{try{window.SitRender&&window.SitRender();}catch(_){}pushAp();});
 })();

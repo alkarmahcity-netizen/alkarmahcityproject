@@ -5,7 +5,7 @@
 // كل نظام يحتفظ ببياناته في ملف مستقل، ويتشاركون سجل الموقف في ملف واحد.
 const { app, BrowserWindow, BrowserView, ipcMain, dialog, shell, Menu, session, nativeTheme, safeStorage, protocol } = require('electron');
 /* صور مرفقات التبليغات (anbar-ann://f/<معرّف التبليغ>/<رقم الصفحة>.jpg) في نوافذ البرنامج */
-try { protocol.registerSchemesAsPrivileged([{ scheme: 'anbar-ann', privileges: { standard: true, secure: true, supportFetchAPI: true } }]); } catch (_) {}
+try { protocol.registerSchemesAsPrivileged([{ scheme: 'anbar-ann', privileges: { standard: true, secure: true, supportFetchAPI: true } }, { scheme: 'anbar-font', privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true } }]); } catch (_) {}
 const path = require('path');
 const fs = require('fs');
 const http = require('http');
@@ -1189,6 +1189,15 @@ function wfaPrune() { try { const now = Date.now(), keep = new Set(flow.anns(tru
 ipcMain.handle('wf:annPdf', async (_e, id) => { const b = wfaOne(String(id), 'pdf'); if (!b) return 'missing'; const a = flow.anns(true).find(x => x.id === id);
   const f = path.join(app.getPath('temp'), 'تبليغ-' + String((a && a.att && a.att.name) || 'ملف').replace(/[\\/:*?"<>|]+/g, '_').replace(/\.pdf$/i, '') + '.pdf'); fs.writeFileSync(f, b);
   if (process.env.UNI_TEST_SAVE_DIR) return 'ok'; const r = await shell.openPath(f); return r ? 'error' : 'ok'; });
+/* الخطوط المضمَّنة (build/fonts داخل ملف البرنامج): تُخدَّم من anbar-font:// وتُعرَّف بـ @font-face في كل صفحات البرنامج عند تحميلها.
+   لا تُحمَّل إلا عند استعمال الخط فعلاً، فلا تُبطئ فتح الأنظمة. */
+const FONT_DIR = path.join(__dirname, 'build', 'fonts'), fontsCss = require('./shell/fonts-css');
+let FONT_CSS = null;
+const fontCss = () => { if (FONT_CSS == null) { try { FONT_CSS = fontsCss.css(f => fs.existsSync(path.join(FONT_DIR, f))); } catch (_) { FONT_CSS = ''; } } return FONT_CSS; };
+app.whenReady().then(() => { try { protocol.registerBufferProtocol('anbar-font', (req, cb) => { try { const n = path.basename(decodeURIComponent(new URL(req.url).pathname)); const f = path.join(FONT_DIR, n);
+  if (!/^[a-z0-9.-]+\.(ttf|otf)$/.test(n) || !fs.existsSync(f)) return cb({ statusCode: 404, data: Buffer.alloc(0) });
+  cb({ mimeType: /\.otf$/.test(n) ? 'font/otf' : 'font/ttf', data: fs.readFileSync(f), headers: { 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'max-age=31536000' } }); } catch (_) { cb({ statusCode: 404, data: Buffer.alloc(0) }); } }); } catch (_) {} });
+app.on('web-contents-created', (_e, wc) => { wc.on('dom-ready', () => { try { const u = wc.getURL(); if (/^https?:/i.test(u) && !/^https?:\/\/(127\.0\.0\.1|localhost)[:/]/i.test(u)) return; const c = fontCss(); if (c) wc.insertCSS(c).catch(() => {}); } catch (_) {} }); });
 app.whenReady().then(() => { try { protocol.registerBufferProtocol('anbar-ann', (req, cb) => { try { const u = new URL(req.url); const m = /^\/([^/]+)\/(\d+)\.jpg$/.exec(decodeURIComponent(u.pathname)); const b = m && wfaOne(m[1], m[2]);
   cb(b ? { mimeType: 'image/jpeg', data: b, headers: { 'Cache-Control': 'max-age=3600' } } : { statusCode: 404, mimeType: 'text/plain', data: Buffer.from('') }); } catch (_) { cb({ statusCode: 400, mimeType: 'text/plain', data: Buffer.from('') }); } }); } catch (_) {} setTimeout(wfaPrune, 15000); });
 /* على كل حاسبة: التبليغ الجديد يظهر بملء الشاشة فوق البرنامج (حتى داخل الأنظمة) مرة واحدة، ويُغلق بـ«اطّلعت» أو بانتهاء مدته أو إخفائه */
@@ -1393,7 +1402,7 @@ else {
     startSync();
     try { flow.init(); } catch (e) { logError('flow', String(e && e.message || e)); }
     if (prefs().wfWeb) flowWebStart();
-    global.__uni = { manualWin: () => manualWin, openManual, manualPath, sync: () => sync, go, views, flow, unloadView, refreshLinks, linksAt, get viewLeft() { return viewLeft; }, get flowWin() { return flowWin; }, get win() { return win; }, APPS, layout, get current() { return current; } };
+    global.__uni = { fontCss, manualWin: () => manualWin, openManual, manualPath, sync: () => sync, go, views, flow, unloadView, refreshLinks, linksAt, get viewLeft() { return viewLeft; }, get flowWin() { return flowWin; }, get win() { return win; }, APPS, layout, get current() { return current; } };
   });
   app.on('before-quit', () => { try { if (sync) sync.stop(); } catch (_) {} flowWebStop(); stopAcceptance(); });
   app.on('window-all-closed', () => app.quit());

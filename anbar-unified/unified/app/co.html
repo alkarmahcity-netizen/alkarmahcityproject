@@ -14784,20 +14784,41 @@ function copyText(){const t=document.getElementById('xjson');t.select();(navigat
    الملف الجديد يُضاف، والموجود (المعرّف نفسه، أو أي محضر قديم فيه) تُضاف إليه الأوامر الأحدث فقط ويبقى ما عُدّل فيه. */
 async function importAccess(){if(!DESK||!DESK.accessImport)return;flash('اختر الملف…');let r;try{r=await DESK.accessImport();}catch(e){r={error:String(e&&e.message||e)};}
   if(!r)return;if(r.error){alert(r.error+(r.tables&&r.tables.length?'\n\nالجداول الموجودة في الملف: '+r.tables.join('، '):''));return;}
-  const S=r.stats,ids=new Map(DB.records.map((y,k)=>[y.id,k])),owner=new Map();DB.records.forEach((y,k)=>((y.legacy&&y.legacy.ids)||[]).forEach(id=>owner.set(String(id),k)));
+  const S=r.stats,ids=new Map(DB.records.map((y,k)=>[y.id,k])),owner=new Map();DB.records.forEach((y,k)=>((y.legacy&&y.legacy.ids)||[]).concat(y.xids||[]).forEach(id=>owner.set(String(id),k)));
   const target=x=>ids.has(x.id)?ids.get(x.id):(((x.legacy&&x.legacy.ids)||[]).map(id=>owner.get(String(id))).find(k=>k!=null));
-  let newRec=0,newOrd=0,addOrd=0,inRec=0;const plan=r.records.map(x=>{const k=target(x);if(k==null){newRec++;newOrd+=(x.orders||[]).length;return {x,k:null,add:0};}
-    const cur=DB.records[k],add=Math.max(0,(x.orders||[]).length-(cur.orders||[]).length);if(add){addOrd+=add;inRec++;}return {x,k,add};});
+  /* أرقام الاستمارات من الملف (المرجع): رقم استمارة كل أمر تغيير = رقمه التسلسلي في الملف.
+     (1) مشروع أُدخل في البرنامج وهو موجود في الملف (اسم المشروع متشابه 85% فأكثر وأمر بمبالغ الحذف والإضافة والاستحداث نفسها): يُربط بصفوف الملف
+         فلا يُضاف ملفاً مكرراً، وتُحفظ معرّفات صفوف الملف فيه (xids) لا في legacy حتى لا يُعامَل كأرشيف قديم.
+     (2) كل أمر موجود في البرنامج ويقابله أمر في الملف (بالمعرّف نفسه، أو بالمبالغ نفسها في المشروع نفسه) يأخذ رقم الملف إن اختلف — بعد موافقة المستخدم */
+  const nrm=t=>String(t||'').replace(/[أإآ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي').replace(/[^ء-ي0-9]/g,''),bg=t=>{const m=new Map();for(let i=0;i<t.length-1;i++){const k=t.slice(i,i+2);m.set(k,(m.get(k)||0)+1);}return m;},
+    dice=(a,b)=>{if(!a||!b)return 0;if(a===b)return 1;const A=bg(a),B=bg(b);let n=0,ta=0,tb=0;A.forEach(v=>ta+=v);B.forEach(v=>tb+=v);A.forEach((v,k)=>{n+=Math.min(v,B.get(k)||0);});return ta+tb?2*n/(ta+tb):0;},
+    amt=o=>{const a=[o.del,o.add,o.nw].map(v=>Math.round(+v||0));return a.some(Boolean)?a.join('|'):'';},xidOf=o=>String((o.legacy&&+o.legacy.id>0&&o.legacy.id)||o.xid||'');
+  const plan=r.records.map(x=>({x,k:target(x),link:false}));
+  {const taken=new Set(plan.filter(p=>p.k!=null).map(p=>p.k)),cand=DB.records.map((y,k)=>({y,k,n:nrm(y.project&&y.project.name),a:new Set((y.orders||[]).filter(o=>!xidOf(o)).map(amt).filter(Boolean))})).filter(c=>c.a.size&&!(c.y.legacy&&(c.y.legacy.ids||[]).length));
+    plan.forEach(p=>{if(p.k!=null)return;const xn=nrm(p.x.project&&p.x.project.name),xa=(p.x.orders||[]).map(amt).filter(Boolean);if(!xn||!xa.length)return;let best=null,bs=0;
+      cand.forEach(c=>{if(taken.has(c.k)||!xa.some(a=>c.a.has(a)))return;const sc=dice(c.n,xn);if(sc>bs){bs=sc;best=c;}});if(best&&bs>=0.85){p.k=best.k;p.link=true;taken.add(best.k);}});}
+  const fixes=[];plan.forEach(p=>{if(p.k==null)return;const cur=DB.records[p.k],used=new Set();
+    (p.x.orders||[]).forEach(eo=>{const id=+(eo.legacy&&eo.legacy.id)||0;if(!(id>0))return;const w=String(id);
+      let co=(cur.orders||[]).find(o=>!used.has(o)&&xidOf(o)===w);if(!co){const a=amt(eo);if(a)co=(cur.orders||[]).find(o=>!used.has(o)&&!xidOf(o)&&amt(o)===a);}
+      if(!co)return;used.add(co);(p.got||(p.got=new Map())).set(eo,co);if(String(toEn(co.formNo)).trim()!==w||co.xid!==w&&!(co.legacy&&String(co.legacy.id)===w))fixes.push([cur,co,w,String(toEn(co.formNo)).trim()]);});});
+  const fixN=fixes.filter(([,o,w,old])=>old!==w).length,linkN=plan.filter(p=>p.link).length;
+  let newRec=0,newOrd=0,addOrd=0,inRec=0;plan.forEach(p=>{if(p.k==null){newRec++;newOrd+=(p.x.orders||[]).length;p.add=0;return;}
+    const cur=DB.records[p.k];p.add=p.link?(p.x.orders||[]).filter(o=>!(p.got&&p.got.has(o))).length:Math.max(0,(p.x.orders||[]).length-(cur.orders||[]).length);if(p.add){addOrd+=p.add;inRec++;}});
+  const fixTxt=(linkN?`\n\nربط ${linkN} مشروع أُدخل في البرنامج بصفوفه في الملف (اسم المشروع ومبالغ الأمر) — لا يُضاف مكرراً.`:'')+(fixN?`\n\nأرقام الاستمارات: يصبح رقم ${fixN} أمر تغيير موجود في البرنامج رقمَه في الملف، مثل:\n`+fixes.filter(([,o,w,old])=>old!==w).slice(0,6).map(([y,o,w,old])=>`• ${String(y.project&&y.project.name||'مشروع').slice(0,45)} — أمر ${(y.orders||[]).indexOf(o)+1}: ${old||'(فارغ)'} ← ${w}`).join('\n')+(fixN>6?`\n• … و${fixN-6} غيرها`:''):'');
+  const applyFixes=()=>{fixes.forEach(([y,o,w])=>{o.formNo=w;o.xid=w;y.updated=Date.now();});plan.forEach(p=>{if(!p.link)return;const y=DB.records[p.k];y.xids=[...new Set((y.xids||[]).concat((p.x.legacy&&p.x.legacy.ids)||[]).map(String))];y.updated=Date.now();});};
   const fmtN=n=>Number(n).toLocaleString('en-US');
   /* عداد الاستمارات: الاستمارة القادمة = آخر رقم تسلسلي في الملف + 1 (لا ينزل عن أكبر رقم مستعمل في ملفات البرنامج) */
-  const lastN=+S.lastId||0,used=maxForm(),tgt=Math.max(lastN,used),curNext=Math.max(+DB.settings.lastForm||0,used)+1,setCounter=lastN>0&&tgt+1!==curNext;
-  const ctrTxt=lastN?`\n\nعداد الاستمارات: آخر رقم تسلسلي في الملف ${lastN}${used>lastN?` (وأكبر رقم استمارة مستعمل في البرنامج ${used})`:''} — الاستمارة القادمة ${setCounter?`${tgt+1} (بدل ${curNext})`:curNext}.`:'';
+  const lastN=+S.lastId||0,used=maxForm(),tgt=Math.max(lastN,used),curNext=Math.max(+DB.settings.lastForm||0,used)+1,setCounter=lastN>0&&tgt+1>curNext;   // يرتفع العداد إلى آخر رقم في الملف ولا ينزل أبداً (ملف أقدم من العداد الحالي لا يُرجعه)
+  const ctrTxt=lastN?`\n\nعداد الاستمارات: آخر رقم تسلسلي في الملف ${lastN}${used>lastN?` (وأكبر رقم استمارة مستعمل في البرنامج ${used})`:''} — الاستمارة القادمة ${setCounter?`${tgt+1} (بدل ${curNext})`:curNext}${!setCounter&&curNext>lastN+1?' (العداد الحالي أعلى من الملف فيبقى كما هو)':''}.`:'';
   const applyCounter=()=>{if(setCounter)DB.settings.lastForm=tgt;};
-  const msg=`الملف: «${r.file}» — ${r.table}، ${fmtN(S.rows)} صفاً.\n\nسيُضاف:\n• ${fmtN(newRec)} ملف مشروع جديد (${fmtN(newOrd)} أمر تغيير)\n• ${fmtN(addOrd)} أمر تغيير جديد في ${fmtN(inRec)} ملف موجود\n\nلم يُنقل (حسب قواعد التدقيق):\n• ${fmtN(S.testRowsSkipped)} صف تجربة أو فارغ\n• ${fmtN(S.namelessUnmatched)} بلا اسم مشروع\n\nما سبق استيراده لا يتكرر، وما عُدّل في الملفات الموجودة يبقى كما هو.${ctrTxt}\nتقرير التدقيق الكامل: ${r.report}\n\nمتابعة الاستيراد؟`;
+  const msg=`الملف: «${r.file}» — ${r.table}، ${fmtN(S.rows)} صفاً.\n\nسيُضاف:\n• ${fmtN(newRec)} ملف مشروع جديد (${fmtN(newOrd)} أمر تغيير)\n• ${fmtN(addOrd)} أمر تغيير جديد في ${fmtN(inRec)} ملف موجود\n\nلم يُنقل (حسب قواعد التدقيق):\n• ${fmtN(S.testRowsSkipped)} صف تجربة أو فارغ\n• ${fmtN(S.namelessUnmatched)} بلا اسم مشروع\n\nما سبق استيراده لا يتكرر، وما عُدّل في الملفات الموجودة يبقى كما هو.${fixTxt}${ctrTxt}\nتقرير التدقيق الكامل: ${r.report}\n\nمتابعة الاستيراد؟`;
+  if(!newRec&&!addOrd&&(fixN||linkN)){if(confirm(msg.split('\n\nسيُضاف')[0]+'\n\nلا توجد أوامر جديدة.'+fixTxt+ctrTxt+'\n\nتطبيق تصحيح أرقام الاستمارات؟')){applyFixes();applyCounter();persist();renderHome();flash(`صُحّح رقم الاستمارة لـ ${fixN} أمر تغيير`+(setCounter?` — الاستمارة القادمة ${tgt+1}`:''));}return;}
   if(!newRec&&!addOrd){if(setCounter){if(confirm(msg.split('\n\nسيُضاف')[0]+'\n\nلا يوجد جديد: كل أوامر هذا الملف موجودة في البرنامج.'+ctrTxt+'\n\nضبط عداد الاستمارات؟')){applyCounter();persist();renderHome();flash(`الاستمارة القادمة تأخذ الرقم ${tgt+1}`);}}else alert(msg.split('\n\nسيُضاف')[0]+'\n\nلا يوجد جديد: كل أوامر هذا الملف موجودة في البرنامج.'+ctrTxt);return;}
   if(!confirm(msg)){if(setCounter&&confirm(`لم يُستورد شيء.\n\nضبط عداد الاستمارات فقط؟ تأخذ الاستمارة القادمة الرقم ${tgt+1}.`)){applyCounter();persist();renderHome();flash(`الاستمارة القادمة تأخذ الرقم ${tgt+1}`);}return;}
-  plan.forEach(({x,k,add})=>{if(k==null){DB.records.push(migrate(x));return;}if(!add)return;const cur=DB.records[k],m=migrate(x);cur.orders=cur.orders.concat(m.orders.slice(cur.orders.length));cur.printOrder=cur.orders.length-1;cur.updated=Date.now();});
-  applyCounter();persist();renderHome();flash(`تم استيراد ${fmtN(newRec)} ملف مشروع و${fmtN(newOrd+addOrd)} أمر تغيير`+(lastN?` — الاستمارة القادمة ${Math.max(+DB.settings.lastForm||0,maxForm())+1}`:''));
+  plan.forEach(({x,k,add,link,got})=>{if(k==null){DB.records.push(migrate(x));return;}if(!add)return;const cur=DB.records[k],m=migrate(x);
+    if(link){const seq=(x.orders||[]).map((eo,i)=>got&&got.get(eo)||m.orders[i]),rest=cur.orders.filter(o=>!seq.includes(o));cur.orders=seq.concat(rest);}   // مشروع مربوط: ترتيب أوامر الملف، وأمر البرنامج المطابق في موضعه، وما ليس في الملف بعدها
+    else cur.orders=cur.orders.concat(m.orders.slice(cur.orders.length));cur.printOrder=cur.orders.length-1;cur.updated=Date.now();});
+  applyFixes();applyCounter();persist();renderHome();flash(`تم استيراد ${fmtN(newRec)} ملف مشروع و${fmtN(newOrd+addOrd)} أمر تغيير`+(lastN?` — الاستمارة القادمة ${Math.max(+DB.settings.lastForm||0,maxForm())+1}`:''));
   if(r.report&&DESK.showFile&&confirm('فتح مجلد تقرير التدقيق؟'))DESK.showFile(r.report);}
 function showOpenFile(){modal(`<h3>فتح ملف أوامر التغيير</h3><p class="hint">اختر ملف JSON محفوظاً من هذا النظام لاستكمال المشروع وإضافة أمر تغيير جديد.</p>
   <label class="drop">اختيار ملف JSON<input type="file" accept=".json,application/json,text/plain" id="ifile"></label>

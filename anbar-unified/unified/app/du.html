@@ -2475,11 +2475,11 @@ table.rs td.d{text-align:center;width:28mm}
 .pd .att{margin-top:1mm;font-size:1em;line-height:calc(1.6*var(--lh,1))}
 .pd .att .ai{padding-right:6mm}
 .pd .endrow{display:flex;align-items:flex-end;gap:5mm}
-.pd .ccb{flex:1;font-size:10pt;line-height:calc((1.35 + .2*var(--gap,1))*var(--lh,1))}
+.pd .ccb{flex:1;font-size:calc(10pt*var(--cck,1));line-height:calc((1.35 + .2*var(--gap,1))*var(--lh,1))}
 .pd .ccb>b{display:block;text-decoration:underline;margin-bottom:.5mm}
 .pd .ccl{display:flex;gap:4px;align-items:baseline;break-inside:avoid}
 .pd .ccb.two .ccw{column-count:2;column-gap:6mm;column-rule:1px solid #ddd}
-.pd .ccb.two{font-size:10pt}
+.pd .ccb.two{font-size:calc(10pt*var(--cck,1))}
 .pd .ccl .e{white-space:nowrap}
 .pd .dots{flex:1;border-bottom:1.5px dotted #333;transform:translateY(-4px);min-width:8mm}
 .pd .sigrow{display:flex;justify-content:space-between;align-items:flex-start;margin-top:calc(2mm*var(--gap,1));position:relative;z-index:2}
@@ -2687,6 +2687,9 @@ table.rs td.d{text-align:center;width:28mm}
 /* ---------- paper: stoppage / resumption memo and order ---------- */
 .page.pm,.page.po{font-size:calc(13pt*var(--k,1));line-height:calc(1.7*var(--lh,1));padding:8mm 13mm 21mm}
 .hd.hdv{--hb:40mm;margin:0 -2mm 2mm}
+/* الترويسة العليا (صورة الترويسة) تمتد بعرض الورقة ويبقى 1.5 ملم من كل جانب: هامش الصفحة 12 ملم (13 للمطالعات وأوامر التوقف والاستئناف) */
+.page{--px:12mm}.page.pm,.page.po{--px:13mm}
+.page .hd.lhd,.page .hd.lhd.hdv,.page .hd.lhd.hd5{margin-left:calc(1.5mm - var(--px));margin-right:calc(1.5mm - var(--px))}
 .pm .ometa{font-family:Arial,sans-serif;font-weight:700;font-size:calc(11pt*var(--k,1));line-height:1.55;margin:1mm 0 0}
 .pm .ocmt{font-family:'PT Bold Heading','AnbarNaskh',serif;font-weight:700;color:#1f2a68;font-size:12pt;line-height:1.5;margin:-1mm 0 1mm}
 .pm .mto{font-weight:700;font-size:calc(13.5pt*var(--k,1));line-height:calc(1.75*var(--lh,1));margin:calc(2mm*var(--g,1)) 0 0;max-width:62%}
@@ -2741,7 +2744,7 @@ table.rs td.d{text-align:center;width:28mm}
 .po .att div{font-weight:400}
 .po .signer{text-align:center;font-weight:700;font-size:calc(14pt*var(--k,1)*var(--sgk2,1));line-height:calc(1.55*var(--lh,1));margin-top:calc(10mm + var(--sy2,0mm));margin-left:calc(4mm + var(--sx2,0mm))}
 .po .signer .d{direction:ltr;display:block}
-.po .ccb{font-size:10pt;line-height:calc((1.35 + .25*var(--g,1))*var(--lh,1));padding-right:4mm}
+.po .ccb{font-size:calc(10pt*var(--cck,1));line-height:calc((1.35 + .25*var(--g,1))*var(--lh,1));padding-right:4mm}
 .po .ccb>b{display:inline-block;text-decoration:underline;margin-bottom:.5mm}
 .po .ccw{width:76%}
 .po .ccl{display:flex;gap:4px;align-items:baseline}
@@ -2976,7 +2979,8 @@ table.rs td.d{text-align:center;width:28mm}
     <span class="tg"><span>حجم الخط</span><button type="button" id="tb_fs_dn" aria-label="تصغير الخط">−</button><b id="tb_fsv"></b><button type="button" id="tb_fs_up" aria-label="تكبير الخط">+</button></span>
     <span class="tg"><span>تباعد الأسطر</span><button type="button" id="tb_lh_dn" aria-label="تقليل التباعد">−</button><b id="tb_lhv"></b><button type="button" id="tb_lh_up" aria-label="زيادة التباعد">+</button></span>
     <span class="tg"><span>الترويسة</span><button type="button" id="tb_hs_dn" aria-label="تصغير الترويسة">−</button><b id="tb_hsv"></b><button type="button" id="tb_hs_up" aria-label="تكبير الترويسة">+</button></span>
-    <label class="tg chk"><input type="checkbox" id="tb_fit"> تصغير تلقائي</label>
+    <span class="tg" title="حجم خط اسم الموقّع وصفته في الأمر المعروض (الأمر الإداري للقرار، أو أمر التوقف والاستئناف)"><span>التوقيع</span><button type="button" id="tb_sg_dn" aria-label="تصغير التوقيع">−</button><b id="tb_sgv"></b><button type="button" id="tb_sg_up" aria-label="تكبير التوقيع">+</button></span>
+    <label class="tg chk"><input type="checkbox" id="tb_fit"> تصغير تلقائي</label><small id="tb_fitn" style="color:#b45309;font-weight:700"></small>
     <button type="button" id="tb_reset" class="tg">افتراضي</button>
   </div>
   <div class="scale" id="scaleBox"><div id="out"></div></div></div>
@@ -4591,12 +4595,13 @@ function fitPages(){
   applyType();
   document.querySelectorAll('#out .page').forEach(p=>{
     const g=p.querySelector('.gbar'),b=p.querySelector('.bottom');if(!g||!b)return;
-    const base=(S.s.fs||100)/100;let k=base;p.style.setProperty('--k',k);
+    const base=(S.s.fs||100)/100;let k=base;p.style.setProperty('--k',k);p.style.setProperty('--cck',1);
     if(p.classList.contains('pm')||p.classList.contains('po')){
       // stoppage / resumption memo and order: tighten the gaps first, then the text
       p.style.setProperty('--g',1);if(S.s.fit===false)return;
       const ov2=()=>b.getBoundingClientRect().bottom>g.getBoundingClientRect().top-6;
       for(let i=0;i<8&&ov2();i++)p.style.setProperty('--g',(1-0.1*(i+1)).toFixed(2));
+      for(let c=0.95;c>=0.749&&ov2();c-=0.05)p.style.setProperty('--cck',c.toFixed(2));   // قائمة «صورة عنه الى» تصغر قبل المتن والتوقيع
       for(let i=0;i<30&&k>0.6&&ov2();i++){k-=0.025;p.style.setProperty('--k',k.toFixed(3))}
       return;
     }
@@ -4606,6 +4611,7 @@ function fitPages(){
       // administrative order: keep title 16pt / body 14pt; shrink the distribution list and the gaps first
       const cb=p.querySelector('.ccb');p.style.setProperty('--gap',1);cb&&cb.classList.remove('two');
       for(let i=0;i<10&&over();i++)p.style.setProperty('--gap',(1-0.1*(i+1)).toFixed(2));
+      for(let c=0.95;c>=0.749&&over();c-=0.05)p.style.setProperty('--cck',c.toFixed(2));   // قائمة «صورة عنه الى» تصغر قبل المتن
 
       if(!over())return;
     }
@@ -4621,7 +4627,11 @@ function fitPages(){
     }
     for(let i=0;i<30&&k>0.6&&ov();i++){k-=0.025;p.style.setProperty('--k',k.toFixed(3))}
   });
+  try{fitNote()}catch(_){}
 }
+/* إذا ألغى «تصغير تلقائي» جزءاً من تكبير الخط (الصفحة ممتلئة) يُكتب الحجم الفعلي بجانب «تصغير تلقائي» في الشريط */
+function fitNote(){const n=$('tb_fitn');if(!n)return;const base=(S.s.fs||100)/100;let mn=base;document.querySelectorAll('#out .page').forEach(p=>{const k=parseFloat(p.style.getPropertyValue('--k'));if(k>0&&k<mn)mn=k;});
+  const eff=Math.round(mn*100);n.textContent=S.s.fit!==false&&eff<Math.round(base*100)?`الحجم الفعلي ${eff}% — الصفحة ممتلئة`:'';n.title=n.textContent?'«تصغير تلقائي» يصغّر النص حتى يبقى المستند في صفحة واحدة. للتكبير أكثر: أطفئ «تصغير تلقائي» (قد ينتقل جزء إلى صفحة ثانية) أو اختصر النص أو قائمة «صورة عنه الى»':'';}
 function fit(){
   const bx=$('scaleBox'),pv=bx.parentElement;const w=pv.clientWidth-32;const pw=210*96/25.4;
   const s=Math.min(1,w/pw);bx.style.transform=`scale(${s})`;bx.style.transformOrigin='top right';bx.style.height=(bx.firstElementChild.offsetHeight*s)+'px';
@@ -4848,6 +4858,7 @@ function setTab(t,noScroll){
 function syncTools(){
   const s=S.s;if(!s)return;s.ff=s.ff||'Arial';s.fs=s.fs||100;s.lh=s.lh||100;s.hs=s.hs||100;
   if(!$('tb_ff').options.length)$('tb_ff').innerHTML=$('s_ff').innerHTML;
+  {const L=(S.sel&&S.sel.t==='case')?S.L2:S.L;$('tb_sgv').textContent=sgPct(L)+'%';}
   $('tb_ff').value=s.ff;$('tb_fsv').textContent=s.fs+'%';$('tb_lhv').textContent=(s.lh/100).toFixed(2);$('tb_hsv').textContent=s.hs+'%';$('tb_fit').checked=s.fit!==false;
   $('s_ff').value=s.ff;$('s_fs').value=s.fs;$('s_fsv').textContent=s.fs+'%';$('s_lh').value=s.lh;$('s_lhv').textContent=(s.lh/100).toFixed(2);$('s_fit').checked=s.fit!==false;
   $('s_hs').value=s.hs;$('s_hsv').textContent=s.hs+'%';const f=s.hs/100,c=x=>(x*f/10).toFixed(1);
@@ -4857,6 +4868,7 @@ function syncTools(){
   $('tb_fs_dn').onclick=st('fs',-5,80,130);$('tb_fs_up').onclick=st('fs',5,80,130);
   $('tb_lh_dn').onclick=st('lh',-5,80,180);$('tb_lh_up').onclick=st('lh',5,80,180);
   $('tb_hs_dn').onclick=st('hs',-5,70,130);$('tb_hs_up').onclick=st('hs',5,70,130);
+  {const sg=d=>()=>{const L=(S.sel&&S.sel.t==='case')?S.L2:S.L;if(!L)return;L.sigFz=Math.max(70,Math.min(160,sgPct(L)+d));save();try{(S.sel&&S.sel.t==='case')?drawLetter2():drawLetter()}catch(_){}upd()};$('tb_sg_dn').onclick=sg(-5);$('tb_sg_up').onclick=sg(5);}
   $('tb_ff').onchange=e=>{S.s.ff=e.target.value;upd()};$('tb_fit').onchange=e=>{S.s.fit=e.target.checked;upd()};
   $('tb_reset').onclick=()=>$('s_reset').click()}
 document.querySelectorAll('.views button').forEach(b=>b.onclick=()=>setView(b.dataset.view));

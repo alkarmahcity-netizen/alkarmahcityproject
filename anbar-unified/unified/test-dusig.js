@@ -18,6 +18,23 @@ const sleep = ms => new Promise(r => setTimeout(r, ms)); const R = []; const ok 
   ok('130% enlarges the decision order signature, 80% shrinks the stop/resume order signature', Math.abs(a1 - 26) < 0.15 && Math.abs(b1 - 14.93) < 0.15, a1 + ' / ' + b1);
   await V(`(()=>{const b=[...document.querySelectorAll('#ordSec button')].find(x=>/إرجاع موضع التوقيع/.test(x.textContent));b.click();return 1})()`); await sleep(300);
   ok('«إرجاع موضع التوقيع وحجمه» resets to 100%', Math.abs((await fz('pd')) - 20) < 0.1);
+  // أمر التوقف المعروض: شريط الأدوات «التوقيع − / +» وحجم الخط مع صفحة ممتلئة
+  await V(`(()=>{const i=S.cases.findIndex(c=>c.type==='stop');selCase(i<0?0:i);return 1})()`); await sleep(1200);
+  await V(`(()=>{const ps=document.getElementById('printSel');ps.value='o';ps.dispatchEvent(new Event('change'));return 1})()`); await sleep(1200);
+  const po = () => V(`(()=>{const p=document.querySelector('#out .po');const px=e=>parseFloat(getComputedStyle(e).fontSize);return {k:+p.style.getPropertyValue('--k'),cck:+(p.style.getPropertyValue('--cck')||1),op:px(p.querySelector('.op')),sg:px(p.querySelector('.signer')),cc:px(p.querySelector('.ccb')),note:document.getElementById('tb_fitn').textContent,sgv:document.getElementById('tb_sgv').textContent,pages:document.querySelectorAll('#out .page').length}})()`);
+  await V(`(()=>{S.L2.sigFz=100;upd();return 1})()`); await sleep(600);
+  let p0 = await po();
+  await V(`document.getElementById('tb_sg_up').click();document.getElementById('tb_sg_up').click();1`); await sleep(800);
+  let p1 = await po();
+  ok('toolbar «التوقيع +» enlarges the stop/resume order signature (100% → 110%)', p0.sgv === '100%' && p1.sgv === '110%' && p1.sg > p0.sg * 1.08, JSON.stringify([p0, p1]));
+  // صفحة ممتلئة: متن طويل وقائمة توزيع طويلة
+  await V(`(()=>{const L=S.L2;L.cc=(L.cc||[]).concat(Array.from({length:22},(_,i)=>({to:'جهة إضافية رقم '+(i+1)+' للاطلاع والمتابعة',purpose:'للتفضل بالاطلاع',end:'مع التقدير'})));const d=S.cases[S.cc];d.note=(d.note||'')+' '+'نص إضافي طويل للمتن. '.repeat(40);upd();return 1})()`); await sleep(1500);
+  const f0 = await po(); await V(`(()=>{S.s.fs=110;upd();return 1})()`); await sleep(1500); const f1 = await po();
+  ok('full page: the distribution list shrinks before the order text (cck < 1)', f1.cck < 1 || f0.cck < 1, JSON.stringify([f0, f1]));
+  ok('full page: a note shows the effective size when auto-fit cancels the enlargement', f1.k < 1.1 ? /الحجم الفعلي/.test(f1.note) : f1.note === '', JSON.stringify(f1));
+  await V(`(()=>{S.s.fit=false;upd();return 1})()`); await sleep(1500); const f2 = await po();
+  ok('auto-fit off: 110% applies fully and the note disappears', Math.abs(f2.k - 1.1) < 0.001 && f2.note === '', JSON.stringify(f2));
+  await V(`(()=>{S.s.fit=true;S.s.fs=100;upd();return 1})()`);
   const e = await app.evaluate(() => (global.__uniErrors || []).slice()); ok('no JavaScript errors', e.length === 0, e.join(' | ').slice(0, 300));
   await app.close();
   R.forEach(x => console.log(x[0], x[1], x[2] ? '— ' + String(x[2]).slice(0, 300) : '')); console.log(`${R.filter(x => x[0] === 'PASS').length}/${R.length}`); process.exit(R.every(x => x[0] === 'PASS') ? 0 : 1);

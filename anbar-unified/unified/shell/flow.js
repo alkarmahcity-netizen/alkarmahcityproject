@@ -31,6 +31,7 @@ const CSS = `
 .fb-c{background:var(--fb-col);border:1px solid var(--fb-line);border-radius:14px;display:flex;flex-direction:column;min-height:240px;min-width:0}
 .fb-c h3{margin:0;padding:9px 12px;font-size:15px;display:flex;justify-content:space-between;border-bottom:1px solid var(--fb-line)}
 .fb-c h3 em{font-style:normal;background:var(--fb-line);border-radius:99px;padding:0 9px;font-size:13px}
+.fb-c h3 .fb-pg{margin-inline-start:auto;margin-inline-end:8px;font-size:12px;font-weight:400;color:var(--fb-mut)}
 .fb-c.done h3{color:var(--fb-ok)}.fb-c.ret h3{color:var(--fb-ret)}
 .fb-l{padding:7px;display:flex;flex-direction:column;gap:7px;overflow-y:auto;max-height:var(--fb-lh,calc(100vh - 330px));flex:1;min-height:0}
 .fb-e{color:var(--fb-mut);font-size:13px;text-align:center;padding:14px}
@@ -165,9 +166,10 @@ function mount(root, api, opt) {
   }
   function render() {
     const C = data.cards || [];
+    const keepTop = {}; if (!edit) root.querySelectorAll('[data-fb="b"] .fb-c').forEach(sc => { const l = sc.querySelector('.fb-l'); if (l) keepTop[sc.dataset.st] = l.scrollTop; });   // شاشات العرض: لا يرجع العمود إلى أوله مع كل تحديث
     $('b').innerHTML = STAGES.map(([k, n]) => {
       const L = C.filter(c => c.st === k && show(c)).sort((a, b) => (isLate(b) - isLate(a)) || (k === 'done' ? since(b) - since(a) : since(a) - since(b)));
-      return `<section class="fb-c ${k}"><h3>${n}<em>${L.length}</em></h3><div class="fb-l">${L.map(c => {
+      return `<section class="fb-c ${k}" data-st="${k}"><h3>${n}${edit ? '' : '<small class="fb-pg"></small>'}<em>${L.length}</em></h3><div class="fb-l">${L.map(c => {
         const last = (c.hist || [])[c.hist.length - 1] || {}, a = amtTxt(c);
         return `<div class="fb-x ${c.sys}${isLate(c) ? ' late' : ''}${fresh.has(c.key) ? ' new' : ''}" data-k="${esc(c.key)}" tabindex="0">
           <div class="t"><span class="ty">${esc(title(c))}</span><span>${c.fn ? 'اضبارة ' + esc(c.fn) : '<i>بلا اضبارة</i>'}</span></div>
@@ -176,6 +178,7 @@ function mount(root, api, opt) {
           ${c.st === 'ret' && last.why ? `<div class="why">↩ ${esc(last.why)}</div>` : ''}
           <div class="f"><span>${esc(c.eng || '')}${a ? ` · ${esc(a)}` : ''}</span><span class="fb-d" title="${isLate(c) ? 'متأخرة: مضى على استلامها ' + ageOf(c) + ' يوماً (الحد ' + limOf(c) + ')' : 'في مرحلتها'}">${isLate(c) ? '⚠ ' + ageOf(c) + ' يوماً' : dTxt(daysIn(c))}</span></div></div>`; }).join('') || '<div class="fb-e">لا توجد معاملات</div>'}</div></section>`;
     }).join('');
+    if (!edit) { root.querySelectorAll('[data-fb="b"] .fb-c').forEach(sc => { const l = sc.querySelector('.fb-l'); if (l && keepTop[sc.dataset.st] != null) l.scrollTop = keepTop[sc.dataset.st]; }); pgMarks(); }
     const open = C.filter(c => !['done', 'ret'].includes(c.st)), d0 = new Date(); d0.setHours(0, 0, 0, 0);
     $('k').innerHTML = `<div><small>معاملات قيد العمل</small><b>${open.length}</b></div><div><small>وردت اليوم</small><b>${C.filter(c => (c.created || 0) >= d0.getTime()).length}</b></div>
       <div class="l"><small>متأخرة (السلف والمدد بعد 15 يوماً، الأوامر والاستلام بعد 30 من الاستلام)</small><b>${C.filter(isLate).length}</b></div><div class="o"><small>أُنجزت هذا الأسبوع</small><b>${C.filter(c => c.st === 'done' && Date.now() - since(c) < 7 * DAY).length}</b></div>
@@ -211,6 +214,27 @@ function mount(root, api, opt) {
   setInterval(() => { if (!document.hidden && root.offsetParent !== null) render(); }, 60000);
   if (!edit) setInterval(() => { const w = root.querySelector(':scope > .fb-annov .aimgw'); if (w && +w.dataset.annpages > 1) annPage(w, 1); }, 12000);   // صفحات المرفق تتقلّب على شاشات العرض
   setInterval(() => { const ov = root.querySelector(':scope > .fb-annov'); if (ov && !activeAnns(data).some(z => z.id === ov.dataset.ann)) render(); }, 10000);   // انتهاء مدة التبليغ على شاشات العرض   // عدّاد الأيام يتقدّم دون طلب بيانات
+
+  /* شاشات العرض (الشاشة الثانية وتلفاز القاعة): العمود الذي لا تتسع له بطاقاته يتقلّب صفحةً صفحة كل 8 ثوانٍ ثم يعود إلى أوله،
+     فتظهر كل المعاملات (مثلاً 50 شهادة استلام) لا الخمس الأولى فقط؛ وبجانب اسم المرحلة رقم الصفحة. يتوقف دقيقة إن مرّر أحد العمود بيده. */
+  function pgMarks() { root.querySelectorAll('[data-fb="b"] .fb-c').forEach(sc => { const l = sc.querySelector('.fb-l'), m = sc.querySelector('.fb-pg'); if (!l || !m) return;
+    const step = Math.max(1, l.clientHeight - 24), n = l.scrollHeight > l.clientHeight + 4 ? Math.ceil((l.scrollHeight - 4) / step) : 1, i = Math.min(n, Math.floor((l.scrollTop + 4) / step) + 1);
+    m.textContent = n > 1 ? `صفحة ${i} من ${n}` : ''; }); }
+  if (!edit) {
+    let hold = 0;
+    root.addEventListener('wheel', () => { hold = Date.now() + 60000; }, { passive: true });
+    root.addEventListener('scroll', e => { if (e.target.classList && e.target.classList.contains('fb-l')) pgMarks(); }, true);
+    setInterval(() => {
+      if (document.hidden || Date.now() < hold || root.querySelector(':scope > .fb-annov')) return;
+      root.querySelectorAll('[data-fb="b"] .fb-l').forEach(l => {
+        if (l.scrollHeight <= l.clientHeight + 4) return;
+        const atEnd = l.scrollTop + l.clientHeight >= l.scrollHeight - 4;
+        l.scrollTo({ top: atEnd ? 0 : l.scrollTop + Math.max(1, l.clientHeight - 24), behavior: 'smooth' });
+      });
+      setTimeout(pgMarks, 900);
+    }, +(opt.pageMs || 8000));
+    window.addEventListener('resize', () => setTimeout(pgMarks, 300));
+  }
 
   root.addEventListener('click', e => {
     const f = e.target.closest('[data-f]'); if (f && root.contains(f)) { F = f.dataset.f; root.querySelectorAll('[data-f]').forEach(b => b.classList.toggle('on', b === f)); render(); return; }

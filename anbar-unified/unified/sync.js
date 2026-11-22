@@ -343,11 +343,13 @@ module.exports = function createSync(ctx) {
     try { const d = crypto.createDecipheriv('aes-256-gcm', k, Buffer.from(v.iv, 'base64')); d.setAuthTag(Buffer.from(v.tag, 'base64')); return JSON.parse(Buffer.concat([d.update(Buffer.from(v.ct, 'base64')), d.final()]).toString('utf8')); }
     catch (_) { throw new Error('كلمة سر التشفير غير صحيحة'); }
   };
+  /* مهلة السكون: 12 ثانية (30 للسحابة)؛ مرفقات الأرشيف (arf) دقيقتان — حاسبة القسم تقرأ ملفات الأرشيف وتجهّز دفعة حتى 20 م.ب
+     قبل أن ترسل أول بايت، فكانت مهلة 12 ثانية تنتهي على أرشيف كبير أو قرص بطيء («arf: انتهت مهلة الاتصال بالخادم») */
   function call(pathname, bodyObj) {
     return new Promise((resolve, reject) => {
       const u = parseServer(); if (!u) return reject(new Error('أدخل عنوان الخادم'));
       const b = Buffer.from(JSON.stringify(bodyObj || {}));
-      const req = (u.tls ? https : http).request({ hostname: u.hostname, port: u.port, path: u.base + pathname, method: 'POST', timeout: u.tls ? 30000 : 12000, headers: { 'Content-Type': 'application/json', 'Content-Length': b.length, 'x-sync-key': cfg.key, 'x-sync-name': encodeURIComponent(cfg.name || os.hostname()), 'x-sync-ver': String(ctx.version || '') } }, r => {
+      const req = (u.tls ? https : http).request({ hostname: u.hostname, port: u.port, path: u.base + pathname, method: 'POST', timeout: /^\/sync\/arf\//.test(pathname) ? (+process.env.UNI_SYNC_ARF_MS || 120000) : u.tls ? 30000 : 12000, headers: { 'Content-Type': 'application/json', 'Content-Length': b.length, 'x-sync-key': cfg.key, 'x-sync-name': encodeURIComponent(cfg.name || os.hostname()), 'x-sync-ver': String(ctx.version || '') } }, r => {
         const ch = []; r.on('data', c => ch.push(c)); r.on('end', () => { let j = {}; try { j = JSON.parse(Buffer.concat(ch).toString('utf8')); } catch (_) {} if (r.statusCode === 403) return reject(new Error('مفتاح المزامنة غير صحيح')); if (r.statusCode >= 300) return reject(new Error(j.error || ('خطأ ' + r.statusCode))); resolve(j); });
       });
       req.on('timeout', () => req.destroy(new Error('انتهت مهلة الاتصال بالخادم')));

@@ -2483,7 +2483,7 @@ table.rs td.d{text-align:center;width:28mm}
 .pd .ccl .e{white-space:nowrap}
 .pd .dots{flex:1;border-bottom:1.5px dotted #333;transform:translateY(-4px);min-width:8mm}
 .pd .sigrow{display:flex;justify-content:space-between;align-items:flex-start;margin-top:calc(2mm*var(--gap,1));position:relative;z-index:2}
-.pd .signer{width:max-content;margin-top:calc(4mm + var(--sy,0mm));margin-left:calc(6mm + var(--sx,0mm));text-align:center;font-weight:700;font-size:calc(15pt*var(--k,1));line-height:calc(1.55*var(--lh,1))}
+.pd .signer{width:max-content;margin-top:calc(4mm + var(--sy,0mm));margin-left:calc(6mm + var(--sx,0mm));text-align:center;font-weight:700;font-size:calc(15pt*var(--k,1)*var(--sgk,1));line-height:calc(1.55*var(--lh,1))}
 .hd.hd5{--hb:50mm;margin-bottom:1.5mm}
 .recbar{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px;align-items:center;border:1px dashed var(--accent);border-radius:6px;padding:8px}
 .recbar .hint{flex-basis:100%}
@@ -2739,7 +2739,7 @@ table.rs td.d{text-align:center;width:28mm}
 .po .att{font-size:calc(12pt*var(--k,1));line-height:calc(1.6*var(--lh,1));font-weight:700;padding-top:calc(6mm*var(--g,1))}
 .po .att u{text-underline-offset:4px}
 .po .att div{font-weight:400}
-.po .signer{text-align:center;font-weight:700;font-size:calc(14pt*var(--k,1));line-height:calc(1.55*var(--lh,1));margin-top:calc(10mm + var(--sy2,0mm));margin-left:calc(4mm + var(--sx2,0mm))}
+.po .signer{text-align:center;font-weight:700;font-size:calc(14pt*var(--k,1)*var(--sgk2,1));line-height:calc(1.55*var(--lh,1));margin-top:calc(10mm + var(--sy2,0mm));margin-left:calc(4mm + var(--sx2,0mm))}
 .po .signer .d{direction:ltr;display:block}
 .po .ccb{font-size:10pt;line-height:calc((1.35 + .25*var(--g,1))*var(--lh,1));padding-right:4mm}
 .po .ccb>b{display:inline-block;text-decoration:underline;margin-bottom:.5mm}
@@ -4526,8 +4526,8 @@ function drawLetter(){
   box.append(fld('اسم الموقّع',L.signerName,v=>L.signerName=v),fld('صفته',L.signerTitle,v=>L.signerTitle=v));
   const rg=(lbl,key,min,max)=>{const l=document.createElement('label');const v=document.createElement('span');const show=()=>v.textContent=' '+(num(L[key])||0)+' ملم';l.textContent=lbl;l.append(v);
     const r=document.createElement('input');r.type='range';r.min=min;r.max=max;r.step=1;r.value=num(L[key])||0;r.oninput=()=>{L[key]=+r.value;show();applyType();save()};show();l.append(r);box.append(l)};
-  rg('مستوى التوقيع (أعلى ← سالب / أسفل ← موجب)','sigY',-40,60);rg('إزاحة التوقيع عن اليسار','sigX',-4,60);
-  const rs=document.createElement('button');rs.type='button';rs.textContent='إرجاع موضع التوقيع';rs.onclick=()=>{L.sigY=0;L.sigX=0;drawLetter();applyType();save()};box.append(rs);
+  rg('مستوى التوقيع (أعلى ← سالب / أسفل ← موجب)','sigY',-40,60);rg('إزاحة التوقيع عن اليسار','sigX',-4,60);sgRg(box,L);
+  const rs=document.createElement('button');rs.type='button';rs.textContent='إرجاع موضع التوقيع وحجمه';rs.onclick=()=>{L.sigY=0;L.sigX=0;L.sigFz=100;drawLetter();applyType();save()};box.append(rs);
   box.append(fld('لجنة المتابعة ( [لجنة المتابعة] )',L.follow,v=>L.follow=v,'text','full'));
   const ta=(lbl,key)=>{const l=document.createElement('label');l.className='full';l.textContent=lbl;const t=document.createElement('textarea');t.value=L[key]||'';t.oninput=()=>{L[key]=t.value;upd()};l.append(t);box.append(l)};
   ta('البنود (سطر لكل بند)','clauses');ta('المرفقات (سطر لكل مرفق)','attachments');
@@ -4583,7 +4583,8 @@ function applyType(){
   const L=S.L||{};o.style.setProperty('--sy',(num(L.sigY)||0)+'mm');o.style.setProperty('--sx',(num(L.sigX)||0)+'mm');
   o.style.setProperty('--trioH',((S.s&&S.s.trioH)||30)+'mm');
   o.style.setProperty('--lh',((S.s.lh||100)/100).toFixed(2));
-  o.style.setProperty('--hs',(((S.s&&S.s.hs)||100)/100).toFixed(2));{const L2=S.L2||{};o.style.setProperty('--sy2',(num(L2.sigY)||0)+'mm');o.style.setProperty('--sx2',(num(L2.sigX)||0)+'mm')}
+  o.style.setProperty('--hs',(((S.s&&S.s.hs)||100)/100).toFixed(2));{const L2=S.L2||{};o.style.setProperty('--sy2',(num(L2.sigY)||0)+'mm');o.style.setProperty('--sx2',(num(L2.sigX)||0)+'mm');o.style.setProperty('--sgk2',(sgPct(L2)/100).toFixed(2))}
+  o.style.setProperty('--sgk',(sgPct(L)/100).toFixed(2));
   o.style.setProperty('--sigH',((S.m&&S.m.sigH)||22)+'mm');
 }
 function fitPages(){
@@ -4974,12 +4975,18 @@ function drawCaseForm(){
     else if(dec){box.innerHTML=`<b>✓</b> صدر قرار لجنة المدد بمنح فترة التوقف (الطلب رقم ${esc(dec.no)}).`;box.append(btn('فتح القرار',()=>selExt(S.exts.indexOf(dec))))}
     f.append(box)}
 }
+/* حجم خط التوقيع (اسم الموقّع وصفته) في الكتاب والأمر: نسبة من الحجم الافتراضي 70%–160% (100% = كما كان) */
+const sgPct=L=>{const v=num(L&&L.sigFz);return v>=70&&v<=160?v:100;};
+function sgRg(box,L){const l=document.createElement('label');l.className='sgfz';const v=document.createElement('span');const sh=()=>v.textContent=' '+sgPct(L)+'%';l.textContent='حجم خط التوقيع (الاسم والصفة)';l.append(v);
+  const mk=(t,d)=>{const b=document.createElement('button');b.type='button';b.className='btn sm';b.textContent=t;b.onclick=()=>{L.sigFz=Math.max(70,Math.min(160,sgPct(L)+d));r.value=sgPct(L);sh();applyType();save()};return b;};
+  const r=document.createElement('input');r.type='range';r.min=70;r.max=160;r.step=5;r.value=sgPct(L);r.oninput=()=>{L.sigFz=+r.value;sh();applyType();save()};sh();
+  const w=document.createElement('div');w.style.cssText='display:flex;gap:6px;align-items:center';w.append(mk('−',-5),r,mk('+',5));l.append(w);box.append(l);}
 function drawLetter2(){
   const box=$('ordSec2');box.innerHTML='';const L=S.L2;
   box.append(fk('اسم الموقّع',L,'signerName'),fk('صفته',L,'signerTitle'),fk('سطر الجهة المرسل اليها',L,'toPre','text','full'));
   const rg=(lbl,key,min,max)=>{const l=mkE('label',null,lbl);const v=mkE('span');const sh=()=>v.textContent=' '+(num(L[key])||0)+' ملم';l.append(v);
     const r=document.createElement('input');r.type='range';r.min=min;r.max=max;r.step=1;r.value=num(L[key])||0;r.oninput=()=>{L[key]=+r.value;sh();applyType();save()};sh();l.append(r);box.append(l)};
-  rg('مستوى التوقيع (أعلى ← سالب)','sigY',-30,50);rg('إزاحة التوقيع عن اليسار','sigX',-4,60);
+  rg('مستوى التوقيع (أعلى ← سالب)','sigY',-30,50);rg('إزاحة التوقيع عن اليسار','sigX',-4,60);sgRg(box,L);
   box.append(fk('لجنة المتابعة ( [لجنة المتابعة] )',L,'follow','text','full'),fk('عنوان قائمة التوزيع',L,'ccHead','text','full'));
   box.append(mkE('p','hint','قائمة التوزيع — يمكن استخدام: [الشركة] [تاريخ المطالعة] [لجنة المتابعة]'));
   L.cc.forEach((x,i)=>{const r=mkE('div','rrow');r.style.gridTemplateColumns='1fr 1fr 64px 28px';

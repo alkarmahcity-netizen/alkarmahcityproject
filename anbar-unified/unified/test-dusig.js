@@ -1,0 +1,24 @@
+// المدد: حجم خط التوقيع (اسم الموقّع وصفته) في الأمر الإداري للقرار وأوامر التوقف والاستئناف — 70%–160%، و100% = كما كان
+const { _electron: electron } = require('playwright'); const fs = require('fs'), path = require('path'), os = require('os');
+const sleep = ms => new Promise(r => setTimeout(r, ms)); const R = []; const ok = (n, c, d = '') => R.push([c ? 'PASS' : 'FAIL', n, d]);
+(async () => { const T = fs.mkdtempSync(path.join(os.tmpdir(), 'dusig-')); const mk = n => { const d = path.join(T, n); fs.mkdirSync(d); return d; };
+  const DD = mk('d'); fs.writeFileSync(path.join(DD, 'auth.json'), JSON.stringify({ du: null }));
+  const app = await electron.launch({ executablePath: require('electron'), args: ['--no-sandbox', __dirname], env: { ...process.env, UNI_MULTI: mk('u'), UNI_DATA_DIR: DD, ANBAR_REG_DIR: mk('r'), UNI_AC_PORT: '48516', UNI_NO_JSONSCAN: '1', UNI_NO_LINKREFRESH: '1' } });
+  const pg = await app.firstWindow(); await pg.waitForLoadState('domcontentloaded'); await sleep(1500);
+  await pg.evaluate(() => window.desktop.go('du')); await sleep(2500);
+  const V = c => app.evaluate(async (_, c) => global.__uni.views.du.webContents.executeJavaScript(c), c);
+  await V(`window.confirm=()=>true;document.getElementById('bDemo').click();1`); await sleep(2500);
+  const fz = sel => V(`(()=>{const o=document.getElementById('out');const d=document.createElement('div');d.className='page ${sel}';d.innerHTML='<div class="signer">س</div>';o.append(d);const v=parseFloat(getComputedStyle(d.querySelector('.signer')).fontSize)/ (parseFloat(getComputedStyle(d).getPropertyValue('--k'))||1);d.remove();return Math.round(v*100)/100})()`);
+  const a0 = await fz('pd'), b0 = await fz('po');
+  ok('default size unchanged (letter 15pt = 20px, stop/resume order 14pt ≈ 18.67px)', Math.abs(a0 - 20) < 0.1 && Math.abs(b0 - 18.67) < 0.1, a0 + ' / ' + b0);
+  const ui = await V(`[...document.querySelectorAll('#ordSec label.sgfz,#ordSec2 label.sgfz')].length`);
+  ok('a «حجم خط التوقيع» control in both letter sections', ui === 2, 'controls=' + ui);
+  await V(`(()=>{S.L.sigFz=130;S.L2.sigFz=80;applyType();return 1})()`); await sleep(300);
+  const a1 = await fz('pd'), b1 = await fz('po');
+  ok('130% enlarges the decision order signature, 80% shrinks the stop/resume order signature', Math.abs(a1 - 26) < 0.15 && Math.abs(b1 - 14.93) < 0.15, a1 + ' / ' + b1);
+  await V(`(()=>{const b=[...document.querySelectorAll('#ordSec button')].find(x=>/إرجاع موضع التوقيع/.test(x.textContent));b.click();return 1})()`); await sleep(300);
+  ok('«إرجاع موضع التوقيع وحجمه» resets to 100%', Math.abs((await fz('pd')) - 20) < 0.1);
+  const e = await app.evaluate(() => (global.__uniErrors || []).slice()); ok('no JavaScript errors', e.length === 0, e.join(' | ').slice(0, 300));
+  await app.close();
+  R.forEach(x => console.log(x[0], x[1], x[2] ? '— ' + String(x[2]).slice(0, 300) : '')); console.log(`${R.filter(x => x[0] === 'PASS').length}/${R.length}`); process.exit(R.every(x => x[0] === 'PASS') ? 0 : 1);
+})().catch(e => { console.error(e); process.exit(1); });

@@ -14460,7 +14460,7 @@ const ccList=r=>r.letter&&r.letter.ccv===2&&Array.isArray(r.letter.cc)?r.letter.
 function ccOwn(r){if(r.letter.ccv!==2){r.letter.cc=defCC();r.letter.ccv=2;}return r.letter.cc;}
 const CARD_COL=[['#efe9f8','#8a6fc0'],['#e7eff9','#5b86c5'],['#eaf5e5','#5f9e4f'],['#f9e8ee','#c56b88'],['#e4f1fa','#4a9ad1'],['#fbf5de','#d1a92c']];
 function pageForm(r,c,pi){const P=r.project,o=r.orders[pi],x=c.rows[pi],n=pi+1;
-  const slots=n,word=v=>v>0?'أضافة':v<0?'حذف':'صفر';
+  const slots=n,word=v=>v>0?'أضافة':v<0?'وفر':'صفر';
   const card=k=>{const y=k<=pi?c.rows[k]:null,[bg,bd]=CARD_COL[k%6],d=y?y.d:0,a=y?y.a:0,w=y?y.n:0,net=y?y.net:0;
     return `<div class="fc${k===pi?' fc-cur':''}" style="--cbg:${bg};--cbd:${bd}"><div class="fc-h">${isFix(r.orders[k])?'تصحيح ':''}أمر التغيير رقم (${k+1})</div><table>
      <tr><th>الكميات</th><th colspan="2">المبالغ</th></tr>

@@ -15,6 +15,12 @@ const STOP=new Set(['مشروع','شركه','للمقاولات','المقاول
 const toks=s=>new Set(T(s).replace(/(\d)([ء-ي])/g,'$1 $2').replace(/([ء-ي])(\d)/g,'$1 $2').split(' ').map(w=>w.replace(/^ال(?=..)/,'')).filter(w=>w.length>1&&!STOP.has(w)&&!STOP.has('ال'+w)));
 const jac=(A,B)=>{if(!A.size||!B.size)return 0;let n=0;A.forEach(x=>{if(B.has(x))n++;});return n/(A.size+B.size-n);};
 /* تشابه اسم الشركة: الاسم المختصر في الموقف إذا ورد كله داخل الاسم الكامل في المالية (مع «للمقاولات العامة» واسم المدير مثلاً) يُعدّ مطابقاً */
+/* نسبة احتواء الاسم الأقصر في الأطول (الموقف يكتب أحياناً القضاء أو تفاصيل زائدة، أو العكس) */
+const cont=(A,B)=>{if(!A.size||!B.size)return 0;let n=0;A.forEach(x=>{if(B.has(x))n++;});return n/Math.min(A.size,B.size);};
+/* اقتراحات للمشروع الذي لم يُطابق تلقائياً: أقرب 3 مشاريع في المالية بالتشابه (لا تُربط إلا بضغطة من المستخدم) */
+function suggest(nt,ct,inv){if(!nt.size)return [];const seen=new Map();nt.forEach(t=>{(inv.get(t)||[]).forEach(x=>seen.set(x,(seen.get(x)||0)+1));});
+  const L=[];seen.forEach((c,x)=>{const sc=Math.max(jac(nt,x.nt),cont(nt,x.nt)*0.9)*0.8+coSim(ct,x.ct)*0.2;if(sc>=0.35)L.push({f:x.f,sc});});
+  return L.sort((a,b)=>b.sc-a.sc).slice(0,3).map(z=>Object.assign({},z.f,{_sc:Math.round(z.sc*100)}));}
 const coSim=(A,B)=>{const j=jac(A,B);if(!A.size||!B.size)return j;let n=0;A.forEach(x=>{if(B.has(x))n++;});const m=Math.min(A.size,B.size);return m>=2&&n/m>=0.99?Math.max(j,0.5):j;};
 const dig=s=>String(s==null?'':s).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/\D/g,'').replace(/^0+/,'');
 const yr=s=>{const m=String(s||'').match(/(19|20)\d\d/);return m?m[0]:'';};
@@ -40,9 +46,10 @@ function matchAll(){
     {const fd=dig(fn);if(fd){const hit=F.filter(x=>x.f.fileNo&&dig(x.f.fileNo)===fd);if(hit.length===1){out[fn]={f:hit[0].f,how:'رقم الاضبارة',score:8};used[hit[0].f.id]=(used[hit[0].f.id]||0)+1;return;}}}
     if(cn)(byC.get(cn)||[]).forEach(x=>{if(y&&x.y&&y!==x.y&&Math.abs(+y-+x.y)>1)return;const cs=coSim(ct,x.ct),ns=jac(nt,x.nt);if(cs>=0.3||ns>=0.4)cand.push({x,s:3+cs+ns,how:'رقم العقد'+(x.y&&y?' وسنته':'')+(cs>=0.3?' والشركة':' واسم المشروع')});});
     if(!cand.length&&nt.size){const seen=new Map();nt.forEach(t=>{(inv.get(t)||[]).forEach(x=>seen.set(x,(seen.get(x)||0)+1));});
-      seen.forEach((c,x)=>{if(c<2&&nt.size>2)return;const ns=jac(nt,x.nt),cs=coSim(ct,x.ct);if(T(p.name)===T(x.f.nm))cand.push({x,s:2.5+cs,how:'اسم المشروع'+(cs>=0.3?' والشركة':'')});else if(ns>=0.6&&(cs>=0.3||!ct.size||!x.ct.size))cand.push({x,s:1+ns+cs*0.5,how:'تشابه اسم المشروع'+(cs>=0.3?' والشركة':'')});});}
+      seen.forEach((c,x)=>{if(c<2&&nt.size>2)return;const ns=jac(nt,x.nt),cs=coSim(ct,x.ct);if(T(p.name)===T(x.f.nm))cand.push({x,s:2.5+cs,how:'اسم المشروع'+(cs>=0.3?' والشركة':'')});else if(ns>=0.6&&(cs>=0.3||!ct.size||!x.ct.size))cand.push({x,s:1+ns+cs*0.5,how:'تشابه اسم المشروع'+(cs>=0.3?' والشركة':'')});
+        else{const ci=cont(nt,x.nt);if(ci>=0.85&&Math.min(nt.size,x.nt.size)>=3&&cs>=0.3)cand.push({x,s:1+ci*0.8+cs*0.5,how:'اسم المشروع ضمن الاسم الآخر والشركة'});}});}
     cand.sort((a,b)=>b.s-a.s);
-    if(!cand.length){out[fn]={f:null,how:'لم يُعثر على مقابل'};return;}
+    if(!cand.length){out[fn]={f:null,how:'لم يُعثر على مقابل',alts:suggest(nt,ct,inv)};return;}
     if(cand[1]&&cand[1].x!==cand[0].x&&cand[0].s-cand[1].s<0.05){out[fn]={f:null,how:'أكثر من مقابل محتمل — اربطه يدوياً',alts:cand.slice(0,4).map(c=>c.x.f)};return;}
     out[fn]={f:cand[0].x.f,how:cand[0].how,score:cand[0].s};used[cand[0].x.f.id]=(used[cand[0].x.f.id]||0)+1;});
   /* مشروع مالية واحد طابق تلقائياً أكثر من اضبارة: لا يُعتمد إلا الأعلى تطابقاً */
@@ -89,7 +96,7 @@ function dlg(focusFn){
     const list=(focusFn?P.filter(p=>String(p.fileNo)===String(focusFn)):un).slice(0,200);
     ov.innerHTML=`<div class="finx-box" role="dialog" aria-label="ربط برنامج الشؤون المالية"><h3>💰 ربط برنامج الشؤون المالية (قراءة فقط)</h3>
       ${D&&D.ok?`<p>الملف: <span dir="ltr" class="mono">${esc(D.file)}</span>${D.backup?'<br><b style="color:#b06d00">⚠ هذه نسخة احتياطية من بيانات المالية (لقطة بتاريخها): لا تظهر فيها السلف والدفعات اللاحقة. اربط ملف البيانات الحي (anbar-data.json) متى توفّر.</b>':''}<br>آخر تعديل في المالية: ${esc(new Date(D.mtime).toLocaleString('ar-IQ'))} — ${D.counts.projects} مشروع، ${D.counts.advances} سلفة، ${D.counts.guarantees} خطاب ضمان.</p>
-        <p><b>${ok.length}</b> مشروع من الموقف مرتبط بالمالية، و<b>${un.length}</b> بلا مقابل.</p>`
+        <p><b>${ok.length}</b> مشروع من الموقف مرتبط بالمالية، و<b>${un.length}</b> بلا مقابل.</p>${(()=>{const n=un.filter(p=>{const x=m[String(p.fileNo)];return x&&!x.manual&&x.alts&&x.alts[0]&&x.alts[0]._sc>=70;}).length;return n?`<p><button class="btn pri" data-fx="bulk">✔ ربط ${n} مشروعاً باقتراحها الأول (تشابه 70% فأكثر)</button> <span class="hint">راجع الاقتراحات في القائمة أدناه قبل الضغط؛ أي ربط يمكن تغييره لاحقاً.</span></p>`:'';})()}`
         :`<p class="bad">${esc(D&&D.error||'لم تُقرأ بيانات المالية بعد')}</p>${D&&D.tried?`<p class="hint">بحثت في: ${D.tried.map(t=>`<span dir="ltr" class="mono">${esc(t)}</span>`).join('، ')}</p>`:''}`}
       <div class="row" style="margin:6px 0"><button class="btn pri" data-fx="xl" title="ملف Excel يُصدره برنامج الشؤون المالية (فيه اسم المشروع والسلف المرفوعة/المصروفة أو مجموع المصروف الكلي): يصحح السلف في الموقف العام وتقارير اللجان بعد معاينة">📥 استيراد ملف Excel من المالية (تصحيح السلف)</button>${window.FinXl&&window.FinXl.count()?`<button class="btn" data-fx="xlclear">إزالة تصحيح المالية (${window.FinXl.count()} مشروعاً)</button>`:''}</div>
       <div class="row"><button class="btn pri" data-fx="search" title="يبحث في مجلدات المستخدم والأقراص والمجلدات المشتركة المربوطة عن ملف anbar-data.json لبرنامج المالية، ويربطه ويتابع تغيّره تلقائياً">🔍 بحث تلقائي عن ملف المالية</button><button class="btn" data-fx="choose">📂 اختيار الملف يدوياً…</button><span class="hint" id="fxProg">${esc(fxMsg)}</span><button class="btn" data-fx="reload">⟳ إعادة القراءة</button></div>
@@ -97,7 +104,7 @@ function dlg(focusFn){
       ${D&&D.ok&&list.length?`<h4>${focusFn?'ربط الاضبارة '+esc(focusFn):'مشاريع بلا مقابل في المالية'} ${focusFn?'':'('+un.length+')'}</h4>
         <input id="fxQ" placeholder="ابحث في مشاريع المالية: الاسم، الشركة، رقم العقد…" autocomplete="off"><div id="fxRes" class="fx-res"></div>
         <div class="fx-list">${list.map(p=>{const x=m[String(p.fileNo)]||{};return `<div class="fx-it${String(p.fileNo)===String(focusFn||'')?' on':''}" data-fn="${esc(p.fileNo)}"><b>${esc(p.fileNo)}</b> ${esc(p.name)} <span class="co">${esc(p.contractor||'')}${p.contractNo?' — عقد '+esc(p.contractNo):''}</span><br><small>${esc(x.how||'')}${x.f?' ← '+esc(x.f.nm):''}</small>
-          ${(x.alts||[]).map(a=>`<button class="btn sm" data-fx="link" data-fn="${esc(p.fileNo)}" data-id="${esc(a.id)}">ربط بـ: ${esc(a.nm)} (${esc(a.co||'')})</button>`).join('')}
+          ${(x.alts||[]).map(a=>`<button class="btn sm" data-fx="link" data-fn="${esc(p.fileNo)}" data-id="${esc(a.id)}">ربط بـ: ${esc(a.nm)} (${esc(a.co||'')})${a._sc?` — تشابه ${a._sc}%`:''}</button>`).join('')}
           <button class="btn sm" data-fx="sel" data-fn="${esc(p.fileNo)}">اختيار من البحث</button><button class="btn sm" data-fx="none" data-fn="${esc(p.fileNo)}">لا يوجد مقابل</button>${x.how==='ربط يدوي'||x.manual?`<button class="btn sm" data-fx="auto" data-fn="${esc(p.fileNo)}">إعادة الربط التلقائي</button>`:''}</div>`;}).join('')}</div>`:''}
       <div class="row"><button class="btn" data-fx="close">إغلاق</button></div></div>`;
     const q=ov.querySelector('#fxQ');if(q)q.addEventListener('input',()=>{const s=toks(q.value),c=dig(q.value);const R=!q.value.trim()?[]:D.P.map(f=>({f,s:(c&&dig(f.cno)===c?2:0)+jac(s,toks(f.nm+' '+f.co))})).filter(x=>x.s>0.15).sort((a,b)=>b.s-a.s).slice(0,12);
@@ -111,6 +118,8 @@ function dlg(focusFn){
     else if(a==='search'){b.disabled=true;const pr=document.getElementById('fxProg');if(pr)pr.textContent='جارٍ البحث…';const r=await window.desktop.finx.search();b.disabled=false;await load(true);draw();
       fxMsg=r.found.length?`عُثر على ${r.found.length} ملف — رُبط ${/anbar-backup|[\\/]backups[\\/]|anbar-data[-_ .].+\.json$/i.test(r.found[0])?'أحدث نسخة احتياطية (لم يُعثر على ملف البيانات الحي)':'ملف البيانات الحي'}: ${r.found[0]}`:`لم يُعثر على ملف المالية بعد فحص ${r.dirs.toLocaleString('en-US')} مجلداً. شغّل برنامج المالية مرة على هذه الحاسبة، أو اختر ملفه من المجلد المشترك يدوياً.`;draw();try{window.SitRender&&window.SitRender();}catch(_){} }
     else if(a==='link')relink(fn,b.dataset.id);
+    else if(a==='bulk'){const m=matchAll()||{},L=Object.entries(m).filter(([,x])=>!x.f&&!x.manual&&x.alts&&x.alts[0]&&x.alts[0]._sc>=70);if(!L.length)return;
+      if(!confirm(`ربط ${L.length} مشروعاً من الموقف بأقرب مشروع في المالية (تشابه 70% فأكثر)؟`))return;b.disabled=true;for(const [fn2,x] of L)await window.desktop.finx.link(fn2,x.alts[0].id);await load(true);draw();try{window.SitRender&&window.SitRender();}catch(_){}}
     else if(a==='none')relink(fn,null);
     else if(a==='auto')relink(fn,undefined);
     else if(a==='sel'){const r=ov.querySelector('input[name=fxpick]:checked');if(!r){alert('ابحث عن المشروع في المالية واختره من النتائج أولاً');return;}relink(fn,r.value);}});

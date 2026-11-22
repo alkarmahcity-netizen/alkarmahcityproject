@@ -35,6 +35,9 @@ const sleep = ms => new Promise(r => setTimeout(r, ms)); const R = []; const ok 
   await V(`(()=>{S.s.fit=false;upd();return 1})()`); await sleep(1500); const f2 = await po();
   ok('auto-fit off: 110% applies fully and the note disappears', Math.abs(f2.k - 1.1) < 0.001 && f2.note === '', JSON.stringify(f2));
   await V(`(()=>{S.s.fit=true;S.s.fs=100;upd();return 1})()`);
+  await sleep(800);
+  const sf = await V(`(async()=>{const p=document.querySelector('#out .po .signer');await document.fonts.ready;return {ff:getComputedStyle(p).fontFamily,loaded:document.fonts.check("20px 'PT Bold Heading'","جاسم"),d:getComputedStyle(p.querySelector('.d')||p).fontFamily}})()`);
+  ok('the deputy governor signature uses PT Bold Heading (loaded), the date stays in the document font', /^"?PT Bold Heading/.test(sf.ff) && sf.loaded && !/PT Bold/.test(sf.d), JSON.stringify(sf));
   const e = await app.evaluate(() => (global.__uniErrors || []).slice()); ok('no JavaScript errors', e.length === 0, e.join(' | ').slice(0, 300));
   await app.close();
   R.forEach(x => console.log(x[0], x[1], x[2] ? '— ' + String(x[2]).slice(0, 300) : '')); console.log(`${R.filter(x => x[0] === 'PASS').length}/${R.length}`); process.exit(R.every(x => x[0] === 'PASS') ? 0 : 1);

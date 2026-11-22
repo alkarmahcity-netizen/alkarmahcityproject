@@ -2690,6 +2690,9 @@ table.rs td.d{text-align:center;width:28mm}
 /* الترويسة العليا (صورة الترويسة) تمتد بعرض الورقة ويبقى 1.5 ملم من كل جانب: هامش الصفحة 12 ملم (13 للمطالعات وأوامر التوقف والاستئناف) */
 .page{--px:12mm}.page.pm,.page.po{--px:13mm}
 .page .hd.lhd,.page .hd.lhd.hdv,.page .hd.lhd.hd5{margin-left:calc(1.5mm - var(--px));margin-right:calc(1.5mm - var(--px))}
+/* توقيع نائب المحافظ (اسم الموقّع وصفته) في الأمر الإداري للقرار وأوامر التوقف والاستئناف: خط PT Bold Heading (مضمَّن في البرنامج)؛ والتاريخ بخط المستند */
+.pd .signer,.po .signer{font-family:'PT Bold Heading',var(--pf,var(--doc)),serif;font-weight:400}
+.pd .signer .d,.po .signer .d,.pd .signer [dir=ltr],.po .signer [dir=ltr]{font-family:var(--pf,var(--doc))}
 .pm .ometa{font-family:Arial,sans-serif;font-weight:700;font-size:calc(11pt*var(--k,1));line-height:1.55;margin:1mm 0 0}
 .pm .ocmt{font-family:'PT Bold Heading','AnbarNaskh',serif;font-weight:700;color:#1f2a68;font-size:12pt;line-height:1.5;margin:-1mm 0 1mm}
 .pm .mto{font-weight:700;font-size:calc(13.5pt*var(--k,1));line-height:calc(1.75*var(--lh,1));margin:calc(2mm*var(--g,1)) 0 0;max-width:62%}

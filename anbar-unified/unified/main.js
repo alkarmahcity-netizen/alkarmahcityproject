@@ -427,9 +427,11 @@ ipcMain.handle('earth:save', async (_e, items, name) => {
   catch (e) { return { error: String(e.message || e) }; }
 });
 ipcMain.handle('earth:dir', () => { fs.mkdirSync(earthDir(), { recursive: true }); shell.openPath(earthDir()); return true; });
+/* ملف «الموقف الشامل» (Excel) اختير من نافذة «استيراد ملف Excel من المالية»: يُربط مصدراً للمالية بمساره (بعد التحقق من أنه ملف Excel موجود) */
+ipcMain.handle('finx:use', (_e, f) => { f = String(f || ''); if (!/\.(xlsx|xlsm|json)$/i.test(f) || !fs.existsSync(f)) return null; const p = prefs(); p.financeFile = f; atomicWrite(prefsFile(), JSON.stringify(p)); audit.note('sit', 'finfile', 'ربط ملف المالية: ' + f).catch(() => {}); try { finWatch(); } catch (_) {} return f; });
 ipcMain.handle('finx:choose', async () => {
   let f = process.env.UNI_TEST_FIN_PICK || '';
-  if (!f) { const r = await dialog.showOpenDialog(win, { title: 'اختر ملف بيانات برنامج الشؤون المالية (anbar-data.json) أو نسخة احتياطية منه (anbar-backup-….json)', filters: [{ name: 'بيانات المالية', extensions: ['json'] }], properties: ['openFile'] }); if (r.canceled || !r.filePaths[0]) return null; f = r.filePaths[0]; }
+  if (!f) { const r = await dialog.showOpenDialog(win, { title: 'اختر ملف بيانات برنامج الشؤون المالية (anbar-data.json أو نسخة احتياطية منه) أو ملف Excel «الموقف الشامل» الذي يُصدره', filters: [{ name: 'بيانات المالية (JSON أو Excel)', extensions: ['json', 'xlsx', 'xlsm'] }], properties: ['openFile'] }); if (r.canceled || !r.filePaths[0]) return null; f = r.filePaths[0]; }
   const p = prefs(); p.financeFile = f; atomicWrite(prefsFile(), JSON.stringify(p)); audit.note('sit', 'finfile', 'ربط ملف بيانات برنامج الشؤون المالية: ' + f).catch(() => {}); finWatch(); return f; });
 /* مشاريع التخطيط: استيراد ملف لجنة تحديث الخطة، وتصديره محدَّثاً لمكوّناتنا (في عامل خلفي؛ الأصل يُحفظ في مجلد البيانات للتصدير) */
 const { Worker } = require('worker_threads');

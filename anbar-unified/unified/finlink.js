@@ -81,16 +81,38 @@ module.exports = function createFinLink({ app, prefs }) {
     }
     return { P: out, counts: { projects: out.length, advances: Object.values(AD).reduce((s, l) => s + l.length, 0), guarantees: Object.values(GU).reduce((s, l) => s + l.length, 0) } };
   }
+  /* ملف Excel «الموقف الشامل» الذي يُصدره برنامج الشؤون المالية (الورقة الأولى: اسم المشروع، الشركة، مبلغ العقد وبعد التغيير، الكلفة المصادقة،
+     نسبة الإنجاز المالي، مجموع المصروف الكلي، رقم السلفة، مبلغ السلفة غير المصروفة، المستلم من المصرف، نسبة الإنجاز الفعلي، المصدر).
+     يُقرأ بالأعمدة بعناوينها، ولا تفاصيل فيه للسلف ودفعاتها وخطابات الضمان (تلك في ملف البيانات anbar-data.json فقط). */
+  const XL_RX = /\.xls[xm]$/i;
+  const HN = s => String(s == null ? '' : s).replace(/[إأآٱ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/[ًٌٍَُِّْـ]/g, '').replace(/\s+/g, ' ').trim();
+  const XCOL = [['nm', /^اسم المشروع|^المشروع$/], ['co', /^اسم الشركه|^الشركه|المقاول/], ['st', /^حاله المشروع|^الحاله$/], ['pl', /^اسم الخطه|^الخطه$/],
+    ['c', /بعد التغيير/], ['c0', /^الكلفه الكليه|^مبلغ العقد/], ['appr', /الكلفه المصادقه/], ['finPct', /نسبه الانجا[رز] المالي/], ['sp', /^مجموع المصروف الكلي$|^المصروف الكلي$|^المصروف التراكمي/],
+    ['advNo', /^رقم السلفه/], ['pend', /مبلغ السلفه|غير مصروفه/], ['bank', /^المبلغ المستلم من المصرف$/], ['actPct', /نسبه الانجاز الفعلي/], ['cno', /^رقم العقد/], ['fileNo', /اضبار/], ['src', /^المصدر$/]];
+  function readXl(f, st) {
+    let rows; try { rows = require('./old-access-common').readRows(fs.readFileSync(f)); } catch (e) { return { ok: false, file: f, error: 'تعذّر قراءة ملف Excel: ' + (e.message || e) }; }
+    const heads = rows.length ? Object.keys(Object.assign({}, ...rows.slice(0, 50))) : [], col = {};
+    for (const h of heads) { const t = HN(h); for (const [k, re] of XCOL) if (col[k] == null && re.test(t)) { col[k] = h; break; } }
+    if (col.nm == null || (col.sp == null && col.c == null && col.c0 == null)) return { ok: false, file: f, error: 'ملف Excel هذا ليس «الموقف الشامل» من برنامج المالية: يلزم عمود «اسم المشروع» وعمود «مجموع المصروف الكلي» أو «مبلغ العقد».' };
+    const g = (r, k) => (col[k] == null ? '' : String(r[col[k]] == null ? '' : r[col[k]]).trim()), pct = v => { if (v === '') return null; let n = N(String(v).replace(/[%,]/g, '')); if (n > 0 && n <= 1.5) n *= 100; return Math.round(n * 10) / 10; };
+    const P = []; rows.forEach((r, i) => { const nm = g(r, 'nm').replace(/\s+/g, ' '); if (!nm || /^(ال)?مجموع|^الاجمالي/.test(HN(nm))) return;
+      const c0 = N(g(r, 'c0')), c = N(g(r, 'c')) || c0;
+      P.push({ id: 'xl' + (i + 2), src: g(r, 'src') || 'الموقف الشامل (Excel)', st: g(r, 'st'), pl: g(r, 'pl'), nm, co: g(r, 'co'), cno: g(r, 'cno'), cdt: '', fileNo: g(r, 'fileNo'), c0, c, sp: N(g(r, 'sp')),
+        legacyLeft: N(g(r, 'pend')), advs: [], gs: [], loanOut: 0, isNew: false, xl: true, appr: N(g(r, 'appr')), finPct: pct(g(r, 'finPct')), actPct: pct(g(r, 'actPct')), bank: N(g(r, 'bank')), advNo: g(r, 'advNo') }); });
+    if (!P.length) return { ok: false, file: f, error: 'لم يُعثر في ملف Excel على صفوف مشاريع.' };
+    return { P, counts: { projects: P.length, advances: 0, guarantees: 0 }, ok: true, file: f, mtime: st.mtimeMs, at: new Date(st.mtimeMs).toISOString(), backup: false, xl: true };
+  }
   function read() {
     const f = locate();
     if (!f) return { ok: false, tried: candidates(), error: 'لم يُعثر على ملف بيانات برنامج الشؤون المالية (anbar-data.json).' };
     let st; try { st = fs.statSync(f); } catch (e) { return { ok: false, file: f, error: String(e.message || e) }; }
     if (cache && cache.f === f && cache.m === st.mtimeMs && cache.s === st.size) return cache.v;
+    if (XL_RX.test(f)) { const v = readXl(f, st); if (v.ok) cache = { f, m: st.mtimeMs, s: st.size, v }; return v; }
     let d; try { d = JSON.parse(fs.readFileSync(f, 'utf8')); } catch (e) { return { ok: false, file: f, error: 'تعذّر قراءة ملف المالية: ' + (e.message || e) }; }
     if (d && typeof d.c !== 'object' && d.data && typeof d.data.c === 'object') d = d.data;   /* نسخة مغلّفة */
     if (!d || typeof d.c !== 'object') return { ok: false, file: f, error: 'الملف ليس ملف بيانات برنامج الشؤون المالية.' };
     const v = Object.assign(build(d), { ok: true, file: f, mtime: st.mtimeMs, at: new Date(st.mtimeMs).toISOString(), backup: !!isBackup(f) });
     cache = { f, m: st.mtimeMs, s: st.size, v }; return v;
   }
-  return { read, candidates, locate, search, isBackup, _build: build };
+  return { read, candidates, locate, search, isBackup, _build: build, _readXl: readXl };
 };

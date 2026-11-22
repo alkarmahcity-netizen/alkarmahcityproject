@@ -12,8 +12,10 @@ let fxMsg='',D=null,loading=null,lastAt=0,M=null,mKey='';
 const T=s=>String(s==null?'':s).replace(/[ً-ْـ]/g,'').replace(/[إأآٱ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/ؤ/g,'و').replace(/ئ/g,'ي')
   .replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).toLowerCase().replace(/[^ء-ي0-9a-z]+/g,' ').trim();
 const STOP=new Set(['مشروع','شركه','للمقاولات','المقاولات','العامه','العامة','المحدوده','المحدودة','والتجاره','التجاره','العراقيه','في','من','الى','مع','و','قضاء','ناحيه','محافظه','الانبار']);
-const toks=s=>new Set(T(s).split(' ').map(w=>w.replace(/^ال(?=..)/,'')).filter(w=>w.length>1&&!STOP.has(w)&&!STOP.has('ال'+w)));
+const toks=s=>new Set(T(s).replace(/(\d)([ء-ي])/g,'$1 $2').replace(/([ء-ي])(\d)/g,'$1 $2').split(' ').map(w=>w.replace(/^ال(?=..)/,'')).filter(w=>w.length>1&&!STOP.has(w)&&!STOP.has('ال'+w)));
 const jac=(A,B)=>{if(!A.size||!B.size)return 0;let n=0;A.forEach(x=>{if(B.has(x))n++;});return n/(A.size+B.size-n);};
+/* تشابه اسم الشركة: الاسم المختصر في الموقف إذا ورد كله داخل الاسم الكامل في المالية (مع «للمقاولات العامة» واسم المدير مثلاً) يُعدّ مطابقاً */
+const coSim=(A,B)=>{const j=jac(A,B);if(!A.size||!B.size)return j;let n=0;A.forEach(x=>{if(B.has(x))n++;});const m=Math.min(A.size,B.size);return m>=2&&n/m>=0.99?Math.max(j,0.5):j;};
 const dig=s=>String(s==null?'':s).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/\D/g,'').replace(/^0+/,'');
 const yr=s=>{const m=String(s||'').match(/(19|20)\d\d/);return m?m[0]:'';};
 
@@ -35,9 +37,10 @@ function matchAll(){
   S.projects.forEach(p=>{const fn=String(p.fileNo);
     if(fn in links){const id=links[fn];out[fn]=id&&byId.has(id)?{f:byId.get(id).f,how:'ربط يدوي',score:9}:{f:null,how:'لا يوجد مقابل (يدوي)',manual:true};return;}
     const nt=toks(p.name),ct=toks(p.contractor),cn=dig(p.contractNo),y=yr(p.year)||yr(p.start);const cand=[];
-    if(cn)(byC.get(cn)||[]).forEach(x=>{if(y&&x.y&&y!==x.y&&Math.abs(+y-+x.y)>1)return;const cs=jac(ct,x.ct),ns=jac(nt,x.nt);if(cs>=0.3||ns>=0.4)cand.push({x,s:3+cs+ns,how:'رقم العقد'+(x.y&&y?' وسنته':'')+(cs>=0.3?' والشركة':' واسم المشروع')});});
+    {const fd=dig(fn);if(fd){const hit=F.filter(x=>x.f.fileNo&&dig(x.f.fileNo)===fd);if(hit.length===1){out[fn]={f:hit[0].f,how:'رقم الاضبارة',score:8};used[hit[0].f.id]=(used[hit[0].f.id]||0)+1;return;}}}
+    if(cn)(byC.get(cn)||[]).forEach(x=>{if(y&&x.y&&y!==x.y&&Math.abs(+y-+x.y)>1)return;const cs=coSim(ct,x.ct),ns=jac(nt,x.nt);if(cs>=0.3||ns>=0.4)cand.push({x,s:3+cs+ns,how:'رقم العقد'+(x.y&&y?' وسنته':'')+(cs>=0.3?' والشركة':' واسم المشروع')});});
     if(!cand.length&&nt.size){const seen=new Map();nt.forEach(t=>{(inv.get(t)||[]).forEach(x=>seen.set(x,(seen.get(x)||0)+1));});
-      seen.forEach((c,x)=>{if(c<2&&nt.size>2)return;const ns=jac(nt,x.nt),cs=jac(ct,x.ct);if(T(p.name)===T(x.f.nm))cand.push({x,s:2.5+cs,how:'اسم المشروع'+(cs>=0.3?' والشركة':'')});else if(ns>=0.6&&(cs>=0.3||!ct.size||!x.ct.size))cand.push({x,s:1+ns+cs*0.5,how:'تشابه اسم المشروع'+(cs>=0.3?' والشركة':'')});});}
+      seen.forEach((c,x)=>{if(c<2&&nt.size>2)return;const ns=jac(nt,x.nt),cs=coSim(ct,x.ct);if(T(p.name)===T(x.f.nm))cand.push({x,s:2.5+cs,how:'اسم المشروع'+(cs>=0.3?' والشركة':'')});else if(ns>=0.6&&(cs>=0.3||!ct.size||!x.ct.size))cand.push({x,s:1+ns+cs*0.5,how:'تشابه اسم المشروع'+(cs>=0.3?' والشركة':'')});});}
     cand.sort((a,b)=>b.s-a.s);
     if(!cand.length){out[fn]={f:null,how:'لم يُعثر على مقابل'};return;}
     if(cand[1]&&cand[1].x!==cand[0].x&&cand[0].s-cand[1].s<0.05){out[fn]={f:null,how:'أكثر من مقابل محتمل — اربطه يدوياً',alts:cand.slice(0,4).map(c=>c.x.f)};return;}
@@ -72,7 +75,8 @@ function section(p,L){
   const I=issues(p,L);
   return h+`<div class="hint">مطابق لـ«${esc(f.nm)}» — ${esc(f.co||'')}${f.cno?' — عقد '+esc(f.cno):''} <span class="co">(${esc(m.how)})</span> <button class="btn sm" data-finx="pick" data-fn="${esc(p.fileNo)}">تغيير الربط</button></div>
     <div class="dg">${d('مبلغ العقد (المالية)',money(f.c))}${d('المصروف الكلي (المالية)',money(f.sp))}${d('نسبة الصرف',rate==null?'—':rate.toFixed(1)+'%')}${d('رصيد سلف غير مصروف (Excel)',money(f.legacyLeft))}${f.loanOut?d('قرض مصرفي قائم بضمان السلف',money(f.loanOut)):''}${d('الحالة في المالية',esc(f.st||'—'))}</div>
-    ${advT}${guT}${I.length?`<div class="hint">فروق المالية مذكورة في «⚠ خلل بين الموقف والأنظمة» أعلى البطاقة (${I.length}).</div>`:''}`;}
+    ${f.xl?`<div class="dg">${f.c0&&f.c0!==f.c?d('مبلغ العقد الأصلي',money(f.c0)):''}${f.appr?d('الكلفة المصادقة',money(f.appr)):''}${f.finPct!=null?d('نسبة الإنجاز المالي (المالية)',f.finPct+'%'):''}${f.actPct!=null?d('نسبة الإنجاز الفعلي (المالية)',f.actPct+'%'):''}${f.advNo?d('رقم السلفة',esc(f.advNo)):''}${f.bank?d('المستلم من المصرف',money(f.bank)):''}${f.st?d('حالة المشروع (المالية)',esc(f.st)):''}</div><div class="hint">المصدر: ملف Excel «الموقف الشامل» من برنامج المالية — لا تفاصيل فيه للسلف ودفعاتها وخطابات الضمان (تظهر عند ربط ملف بيانات المالية anbar-data.json).</div>`:''}
+    ${f.xl?'':advT}${f.xl?'':guT}${I.length?`<div class="hint">فروق المالية مذكورة في «⚠ خلل بين الموقف والأنظمة» أعلى البطاقة (${I.length}).</div>`:''}`;}
 
 /* بطاقة لوحة المشاريع: المصروف في المالية للمشاريع المعروضة */
 function kpi(R){if(!D||!D.ok)return null;let sp=0,n=0,adv=0,pend=0;R.forEach(r=>{const m=of(r.p.fileNo);if(m&&m.f){n++;sp+=num(m.f.sp);m.f.advs.forEach(a=>{if(a.stage!=='rejected'){adv+=a.paid;if(/^(audited|ready|partial)$/.test(a.stage))pend+=a.gross-a.paid;}});}});return {sp,n,adv,pend,total:R.length};}
@@ -89,7 +93,7 @@ function dlg(focusFn){
         :`<p class="bad">${esc(D&&D.error||'لم تُقرأ بيانات المالية بعد')}</p>${D&&D.tried?`<p class="hint">بحثت في: ${D.tried.map(t=>`<span dir="ltr" class="mono">${esc(t)}</span>`).join('، ')}</p>`:''}`}
       <div class="row" style="margin:6px 0"><button class="btn pri" data-fx="xl" title="ملف Excel يُصدره برنامج الشؤون المالية (فيه اسم المشروع والسلف المرفوعة/المصروفة أو مجموع المصروف الكلي): يصحح السلف في الموقف العام وتقارير اللجان بعد معاينة">📥 استيراد ملف Excel من المالية (تصحيح السلف)</button>${window.FinXl&&window.FinXl.count()?`<button class="btn" data-fx="xlclear">إزالة تصحيح المالية (${window.FinXl.count()} مشروعاً)</button>`:''}</div>
       <div class="row"><button class="btn pri" data-fx="search" title="يبحث في مجلدات المستخدم والأقراص والمجلدات المشتركة المربوطة عن ملف anbar-data.json لبرنامج المالية، ويربطه ويتابع تغيّره تلقائياً">🔍 بحث تلقائي عن ملف المالية</button><button class="btn" data-fx="choose">📂 اختيار الملف يدوياً…</button><span class="hint" id="fxProg">${esc(fxMsg)}</span><button class="btn" data-fx="reload">⟳ إعادة القراءة</button></div>
-      <p class="hint">برنامج المالية لا يُعدَّل من هنا. الملف عادة في «المستندات\\AnbarFinance\\anbar-data.json» أو في المجلد المشترك الذي اختير في برنامج المالية.</p>
+      <p class="hint">برنامج المالية لا يُعدَّل من هنا. الملف عادة في «المستندات\\AnbarFinance\\anbar-data.json» أو في المجلد المشترك الذي اختير في برنامج المالية؛ ويمكن أيضاً اختيار ملف Excel «الموقف الشامل» الذي يُصدره برنامج المالية من «📂 اختيار الملف يدوياً».</p>
       ${D&&D.ok&&list.length?`<h4>${focusFn?'ربط الاضبارة '+esc(focusFn):'مشاريع بلا مقابل في المالية'} ${focusFn?'':'('+un.length+')'}</h4>
         <input id="fxQ" placeholder="ابحث في مشاريع المالية: الاسم، الشركة، رقم العقد…" autocomplete="off"><div id="fxRes" class="fx-res"></div>
         <div class="fx-list">${list.map(p=>{const x=m[String(p.fileNo)]||{};return `<div class="fx-it${String(p.fileNo)===String(focusFn||'')?' on':''}" data-fn="${esc(p.fileNo)}"><b>${esc(p.fileNo)}</b> ${esc(p.name)} <span class="co">${esc(p.contractor||'')}${p.contractNo?' — عقد '+esc(p.contractNo):''}</span><br><small>${esc(x.how||'')}${x.f?' ← '+esc(x.f.nm):''}</small>

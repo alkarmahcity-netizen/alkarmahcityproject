@@ -89,7 +89,15 @@ function preview(file,P){const R=match(P.items);const rows=[...R.m.values()].map
     res(list.length);}));}
 async function pick(){const inp=document.createElement('input');inp.type='file';inp.accept='.xlsx,.xlsm,.csv';
   const file=await new Promise(r=>{inp.onchange=()=>r(inp.files&&inp.files[0]);inp.click();});if(!file)return 0;return importFile(file);}
-async function importFile(file){let P;try{P=parse(await AnbarReg.readSheets(file));}catch(e){alert('تعذّرت قراءة الملف: '+(e.message||e));return 0;}
+/* ملف «الموقف الشامل» من برنامج المالية (اسم المشروع + مجموع المصروف الكلي، بلا عمودي السلف المرفوعة والمصروفة): ليس تصحيحاً للسلف،
+   بل مصدر بيانات المالية — يُربط بالموقف العام عبر «💰 ربط المالية» (المصروف، الإنجاز المالي، الكلفة المصادقة، مبلغ العقد) */
+const isFullStatus=sheets=>(sheets||[]).some(sh=>(sh.rows||[]).slice(0,20).some(r=>{const t=(r||[]).map(T);return t.some(x=>/^اسم المشروع/.test(x))&&t.some(x=>/^مجموع المصروف الكلي$|^المصروف الكلي$/.test(x));}));
+async function importFile(file){let P,SH;try{SH=await AnbarReg.readSheets(file);P=parse(SH);}catch(e){alert('تعذّرت قراءة الملف: '+(e.message||e));return 0;}
+  if(!P.items.length&&isFullStatus(SH)&&window.desktop&&window.desktop.finx&&window.desktop.finx.use&&file.path){
+    if(!confirm(`الملف «${file.name}» هو «الموقف الشامل» من برنامج الشؤون المالية (المصروف الكلي ونسبة الإنجاز المالي والكلفة المصادقة لكل مشروع)، وليس ملف تصحيح السلف.\n\nربطه بالموقف العام مصدراً لبيانات المالية؟ تظهر بياناته في بطاقة كل مشروع («💰 من برنامج الشؤون المالية») وفي لوحة المشاريع، ويُتابَع تغيّره تلقائياً.`))return 0;
+    const f=await window.desktop.finx.use(file.path);if(!f){alert('تعذّر ربط الملف.');return 0;}
+    try{if(window.FinLink){await window.FinLink.load(true);window.SitRender&&window.SitRender();window.FinLink.dlg();}}catch(_){}
+    return 0;}
   if(!P.items.length){alert('لم يُعثر في الملف على جدول فيه «اسم المشروع» وعمود «السلف المرفوعة» أو «السلف المصروفة».\n\n«مجموع المصروف الكلي» هو كل ما صُرف للمشروع وليس السلف، فلا يُستعمل لتصحيح السلف.');return 0;}
   const n=await preview(file,P);if(n){if(window.flash)window.flash(`صُحّحت سلف ${n} مشروعاً من ملف المالية`);try{window.SitRender&&window.SitRender();}catch(_){}}return n;}
 function clear(){const n=AnbarReg.dropMetaKeys(KEYS);try{window.SitRender&&window.SitRender();}catch(_){}if(window.flash)window.flash(n?`أُزيل تصحيح ملف المالية عن ${n} مشروعاً`:'لا تصحيح لإزالته');return n;}

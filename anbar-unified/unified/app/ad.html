@@ -3286,7 +3286,8 @@ const honL=(m)=>`<div class="hon">${m.hon?esc(m.hon):'&nbsp;'}</div>`;
 function pageAdvance(r,c,i){const P=r.project,DU=durOf(P),a=r.advances[i],x=c.rows[i],issue=x.issues.filter(t=>!/أدخل كلفة/.test(t));
   const stops=P.stops.length?`<div class="stops"><div class="r h"><span>فترة التوقف</span><span>من</span><span>الى</span><span>الامر الاداري</span><span>بتاريخ</span></div>${P.stops.map((st,k)=>`<div class="r"><span>${ord(k)}</span><span class="lt">${esc(st.from)}</span><span class="lt">${esc(st.to)}</span><span>${esc(st.no)}</span><span class="lt">${esc(st.date)}</span></div>`).join('')}</div>`:'';
   const yr=(String(a.date||'').match(/^(\d{4})/)||[])[1]||String(new Date().getFullYear()),sgDate=`<div class="dt"><span>${yr}/<i></i>/&nbsp;&nbsp;&nbsp;</span></div>`;
-  const pv=c.rows.slice(0,i).filter(y=>y.cum).map(y=>`<div class="pv"><b>السلفة ${esc(advName(r.advances[y.i],y.i))}</b><span>الصافي: <em>${fmt(y.net)}</em> د.ع</span><span>التاريخ: <em dir="ltr">${esc(r.advances[y.i].date)||'—'}</em></span></div>`).join(''),
+  /* السلف السابقة: رقم السلفة / مبلغها الصافي فقط (بلا تاريخ) — مختصرة فتظهر كلها في الصف */
+  const pv=c.rows.slice(0,i).filter(y=>y.cum).map(y=>`<div class="pv"><b>السلفة ${esc(advNo(r.advances[y.i],y.i))}</b><span>/</span><span><em>${fmt(y.net)}</em> د.ع</span></div>`).join(''),
     prevBoxes=`<div class="prevs"><div class="pvh">السلف السابقة</div>${pv||'<div class="pv none">لا توجد سلف سابقة لهذا المشروع</div>'}</div>`;
   const sig=r.committee.map(m=>`<div class="sg"><div class="ln"></div>${honL(m)}<div class="nm">${hn(m)}</div><div class="rl">${esc(m.role)}</div>${sgDate}</div>`).join('');
   const app=r.approvals.map(m=>`<div class="sg"><div class="ln"></div>${honL(m)}${m.mark?`<div class="mark">${esc(m.mark)}</div>`:''}<div class="nm">${hn(m)}</div><div class="rl">${esc(m.title)}</div>${sgDate}</div>`).join('');

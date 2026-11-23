@@ -47,6 +47,10 @@ Image.new('RGB',(240,180),(30,120,60)).save(sys.argv[1],quality=80)" ${path.join
   ok('publish: encrypted file + photo created in Drive folder and shared «anyone → reader»', st.on && !st.err && /^AV1\./.test(code || '') && Object.keys(G.data).length === 2 && Object.keys(G.data).every(id => G.perms[id] && G.perms[id].type === 'anyone' && G.perms[id].role === 'reader')
     && Object.values(G.files).some(f => f.mimeType === 'application/vnd.google-apps.folder' && /نسخة الاطلاع/.test(f.name)), JSON.stringify({ st, files: Object.keys(G.files), perms: G.perms }));
   ok('code shown in the dialog with a copy button', await pa.evaluate(c => (document.getElementById('vwPubCode') || {}).value === c && !!document.getElementById('vwCopy'), code));
+  await pa.evaluate(() => { const i = document.getElementById('vwIpUrl'); i.value = 'https://script.google.com/macros/s/AKfycbTEST_123-x/exec'; i.dispatchEvent(new Event('change', { bubbles: true })); }); await sleep(800);
+  ok('iPhone page address → ready link = address#code with copy button', await pa.evaluate(c => (document.getElementById('vwIpLink') || {}).value === 'https://script.google.com/macros/s/AKfycbTEST_123-x/exec#' + c && !!document.getElementById('vwIpCopy'), code));
+  await pa.evaluate(() => { const i = document.getElementById('vwIpUrl'); i.value = 'https://evil.example/exec'; i.dispatchEvent(new Event('change', { bubbles: true })); }); await sleep(500);
+  ok('a non Apps Script address is refused', await pa.evaluate(() => (document.getElementById('vwIpLink') || {}).value === 'https://script.google.com/macros/s/AKfycbTEST_123-x/exec#' + document.getElementById('vwPubCode').value));
   const c = V.parseCode(code), mainId = c && c.id; const raw = G.data[mainId] || Buffer.alloc(0);
   ok('the Drive file is unreadable without the code (no project names / no JSON in it)', raw.length > 30 && !raw.includes(Buffer.from('مشروع')) && !raw.includes(Buffer.from('"projects"')));
   let pkg = {}; try { pkg = JSON.parse(V.unseal(c.key, raw).toString()); } catch (e) { pkg = { err: String(e) }; }

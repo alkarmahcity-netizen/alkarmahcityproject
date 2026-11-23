@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>موقف المشاريع — محافظة الأنبار</title>
+<style>
+:root{--g:#1f5f36;--g2:#2f8a45;--bg:#eef2ee;--card:#fff;--ink:#1d2a22;--mut:#6b7a72;--line:#dde6e0;--ok:#2f8a45;--bad:#c0392b;--warn:#d19a1a;--warn2:#c2570c;--blue:#2563a8;--none:#8a968f}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,"SF Arabic","Segoe UI",Tahoma,sans-serif;font-size:15px}
+body{padding-bottom:calc(64px + env(safe-area-inset-bottom))}
+header{position:sticky;top:0;z-index:5;background:var(--g);color:#fff;padding:calc(10px + env(safe-area-inset-top)) 14px 10px;display:flex;align-items:center;gap:10px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+header h1{font-size:17px;margin:0;line-height:1.3}header small{display:block;font-size:11.5px;opacity:.85;font-weight:400}
+header .sp{flex:1}
+.hbtn{background:rgba(255,255,255,.16);color:#fff;border:0;border-radius:10px;padding:8px 10px;font:inherit;font-size:13px}
+.upd{font-size:11.5px;text-align:center;color:var(--mut);padding:6px 12px 0}.upd.bad{color:var(--bad);font-weight:600}
+main{padding:10px 12px}
+.kp{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.k{background:var(--card);border-radius:14px;padding:10px 12px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.k span{display:block;font-size:12px;color:var(--mut)}.k b{display:block;font-size:20px;margin-top:2px}.k small{font-size:11.5px;color:var(--mut)}
+.k.wide{grid-column:1/-1}
+.stb{display:flex;height:10px;border-radius:6px;overflow:hidden;margin:8px 0 6px;background:#e6ece8}.stb i{display:block;height:100%}
+.lg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px}.lg span{display:inline-flex;align-items:center;gap:4px}.lg i{width:9px;height:9px;border-radius:3px;display:inline-block}
+.flt{display:flex;flex-direction:column;gap:6px;margin:6px 0 10px}
+.flt input,.flt select{width:100%;font:inherit;font-size:16px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--ink)}
+.row2{display:flex;gap:6px}.row2>*{flex:1;min-width:0}
+.cnt{font-size:12.5px;color:var(--mut);margin:0 2px 6px}
+.it{background:var(--card);border-radius:14px;padding:11px 12px;margin-bottom:8px;box-shadow:0 1px 3px rgba(0,0,0,.06);display:block;width:100%;text-align:right;border:0;font:inherit;color:inherit}
+.it .t{font-weight:700;font-size:15px;line-height:1.45}.it .s{font-size:12.5px;color:var(--mut);margin-top:2px}
+.it .m{display:flex;align-items:center;gap:8px;margin-top:7px;font-size:12.5px}
+.bar{flex:1;height:7px;background:#e6ece8;border-radius:5px;position:relative;overflow:hidden}.bar i{position:absolute;inset-block:0;right:0;border-radius:5px}.bar u{position:absolute;inset-block:-2px;width:2px;background:#333;opacity:.55}
+.chip{display:inline-block;border-radius:20px;padding:1px 9px;font-size:12px;font-weight:600;color:#fff;white-space:nowrap}
+.more{display:block;width:100%;padding:12px;border:1px dashed var(--g);border-radius:12px;background:transparent;color:var(--g);font:inherit;font-weight:600;margin:6px 0 12px}
+nav{position:fixed;bottom:0;left:0;right:0;z-index:6;background:#fff;border-top:1px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom)}
+nav[hidden]{display:none}nav button{flex:1;border:0;background:none;font:inherit;font-size:12px;color:var(--mut);padding:8px 0 9px;display:flex;flex-direction:column;align-items:center;gap:2px}
+nav button b{font-size:20px;line-height:1}nav button.on{color:var(--g);font-weight:700}
+.sheet{position:fixed;inset:0;z-index:10;background:rgba(0,0,0,.35);display:flex;align-items:flex-end}
+.sheet[hidden]{display:none}
+.sh{background:var(--bg);width:100%;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:0 0 calc(18px + env(safe-area-inset-bottom));-webkit-overflow-scrolling:touch}
+.shh{position:sticky;top:0;background:var(--g);color:#fff;padding:12px 14px;display:flex;gap:10px;align-items:flex-start;border-radius:18px 18px 0 0;z-index:2}
+.shh h2{font-size:16.5px;margin:0;line-height:1.45;flex:1}.shh small{display:block;font-size:12px;opacity:.85;font-weight:400;margin-top:2px}
+.sec{background:var(--card);border-radius:14px;margin:10px 12px 0;padding:10px 12px}
+.sec h3{margin:0 0 6px;font-size:13.5px;color:var(--g)}
+.f{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid #eef2ef;font-size:14px}.f:last-child{border-bottom:0}
+.f span{color:var(--mut);flex:none}.f b{font-weight:600;text-align:left;direction:ltr;unicode-bidi:plaintext}
+.pg{display:flex;flex-direction:column;gap:8px}.pg .bar{flex:none;height:9px}.pg .l{display:flex;justify-content:space-between;font-size:13px}
+.ph{display:flex;gap:8px;overflow-x:auto;padding:2px 0}.ph img,.ph .ld{width:140px;height:105px;object-fit:cover;border-radius:10px;background:#e6ece8;flex:none}
+.ph .ld{display:flex;align-items:center;justify-content:center;color:var(--mut);font-size:12px}
+.route{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px;background:var(--g);color:#fff;text-decoration:none;border-radius:12px;padding:13px;font-weight:700;font-size:16px}
+.route2{display:block;text-align:center;margin-top:8px;color:var(--g);font-size:13px}
+.big{position:fixed;inset:0;z-index:20;background:#000;display:flex;align-items:center;justify-content:center}.big img{max-width:100%;max-height:100%}
+.dist{background:var(--card);border-radius:14px;padding:11px 12px;margin-bottom:8px;box-shadow:0 1px 3px rgba(0,0,0,.06);width:100%;border:0;font:inherit;text-align:right;color:inherit;display:block}
+.dist .t{display:flex;justify-content:space-between;font-weight:700}.dist .s{font-size:12.5px;color:var(--mut);margin-top:3px}
+.comp{font-size:13px;padding:7px 0;border-top:1px solid #eef2ef}.comp b{font-weight:600}
+.link{max-width:520px;margin:30px auto;background:#fff;border-radius:16px;padding:18px}.link h2{margin:0 0 8px;color:var(--g);font-size:18px}
+.link textarea{width:100%;font:15px ui-monospace,Menlo,monospace;direction:ltr;padding:10px;border:1.5px solid var(--g);border-radius:10px;min-height:84px}
+.link button{width:100%;margin-top:10px;background:var(--g);color:#fff;border:0;border-radius:12px;padding:13px;font:inherit;font-weight:700;font-size:16px}
+.err{color:var(--bad);font-size:13.5px;margin-top:8px}
+.load{text-align:center;color:var(--mut);padding:50px 10px}
+.empty{text-align:center;color:var(--mut);padding:30px 10px}
+</style>
+</head>
+<body>
+<header><div><h1>موقف المشاريع</h1><small>محافظة الأنبار — قسم الشؤون الهندسية</small></div><span class="sp"></span><button class="hbtn" id="bRef" type="button">🔄 تحديث</button></header>
+<div class="upd" id="upd"></div>
+<main id="main"><div class="load">⏳ جارٍ التحميل…</div></main>
+<nav id="nav" hidden><button class="on" data-v="sit"><b>📊</b>الموقف</button><button data-v="dist"><b>🗺</b>الأقضية</button><button data-v="pl"><b>📐</b>التخطيط</button></nav>
+<div class="sheet" id="sheet" hidden><div class="sh" id="sh"></div></div>
+<script>
+/* صفحة الاطلاع (iPhone): تفك ملف نسخة الاطلاع المشفّر داخل الهاتف برمز الربط — عرض فقط */
+(function(){
+'use strict';
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num=v=>typeof v==='number'?(isFinite(v)?v:0):(parseFloat(String(v==null?'':v).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[^\d.\-]/g,''))||0);
+const has=v=>v!==''&&v!=null&&String(v).trim()!=='';
+const fmt=n=>Math.round(num(n)).toLocaleString('en-US');
+const pc=v=>Math.round(num(v)*10)/10;
+const compact=n=>{n=Math.round(num(n));const a=Math.abs(n),s=n<0?'−':'';if(a>=1e9)return s+(a/1e9).toFixed(2).replace(/\.?0+$/,'')+' مليار';if(a>=1e6)return s+(a/1e6).toFixed(1).replace(/\.?0+$/,'')+' مليون';return fmt(n);};
+const tm=t=>{if(!t)return '—';const d=new Date(t);return d.toLocaleDateString('en-GB')+' '+d.toLocaleTimeString('en-GB').slice(0,5);};
+function dmy(v){if(!has(v))return '';const s=String(v).trim();let m=/^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(s);if(m)return +m[3]+'/'+ +m[2]+'/'+m[1];
+  if(/^\d{5}(\.\d+)?$/.test(s)){const n=+s;if(n>20000&&n<80000){const d=new Date(Date.UTC(1899,11,30)+Math.round(n)*864e5);return d.getUTCDate()+'/'+(d.getUTCMonth()+1)+'/'+d.getUTCFullYear();}}return s;}
+function stKind(s){s=String(s||'').trim();if(/منجز/.test(s)&&!/غير منجز/.test(s))return 'ok';if(/استئناف|مستأنف|مستانف|استؤنف/.test(s))return 'blue';if(/متوقف|^توقف|سحب العمل|مسحوب/.test(s))return 'bad';if(/متلك/.test(s))return 'warn2';if(/متأخر|متاخر|خارج الخط/.test(s))return 'warn';if(/ضمن|مستمر|جار|قيد التنفيذ|قيد الانجاز|قيد الإنجاز/.test(s))return 'blue';return 'none';}
+const KN=[['ok','منجز'],['blue','مستمر'],['warn','متأخر'],['warn2','متلكئ'],['bad','متوقف'],['none','غير مصنّف']];
+const KC={ok:'#2f8a45',bad:'#c0392b',warn:'#d19a1a',warn2:'#c2570c',blue:'#2563a8',none:'#8a968f'};
+/* الإحداثيات: عشري أو درجات/دقائق/ثوانٍ أو أرقام متلاصقة، مع تصحيح القلب؛ داخل حدود العراق فقط (كما في البرنامج) */
+function toNum(v){let s=String(v==null?'':v).trim();if(!s)return null;s=s.replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/٫|،/g,'.');
+  const dms=s.match(/(\d+(?:\.\d+)?)\s*[°د:\s]\s*(\d+(?:\.\d+)?)?\s*['′]?\s*(\d+(?:\.\d+)?)?/);let n;
+  if(/[°'′"″]/.test(s)&&dms)n=parseFloat(dms[1])+(parseFloat(dms[2]||0)/60)+(parseFloat(dms[3]||0)/3600);
+  else{const m=s.match(/\d+(?:\.\d+)?/);if(!m)return null;n=parseFloat(m[0]);}
+  if(n>=1000){const raw=(s.match(/\d+(?:\.\d+)?/)||[''])[0],ip=raw.split('.')[0],fr=raw.split('.')[1]||'';if(ip.length<5)return null;
+    if(ip.length===6){const D=+ip.slice(0,2),M=+ip.slice(2,4),S=parseFloat(ip.slice(4)+(fr?'.'+fr:''));if(M<60&&S<60)return D+M/60+S/3600;}n=parseFloat(ip.slice(0,2)+'.'+ip.slice(2)+fr);}
+  return n;}
+function coord(p){let a=toNum(p.lat),b=toNum(p.lng);if(a==null||b==null)return null;if(a>=38.7&&a<=48.8&&b>=29&&b<=37.5){const t=a;a=b;b=t;}
+  return a>=29&&a<=37.5&&b>=38.7&&b<=48.8?{lat:Math.round(a*1e6)/1e6,lng:Math.round(b*1e6)/1e6}:null;}
+
+/* ---------- الملف المشفّر ---------- */
+const MAGIC=[65,86,49];
+const b64u=s=>{s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';const b=atob(s),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u;};
+const fromB64=s=>{const b=atob(s),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u;};
+const toB64=u=>{let s='';for(let i=0;i<u.length;i+=32768)s+=String.fromCharCode.apply(null,u.subarray(i,i+32768));return btoa(s);};
+function parseCode(s){const m=/^AV1\.([A-Za-z0-9_-]{10,})\.([A-Za-z0-9_-]{22})$/.exec(String(s||'').replace(/\s+/g,''));if(!m)return null;const key=b64u(m[2]);return key.length===16?{id:m[1],key,code:m[0]}:null;}
+function getBin(id){
+  if(window.google&&google.script&&google.script.run)return new Promise((res,rej)=>google.script.run.withSuccessHandler(b=>res(fromB64(b))).withFailureHandler(e=>rej(new Error(e&&e.message||String(e)))).vwGet(id));
+  return fetch((window.VW_DEV_DL||'')+encodeURIComponent(id)).then(r=>{if(!r.ok)throw new Error('الملف غير متاح في Google Drive (أُوقفت نسخة الاطلاع من حاسبة القسم؟)');return r.arrayBuffer();}).then(b=>new Uint8Array(b));}
+async function gunzip(u){if(typeof DecompressionStream==='undefined')throw new Error('حدّث نظام iPhone (iOS 16.4 أو أحدث) لعرض الموقف');
+  return new Uint8Array(await new Response(new Blob([u]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer());}
+async function unseal(key,b){if(!b||b.length<31||b[0]!==MAGIC[0]||b[1]!==MAGIC[1]||b[2]!==MAGIC[2])throw new Error('الملف المستلم ليس ملف نسخة الاطلاع');
+  const k=await crypto.subtle.importKey('raw',key,{name:'AES-GCM'},false,['decrypt']);const ct=new Uint8Array(b.length-15);ct.set(b.subarray(31),0);ct.set(b.subarray(15,31),b.length-31);
+  let plain;try{plain=new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM',iv:b.subarray(3,15),tagLength:128},k,ct));}catch(_){throw new Error('رمز الربط لا يطابق الملف (أُصدر رمز جديد؟)');}
+  return gunzip(plain);}
+
+/* ---------- الحالة ---------- */
+let C=null,PKG=null,view='sit',F={q:'',d:'',k:'',sort:'name'},shown=60,plQ='';
+const LS={get:k=>{try{return localStorage.getItem(k);}catch(_){return null;}},set:(k,v)=>{try{localStorage.setItem(k,v);return true;}catch(_){return false;}},del:k=>{try{localStorage.removeItem(k);}catch(_){}}};
+const P=()=>(PKG&&PKG.R&&Array.isArray(PKG.R.projects)?PKG.R.projects:[]);
+const meta=fn=>(PKG&&PKG.R&&PKG.R.meta&&PKG.R.meta[fn])||{};
+function hashCode(){return new Promise(res=>{try{if(window.google&&google.script&&google.script.url){google.script.url.getLocation(l=>res(String((l&&l.hash)||'').replace(/^#/,'')));return;}}catch(_){}res(String(location.hash||'').replace(/^#/,''));});}
+function status(t,bad){const u=$('upd');u.textContent=t;u.className='upd'+(bad?' bad':'');}
+async function useRaw(raw){const o=JSON.parse(new TextDecoder().decode(await unseal(C.key,raw)));if(!o||o.app!=='anbar-viewer')throw new Error('الملف المستلم ليس ملف نسخة الاطلاع');
+  let R={};try{R=JSON.parse(o.reg||'{}')||{};}catch(_){}let pl=null;try{const t=o.pl?JSON.parse(o.pl):null;const r=t&&Array.isArray(t.records)?t.records.find(x=>x&&x.id==='plan'):null;pl=r&&r.model||null;}catch(_){}
+  PKG={at:o.at,R,pl,ph:o.ph||{}};}
+async function load(net){
+  if(!net){const c=LS.get('vw_pkg');if(c){try{await useRaw(fromB64(c));render();status('آخر تحديث من حاسبة القسم: '+tm(PKG.at)+' — جارٍ التحقق…');}catch(_){LS.del('vw_pkg');}}}
+  try{const raw=await getBin(C.id);const old=PKG&&PKG.at;await useRaw(raw);LS.set('vw_pkg',toB64(raw));if(PKG.at!==old)render();status('آخر تحديث من حاسبة القسم: '+tm(PKG.at));return true;}
+  catch(e){status((PKG?'آخر تحديث: '+tm(PKG.at)+' — ':'')+'⚠ '+(e.message||e),true);if(!PKG)linkScreen(e.message||String(e));return false;}}
+
+/* ---------- الربط ---------- */
+function linkScreen(msg){$('nav').hidden=true;status('');$('main').innerHTML=`<div class="link"><h2>👁 ربط صفحة الاطلاع</h2><p style="line-height:1.8;margin:0 0 10px">الصق <b>رمز الربط</b> الذي يرسله قسم الشؤون الهندسية (يبدأ بـ AV1.). يُحفظ في هذا الهاتف، فلا يُطلب مرة أخرى.</p>
+  <textarea id="cIn" placeholder="AV1.…" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea><div class="err" id="cE">${esc(msg||'')}</div><button id="cOk" type="button">ربط</button></div>`;
+  $('cOk').onclick=async()=>{const c=parseCode($('cIn').value);if(!c){$('cE').textContent='رمز الربط غير صحيح — انسخه كما هو كاملاً';return;}
+    $('cOk').disabled=true;$('cOk').textContent='⏳ جارٍ الربط…';C=c;PKG=null;LS.del('vw_pkg');
+    if(await load(true)){LS.set('vw_code',c.code);render();}else{$('cOk')&&($('cOk').disabled=false,$('cOk').textContent='ربط');}};}
+
+/* ---------- العرض ---------- */
+const bar=(a,p,col)=>`<div class="bar"><i style="width:${Math.max(0,Math.min(100,num(a)))}%;background:${col}"></i>${has(p)?`<u style="right:${Math.max(0,Math.min(100,num(p)))}%"></u>`:''}</div>`;
+const chip=s=>{const k=stKind(s);return `<span class="chip" style="background:${KC[k]}">${esc(s||'غير مصنّف')}</span>`;};
+function render(){if(!PKG)return;$('nav').hidden=false;[...document.querySelectorAll('nav button')].forEach(b=>b.classList.toggle('on',b.dataset.v===view));
+  if(view==='sit')return sit();if(view==='dist')return dist();return plan();}
+function filtered(){const q=F.q.trim();return P().filter(p=>(!F.d||(p.district||'غير محدد')===F.d)&&(!F.k||stKind(p.status)===F.k)&&(!q||[p.name,p.fileNo,p.contractor,p.contractNo,p.district,p.sub,p.resident].some(v=>String(v||'').includes(q))))
+  .sort((a,b)=>F.sort==='act'?num(a.actualPct)-num(b.actualPct):F.sort==='late'?(num(b.planPct)-num(b.actualPct))-(num(a.planPct)-num(a.actualPct)):F.sort==='cost'?num(b.total||b.orig)-num(a.total||a.orig):String(a.name||'').localeCompare(String(b.name||''),'ar'));}
+function kpis(L){const n=L.length,avg=k=>n?L.reduce((s,p)=>s+num(p[k]),0)/n:0,sum=k=>L.reduce((s,p)=>s+num(p[k]),0);
+  const cnt={};L.forEach(p=>{const k=stKind(p.status);cnt[k]=(cnt[k]||0)+1;});const cost=L.reduce((s,p)=>s+num(has(p.total)?p.total:p.orig),0),r=sum('advRaised'),pd=sum('advPaid');
+  return `<div class="kp"><div class="k wide"><span>عدد المشاريع</span><b>${n}</b><div class="stb">${KN.filter(([k])=>cnt[k]).map(([k])=>`<i style="width:${cnt[k]/n*100}%;background:${KC[k]}"></i>`).join('')}</div>
+   <div class="lg">${KN.filter(([k])=>cnt[k]).map(([k,l])=>`<span><i style="background:${KC[k]}"></i>${l} ${cnt[k]}</span>`).join('')}</div></div>
+   <div class="k"><span>متوسط الإنجاز الفعلي</span><b>${pc(avg('actualPct'))}%</b><small>المخطط ${pc(avg('planPct'))}%</small></div>
+   <div class="k"><span>الكلفة الكلية</span><b>${compact(cost)}</b><small>أوامر التغيير ${compact(sum('changeCost'))}</small></div>
+   <div class="k"><span>السلف المرفوعة</span><b>${compact(r)}</b><small>دينار</small></div>
+   <div class="k"><span>السلف المصروفة</span><b>${compact(pd)}</b><small>${r?pc(pd/r*100)+'% من المرفوعة':'دينار'}</small></div></div>`;}
+function sit(){const all=P(),L=filtered(),dists=[...new Set(all.map(p=>p.district||'غير محدد'))].sort((a,b)=>a.localeCompare(b,'ar'));
+  $('main').innerHTML=kpis(F.d||F.k||F.q?L:all)+`<div class="flt"><input id="fq" type="search" placeholder="🔍 بحث: المشروع، الاضبارة، الشركة، المقيم" value="${esc(F.q)}">
+   <div class="row2"><select id="fd"><option value="">كل الأقضية</option>${dists.map(d=>`<option${d===F.d?' selected':''}>${esc(d)}</option>`).join('')}</select>
+   <select id="fk"><option value="">كل الحالات</option>${KN.map(([k,l])=>`<option value="${k}"${k===F.k?' selected':''}>${l}</option>`).join('')}</select></div>
+   <select id="fs"><option value="name"${F.sort==='name'?' selected':''}>الترتيب: الاسم</option><option value="late"${F.sort==='late'?' selected':''}>الأكثر تأخراً عن المخطط</option><option value="act"${F.sort==='act'?' selected':''}>الأقل إنجازاً</option><option value="cost"${F.sort==='cost'?' selected':''}>الأعلى كلفة</option></select></div>
+   <div class="cnt">${L.length} مشروع</div><div id="lst"></div>`;
+  list(L);
+  $('fq').oninput=e=>{F.q=e.target.value;shown=60;clearTimeout(sit.t);sit.t=setTimeout(()=>{const L2=filtered();document.querySelector('.cnt').textContent=L2.length+' مشروع';list(L2);},200);};
+  $('fd').onchange=e=>{F.d=e.target.value;shown=60;sit();};$('fk').onchange=e=>{F.k=e.target.value;shown=60;sit();};$('fs').onchange=e=>{F.sort=e.target.value;shown=60;sit();};}
+function list(L){$('lst').innerHTML=(L.length?L.slice(0,shown).map(p=>`<button class="it" type="button" data-fn="${esc(p.fileNo)}"><div class="t">${esc(p.name)}</div>
+   <div class="s">${esc([p.fileNo&&'اضبارة '+p.fileNo,p.contractor,[p.district,p.sub].filter(Boolean).join(' / ')].filter(Boolean).join(' — '))}</div>
+   <div class="m">${chip(p.status)}${bar(p.actualPct,p.planPct,KC[stKind(p.status)])}<b>${pc(p.actualPct)}%</b></div></button>`).join(''):'<div class="empty">لا توجد مشاريع مطابقة</div>')
+   +(L.length>shown?`<button class="more" id="more" type="button">عرض المزيد (${L.length-shown})</button>`:'');
+  const m=$('more');if(m)m.onclick=()=>{shown+=80;list(L);};}
+function dist(){const G={};P().forEach(p=>{const d=p.district||'غير محدد';(G[d]=G[d]||[]).push(p);});
+  const rows=Object.entries(G).map(([d,L])=>{const n=L.length,a=L.reduce((s,p)=>s+num(p.actualPct),0)/n,pl=L.reduce((s,p)=>s+num(p.planPct),0)/n,c={};L.forEach(p=>{const k=stKind(p.status);c[k]=(c[k]||0)+1;});
+    return {d,n,a,pl,c,cost:L.reduce((s,p)=>s+num(has(p.total)?p.total:p.orig),0)};}).sort((x,y)=>y.n-x.n);
+  const stop=P().filter(p=>stKind(p.status)==='bad'),lag=P().filter(p=>stKind(p.status)==='warn2');
+  $('main').innerHTML=`<div class="cnt">الأقضية — اضغط على القضاء لعرض مشاريعه</div>`+rows.map(r=>`<button class="dist" type="button" data-d="${esc(r.d)}"><div class="t"><span>${esc(r.d)}</span><span>${r.n} مشروع</span></div>
+    <div class="m" style="display:flex;gap:8px;align-items:center;margin-top:7px">${bar(r.a,r.pl,r.a>=70?'#2f8a45':r.a>=50?'#2563a8':r.a>=30?'#d19a1a':'#c0392b')}<b>${pc(r.a)}%</b></div>
+    <div class="s">المخطط ${pc(r.pl)}% — الكلفة ${compact(r.cost)}${r.c.bad?` — <span style="color:#c0392b">متوقف ${r.c.bad}</span>`:''}${r.c.warn2?` — <span style="color:#c2570c">متلكئ ${r.c.warn2}</span>`:''}</div></button>`).join('')
+   +(stop.length||lag.length?`<div class="sec" style="margin:4px 0 10px"><h3>⚠ إنذارات</h3>${stop.concat(lag).slice(0,40).map(p=>`<div class="comp" data-fn="${esc(p.fileNo)}" style="cursor:pointer">${chip(p.status)} <b>${esc(p.name)}</b> <small style="color:#6b7a72">${esc(p.district||'')}</small></div>`).join('')}</div>`:'');}
+function plan(){const m=PKG.pl;if(!m||!Array.isArray(m.projects)){$('main').innerHTML='<div class="empty">لم تصل بيانات مشاريع التخطيط من حاسبة القسم بعد.</div>';return;}
+  const CM=new Map((m.comps||[]).map(c=>[c.key,c])),q=plQ.trim();
+  const L=m.projects.filter(p=>!q||String(p.name||'').includes(q)||(p.comps||[]).some(k=>{const c=CM.get(k);return c&&String(c.name||'').includes(q);}));
+  $('main').innerHTML=`<div class="flt"><input id="pq" type="search" placeholder="🔍 بحث في مشاريع الخطة ومكوّناتها" value="${esc(plQ)}"></div><div class="cnt">${L.length} مشروع في الخطة${m.file?' — '+esc(m.file):''}</div>`
+   +L.slice(0,300).map(p=>`<details class="it" style="cursor:pointer"><summary style="list-style:none"><div class="t">${esc(p.name)}</div><div class="s">${esc([p.plan,p.code].filter(Boolean).join(' — '))}</div>
+     <div class="m">${has(p.actPct)?bar(p.actPct,null,'#2563a8')+`<b>${pc(p.actPct)}%</b>`:''}</div>
+     <div class="s">${has(p.cost)?'الكلفة '+compact(p.cost):''}${has(p.spent)?' — المصروف '+compact(p.spent):''} — ${(p.comps||[]).length} مكوّن</div></summary>
+     ${(p.comps||[]).map(k=>CM.get(k)).filter(Boolean).map(c=>`<div class="comp"><b>${esc(c.name)}</b><br><small style="color:#6b7a72">${esc([c.status,c.district,c.contractor].filter(Boolean).join(' — '))}</small></div>`).join('')}</details>`).join('');
+  $('pq').oninput=e=>{plQ=e.target.value;clearTimeout(plan.t);plan.t=setTimeout(()=>{plan();const i=$('pq');i.focus();i.setSelectionRange(i.value.length,i.value.length);},350);};}
+
+/* ---------- بطاقة المشروع ---------- */
+const fld=(l,v)=>has(v)?`<div class="f"><span>${l}</span><b>${v}</b></div>`:'';
+function card(fn){const p=P().find(x=>String(x.fileNo)===String(fn));if(!p)return;const M=meta(String(p.fileNo)),c=coord(p);
+  const ae=has(p.actualEnd)?p.actualEnd:M.actualEnd;
+  const photos=String(M.photos||'').split(';').filter(n=>/^p[0-9a-z]{6,16}\.jpg$/.test(n));
+  $('sh').innerHTML=`<div class="shh"><h2>${esc(p.name)}<small>${esc([p.fileNo&&'اضبارة '+p.fileNo,p.contractor].filter(Boolean).join(' — '))}</small></h2><button class="hbtn" id="shX" type="button">✕</button></div>
+   <div class="sec"><div class="pg"><div class="l"><span>الحالة</span>${chip(p.status)}</div>
+    <div class="l"><span>الإنجاز الفعلي</span><b>${pc(p.actualPct)}%</b></div>${bar(p.actualPct,p.planPct,KC[stKind(p.status)])}<div class="l"><span>المخطط</span><b>${pc(p.planPct)}%</b></div></div></div>
+   ${photos.length?`<div class="sec"><h3>📷 صور المشروع</h3><div class="ph">${photos.map(n=>`<div class="ld" data-ph="${esc(n)}">⏳</div>`).join('')}</div></div>`:''}
+   ${c?`<div class="sec"><h3>📍 الموقع</h3>${fld('الاحداثيات',c.lat+' , '+c.lng)}
+     <a class="route" id="route" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(c.lat+','+c.lng)}&travelmode=driving" target="_blank" rel="noopener">🧭 الطريق إلى المشروع</a>
+     <a class="route2" id="route2" href="https://maps.apple.com/?daddr=${encodeURIComponent(c.lat+','+c.lng)}&dirflg=d" target="_blank" rel="noopener">أو بخرائط Apple</a></div>`:''}
+   <div class="sec"><h3>بيانات المشروع والعقد</h3>${fld('رقم العقد',esc([p.contractNo,p.year].filter(has).join(' / ')))}${fld('برنامج التمويل',esc(p.fund))}${fld('الجهة المستفيدة',esc(p.sector))}${fld('القضاء / الناحية',esc([p.district,p.sub].filter(Boolean).join(' / ')))}${fld('الإجراءات القانونية',esc(p.legal))}</div>
+   <div class="sec"><h3>الكلفة</h3>${fld('الكلفة الأصلية',fmt(p.orig))}${fld('كلفة أوامر التغيير',has(p.changeCost)?fmt(p.changeCost):'')}${fld('الكلفة الكلية',has(p.total)?fmt(p.total):'')}${fld('الكلفة المصادقة',has(p.approvedCost)?fmt(p.approvedCost):'')}</div>
+   <div class="sec"><h3>المدة</h3>${fld('تاريخ المباشرة',esc(dmy(p.start)))}${fld('مدة العقد (يوم)',esc(p.dur))}${fld('المدة الإضافية (يوم)',esc(p.extra))}${fld('المدة الكلية (يوم)',esc(p.totalDays))}${fld('تاريخ الإنجاز المخطط',esc(dmy(p.planEnd)))}${fld('تاريخ الإنجاز الفعلي',esc(dmy(ae)))}</div>
+   <div class="sec"><h3>السلف (موقف اللجنة)</h3>${fld('المرفوعة',fmt(p.advRaised))}${fld('المصروفة',fmt(p.advPaid))}${fld('المتبقي للصرف',fmt(num(p.advRaised)-num(p.advPaid)))}</div>
+   ${has(p.resident)||has(p.residentOffice)||has(p.supervisor)?`<div class="sec"><h3>الإشراف</h3>${fld('المهندس المقيم',esc(p.resident))}${fld('دائرة المقيم',esc(p.residentOffice))}${fld('المهندس المشرف',esc(p.supervisor))}${has(p.phone)?fld('الهاتف',`<a href="tel:${esc(String(p.phone).replace(/[^\d+]/g,''))}">${esc(p.phone)}</a>`):''}</div>`:''}
+   ${has(p.notes)?`<div class="sec"><h3>الملاحظات</h3><div style="line-height:1.8;font-size:14px">${esc(p.notes)}</div></div>`:''}`;
+  $('sheet').hidden=false;$('sh').scrollTop=0;$('shX').onclick=()=>{$('sheet').hidden=true;};
+  photos.forEach(n=>photo(String(p.fileNo),n).then(u=>{const el=document.querySelector(`#sh [data-ph="${n}"]`);if(!el)return;if(!u){el.textContent='تعذّر التحميل';return;}const i=new Image();i.src=u;i.dataset.big='1';el.replaceWith(i);}));}
+const PHC={};
+async function photo(fn,name){const k=fn+'/'+name;if(PHC[k])return PHC[k];const ph=PKG.ph||{};const key=Object.keys(ph).find(x=>ph[x].fn===fn&&x.endsWith('/'+name));if(!key)return null;
+  try{const b=await unseal(C.key,await getBin(ph[key].id));if(!(b[0]===0xff&&b[1]===0xd8))return null;return (PHC[k]=URL.createObjectURL(new Blob([b],{type:'image/jpeg'})));}catch(_){return null;}}
+
+/* ---------- الأحداث ---------- */
+document.addEventListener('click',e=>{const t=e.target;
+  const it=t.closest('[data-fn]');if(it&&!t.closest('.sh')){card(it.dataset.fn);return;}
+  const d=t.closest('[data-d]');if(d){F.d=d.dataset.d;F.k='';F.q='';shown=60;view='sit';render();scrollTo(0,0);return;}
+  const nb=t.closest('nav button');if(nb){view=nb.dataset.v;render();scrollTo(0,0);return;}
+  if(t.dataset&&t.dataset.big){const o=document.createElement('div');o.className='big';o.innerHTML=`<img src="${t.src}">`;o.onclick=()=>o.remove();document.body.appendChild(o);return;}
+  if(t.id==='sheet')$('sheet').hidden=true;});
+$('bRef').onclick=async()=>{if(!C)return;$('bRef').disabled=true;status('⏳ جارٍ التحديث…');await load(true);$('bRef').disabled=false;};
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&C&&PKG&&Date.now()-(load.last||0)>120000){load.last=Date.now();load(true);}});
+setInterval(()=>{if(!document.hidden&&C){load.last=Date.now();load(true);}},5*60*1000);
+
+(async()=>{const h=parseCode(await hashCode()),s=parseCode(LS.get('vw_code'));C=h||s;
+  if(h&&(!s||s.code!==h.code)){LS.set('vw_code',h.code);LS.del('vw_pkg');}
+  if(!C){status('');return linkScreen('');}
+  load.last=Date.now();await load(false);})();
+})();
+</script>
+</body>
+</html>

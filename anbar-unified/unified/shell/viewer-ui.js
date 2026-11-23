@@ -70,6 +70,11 @@
   }
 
   /* ---------------- البرنامج الكامل: النشر ---------------- */
+  /* عنوان صفحة iPhone (تطبيق ويب Apps Script) يُحفظ في هذه الحاسبة فقط؛ الرابط الجاهز = العنوان + «#» + رمز الربط */
+  const ipUrl = () => { try { return localStorage.getItem('vw_iphone_url') || ''; } catch (_) { return ''; } };
+  document.addEventListener('change', e => { if (e.target && e.target.id === 'vwIpUrl') { const v = e.target.value.trim().replace(/#.*$/, '');
+    if (v && !/^https:\/\/script\.google\.com\/(a\/[^/]+\/)?macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(v)) { fl('العنوان غير صحيح — انسخ عنوان «تطبيق الويب» كاملاً (ينتهي بـ /exec)', true); return; }
+    try { if (v) localStorage.setItem('vw_iphone_url', v); else localStorage.removeItem('vw_iphone_url'); } catch (_) {} pubShow(''); } });
   async function pubShow(msg) {
     const s = await D.vw.pubStatus(true) || {};
     const st = !s.connected ? '<span class="vw-bad">البرنامج غير مربوط ببريد القسم في Google Drive</span> — اربطه أولاً من زر ⚙ «ربط بريد القسم (Google Drive)» بجانب زر الإصدار والرفع في المخاطبات أو أحد الأنظمة، ثم عُد إلى هنا.'
@@ -82,11 +87,14 @@
       <p class="hint">تنشر هذه الحاسبة ملفاً <b>مشفّراً</b> على Google Drive القسم (${esc(s.email || 'بريد القسم')})، وتقرؤه نسخة الاطلاع برمز الربط. الرابط وحده لا يكفي لقراءة الملف دون الرمز.</p>
       <div class="vw-box">${st}</div>
       ${s.code ? `<label class="ml">رمز الربط — يُرسل إلى مكاتبهم بطريقة خاصة ويُلصق مرة واحدة في نسخة الاطلاع<div class="vw-code"><textarea id="vwPubCode" rows="2" readonly>${esc(s.code)}</textarea><button class="btn" id="vwCopy" type="button">📋 نسخ</button></div></label>` : ''}
+      ${s.code ? (() => { const u = ipUrl(); return `<label class="ml">📱 رابط صفحة iPhone (عنوان «تطبيق الويب» من Google Apps Script — يُلصق مرة واحدة)<input id="vwIpUrl" value="${esc(u)}" placeholder="https://script.google.com/macros/s/…/exec" style="direction:ltr;text-align:left"></label>
+        ${u ? `<label class="ml">رابط iPhone الجاهز (فيه الرمز) — يُرسل إليهم، يُفتح في Safari ثم «إضافة إلى الشاشة الرئيسية»<div class="vw-code"><textarea id="vwIpLink" rows="2" readonly>${esc(u + '#' + s.code)}</textarea><button class="btn" id="vwIpCopy" type="button">📋 نسخ</button></div></label>` : ''}`; })() : ''}
       <div class="err" id="vwPubE">${esc(msg || '')}</div>
       <div class="row"><button class="btn" id="vwPubNo">إغلاق</button>${s.on ? '<button class="btn" id="vwPubStop" style="color:#b42318">⛔ إيقاف نسخة الاطلاع</button>' : ''}${s.connected ? `<button class="btn pri" id="vwPubGo">${s.on ? '⬆ نشر الآن' : '✔ تفعيل ونشر'}</button>` : ''}</div></div>`);
     open('vwPubOv');
     o.onclick = async e => { const b = e.target.closest('button'); if (e.target === o) return close('vwPubOv'); if (!b) return;
       if (b.id === 'vwPubNo') return close('vwPubOv');
+      if (b.id === 'vwIpCopy') { const t = $('vwIpLink'); t.select(); try { await navigator.clipboard.writeText(t.value); } catch (_) { document.execCommand('copy'); } fl('نُسخ رابط iPhone'); return; }
       if (b.id === 'vwCopy') { const t = $('vwPubCode'); t.select(); try { await navigator.clipboard.writeText(t.value); } catch (_) { document.execCommand('copy'); } fl('نُسخ رمز الربط'); return; }
       if (b.id === 'vwPubGo') { b.disabled = true; b.textContent = '⏳ جارٍ النشر…'; const r = await D.vw.publish() || {}; if (r.ok) fl('نُشرت نسخة الاطلاع'); return pubShow(r.error || ''); }
       if (b.id === 'vwPubStop') { if (!confirm('إيقاف نسخة الاطلاع؟\nتُحذف ملفاتها من Google Drive فتتوقف كل نسخ الاطلاع عن التحديث، ويلزم رمز جديد إن فُعّلت لاحقاً.')) return;

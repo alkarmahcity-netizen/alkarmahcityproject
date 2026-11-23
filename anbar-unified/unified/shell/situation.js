@@ -106,6 +106,9 @@ const apOf=p=>{if(!p)return null;if(num(p.approvedCost)>0)return {v:num(p.approv
 const aeOf=p=>{if(!p)return '';if(has(p.actualEnd))return String(p.actualEnd);try{const m=AnbarReg.getMeta(p.fileNo);return m&&m.actualEnd?String(m.actualEnd):'';}catch(_){return '';}};
 const aeIso=v=>{const t=String(v||'').trim();let m=/^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(t);if(m)return `${m[1]}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`;m=/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})/.exec(t);return m?`${m[3]}-${String(m[2]).padStart(2,'0')}-${String(m[1]).padStart(2,'0')}`:'';};
 const aeLate=p=>{const a=aeIso(aeOf(p)),b=aeIso(p&&p.planEnd);if(!a||!b)return null;return Math.round((Date.parse(a)-Date.parse(b))/864e5);};
+/* خانة السلف في القائمة: إن لم يكن في ملف الموقف رقم للسلف المرفوعة والمصروفة، تُعرض أرقام المشروع من برنامج الشؤون المالية (إن كان مرتبطاً) مع بيان أنها من المالية */
+function finCell(p){try{const m=window.FinLink&&FinLink.of(p.fileNo),f=m&&m.f;if(!f||!(num(f.sp)||num(f.legacyLeft)))return '<span class="co">—</span>';
+  return `<span class="co">من المالية:</span><br>مصروف ${money(f.sp)}${num(f.legacyLeft)?`<br>سلفة${f.advNo?' '+esc(f.advNo):''} غير مصروفة ${money(f.legacyLeft)}`:''}`;}catch(_){return '<span class="co">—</span>';}}
 const ov=p=>{try{p=window.PlanLink?PlanLink.apply(p):p;}catch(_){}try{p=window.FinXl?FinXl.apply(p):p;}catch(_){}
   try{if(p&&!has(p.actualEnd)){const m=AnbarReg.getMeta(p.fileNo);if(m&&m.actualEnd)p=Object.assign({},p,{actualEnd:m.actualEnd,_aeIn:1});}}catch(_){}return p;};
 function rows(){const S=AnbarReg.state();return S.projects.filter(inCom).map(p0=>{const p=ov(p0);const L=S.links[p.fileNo]||{};
@@ -187,7 +190,7 @@ function table(f){
     <td class="n"><b>${money(r.total)}</b>${num(p.changeCost)?`<br><span class="co">أوامر التغيير ${num(p.changeCost)>0?'+':''}${money(p.changeCost)}</span>`:''}</td>
     <td style="min-width:130px">${progress(p)}${p.planEnd?`<div class="pdays${planDays(p)>0&&stKind(p.status)!=='ok'?' late':''}" title="تاريخ الإنجاز المخطط ${esc(planDate(p))}">المخطط ${esc(planDate(p))}${planDays(p)!=null?' — '+planDaysTxt(p,1):''}</div>`:''}</td>
     <td><span class="chip ${stKind(p.status)}">${esc(p.status||'—')}</span>${p.legal&&p.legal!=='-'?`<div class="co">${esc(p.legal)}</div>`:''}</td>
-    <td class="n">${num(p.advRaised)||num(p.advPaid)?`مرفوعة ${money(p.advRaised)}<br>مصروفة ${money(p.advPaid)}${num(p.advRaised)?` <span class="co">(${pc(num(p.advPaid)/num(p.advRaised)*100)}%)</span>`:''}`:'<span class="co">—</span>'}</td>
+    <td class="n">${num(p.advRaised)||num(p.advPaid)?`مرفوعة ${money(p.advRaised)}<br>مصروفة ${money(p.advPaid)}${num(p.advRaised)?` <span class="co">(${pc(num(p.advPaid)/num(p.advRaised)*100)}%)</span>`:''}`:finCell(p)}</td>
     <td>${EVt?`<div>${esc(p.resident||'—')}</div>`:`<div class="co" data-finshow="1" style="cursor:pointer" title="كلمة سر المدير">🔒 مخفي</div>`}<div class="co">${esc(p.residentOffice||'')}</div>${EVt&&AnbarReg.supText(p.fileNo)?`<div class="co">المشرفون: ${esc(AnbarReg.supText(p.fileNo))}</div>`:''}</td>
     <td>${r.sys.length?r.sys.map(([a,t,k])=>`<span class="pill ${k}" data-app="${a}">${esc(t)}</span>`).join(''):'<span class="co">لا سجل</span>'}</td></tr>`;}).join('')}</tbody></table>`;}
 

@@ -60,11 +60,11 @@ function match(items){const S=AnbarReg.state();const X=items.map(it=>({it,nt:tok
   return {m:out,amb,conflict,unmatched:items.filter(it=>!usedIt.has(it))};}
 
 /* التطبيق على عرض الموقف (يُستدعى من الموقف العام بعد تطبيق التخطيط) */
+/* أرقام المالية للاستدلال فقط: موقف اللجنة ثابت لا يتغير (السلف المرفوعة والمصروفة كما في الموقف)،
+   وتُرفق أرقام ملف المالية بالمشروع (_finXl) لتُعرض بجانبها للمقارنة في القائمة وبطاقة المشروع */
 function apply(p){try{const m=AnbarReg.getMeta(p.fileNo)||{};if((m.finRaised==null&&m.finPaid==null)||!(+m.finV>=FINV))return p;
-  /* صفر في ملف المالية لا يمحو مبلغاً سجّلته اللجنة في موقفها (المالية لم تسجّل الصرف بعد، أو صفّها ناقص): يبقى مبلغ اللجنة ويُذكر ذلك */
-  const v=Object.assign({},p),pos=x=>+x>0,keepR=+m.finRaised===0&&pos(p.advRaised),keepP=+m.finPaid===0&&pos(p.advPaid);
-  const fixR=m.finRaised!=null&&m.finRaised!==''&&!keepR,fixP=m.finPaid!=null&&m.finPaid!==''&&!keepP;if(fixR)v.advRaised=+m.finRaised;if(fixP)v.advPaid=+m.finPaid;
-  if(!fixR&&!fixP)return p;v._finXl={src:m.finSrc||'',at:m.finAt||'',origRaised:p.advRaised,origPaid:p.advPaid,fixR,fixP,keepR,keepP};return v;}catch(_){return p;}}
+  const v=Object.assign({},p),n=x=>x==null||x===''?null:+x;
+  v._finXl={src:m.finSrc||'',at:m.finAt||'',raised:n(m.finRaised),paid:n(m.finPaid)};return v;}catch(_){return p;}}
 const count=()=>{try{const M=AnbarReg.state().meta||{};return Object.values(M).filter(m=>m&&(m.finRaised!=null||m.finPaid!=null)&&+m.finV>=FINV).length;}catch(_){return 0;}};
 
 /* معاينة ثم اعتماد */
@@ -72,22 +72,22 @@ function preview(file,P){const R=match(P.items);const rows=[...R.m.values()].map
     .map(x=>Object.assign(x,{ch:(x.r1!=null&&Math.round(+x.r1)!==Math.round(+(x.r0||0)))||(x.p1!=null&&Math.round(+x.p1)!==Math.round(+(x.p0||0)))}));
   const ch=rows.filter(x=>x.ch);
   const ov=document.createElement('div');ov.className='ov';ov.id='finXlOv';
-  ov.innerHTML=`<div class="dlg" style="max-width:980px;width:96vw"><h3>📥 تصحيح السلف من ملف المالية</h3>
+  ov.innerHTML=`<div class="dlg" style="max-width:980px;width:96vw"><h3>📥 أرقام السلف من ملف المالية (للاستدلال)</h3>
    <p>الملف: <b>${esc(file.name)}</b> — الأوراق المقروءة: ${esc(P.sheets.join('، ')||'—')} — ${P.items.length} صفاً بمبالغ.</p>
-   <p>طابق <b>${rows.length}</b> مشروعاً من الموقف، منها <b>${ch.length}</b> تتغير سلفها${R.amb.length?`، و${R.amb.length} بأكثر من مقابل محتمل (لم تُغيَّر)`:''}${R.conflict.length?`، و<b>${R.conflict.length}</b> لم تُعطَ صفاً لأن الصف نفسه يطابق مشروعاً آخر أقوى (لا تُكرَّر المبالغ على مشاريع مختلفة)`:''}${R.unmatched.length?`، و${R.unmatched.length} صفاً في ملف المالية بلا مقابل في الموقف`:''}.</p>
-   <div style="max-height:52vh;overflow:auto"><table class="tbl"><thead><tr><th>الاضبارة</th><th>المشروع</th><th>المطابقة</th><th>المرفوعة: الموقف ← المالية</th><th>المصروفة: الموقف ← المالية</th></tr></thead><tbody>
-   ${ch.map(x=>`<tr><td>${esc(x.fn)}</td><td>${esc(x.name)}</td><td>${esc(x.how)}</td><td class="n">${money(x.r0)} ← <b>${money(x.r1==null?x.r0:x.r1)}</b></td><td class="n">${money(x.p0)} ← <b>${money(x.p1==null?x.p0:x.p1)}</b></td></tr>`).join('')||'<tr><td colspan="5">لا تغيير: سلف الموقف مطابقة لملف المالية.</td></tr>'}</tbody></table>
+   <p>طابق <b>${rows.length}</b> مشروعاً من الموقف، منها <b>${ch.length}</b> تختلف أرقامها عن موقف اللجنة${R.amb.length?`، و${R.amb.length} بأكثر من مقابل محتمل (لم تُغيَّر)`:''}${R.conflict.length?`، و<b>${R.conflict.length}</b> لم تُعطَ صفاً لأن الصف نفسه يطابق مشروعاً آخر أقوى (لا تُكرَّر المبالغ على مشاريع مختلفة)`:''}${R.unmatched.length?`، و${R.unmatched.length} صفاً في ملف المالية بلا مقابل في الموقف`:''}.</p>
+   <div style="max-height:52vh;overflow:auto"><table class="tbl"><thead><tr><th>الاضبارة</th><th>المشروع</th><th>المطابقة</th><th>المرفوعة: الموقف / المالية</th><th>المصروفة: الموقف / المالية</th></tr></thead><tbody>
+   ${ch.map(x=>`<tr><td>${esc(x.fn)}</td><td>${esc(x.name)}</td><td>${esc(x.how)}</td><td class="n">${money(x.r0)} / <b>${x.r1==null?'—':money(x.r1)}</b></td><td class="n">${money(x.p0)} / <b>${x.p1==null?'—':money(x.p1)}</b></td></tr>`).join('')||'<tr><td colspan="5">لا اختلاف: سلف الموقف مطابقة لملف المالية.</td></tr>'}</tbody></table>
    ${R.unmatched.length?`<details><summary>صفوف ملف المالية بلا مقابل (${R.unmatched.length})</summary><p class="co">${R.unmatched.slice(0,200).map(it=>esc(it.name)).join(' · ')}</p></details>`:''}</div>
    ${R.conflict.length?`<details><summary>مشاريع لم تُصحَّح لتعارض الصف مع مشروع آخر (${R.conflict.length})</summary><p class="co">${R.conflict.slice(0,200).map(p=>esc((p.fileNo||'')+' — '+(p.name||''))).join(' · ')}</p></details>`:''}
-   <p class="co">الاعتماد يحل محل أي تصحيح سابق من ملف مالية (يُزال عن المشاريع التي لم تعد مطابقة)، ويصحح السلف في الموقف العام وتقاريره وتصدير المواقف بنموذج اللجان (ويُزامَن)، ولا يغيّر ملفات اللجان نفسها؛ ويمكن إزالته من «💰 ربط المالية».</p>
-   <div class="row" style="display:flex;gap:8px;justify-content:flex-end"><button class="btn" data-fxl="no">إلغاء</button><button class="btn pri" data-fxl="ok"${rows.length?'':' disabled'}>اعتماد التصحيح (${rows.length})</button></div></div>`;
+   <p class="co">أرقام المالية للاستدلال فقط: موقف اللجنة ثابت ولا يتغير (السلف المرفوعة والمصروفة كما في الموقف، وفي التقارير وتصدير المواقف بنموذج اللجان)، وتُعرض أرقام المالية بجانبها للمقارنة. الحفظ يحل محل أرقام أي ملف مالية سابق (ويُزامَن)؛ ويمكن إزالتها من «💰 ربط المالية».</p>
+   <div class="row" style="display:flex;gap:8px;justify-content:flex-end"><button class="btn" data-fxl="no">إلغاء</button><button class="btn pri" data-fxl="ok"${rows.length?'':' disabled'}>حفظ أرقام المالية للمقارنة (${rows.length})</button></div></div>`;
   document.body.appendChild(ov);
   return new Promise(res=>ov.addEventListener('click',e=>{const b=e.target.closest('[data-fxl]');if(!b)return;ov.remove();
     if(b.dataset.fxl!=='ok')return res(0);
     const at=new Date().toISOString().slice(0,10);
     const list=[...R.m.values()].map(x=>{const d={finSrc:file.name,finAt:at,finV:FINV};if(x.raised!=null)d.finRaised=Math.round(x.raised);if(x.paid!=null)d.finPaid=Math.round(x.paid);return {fileNo:String(x.p.fileNo),data:d};});
     AnbarReg.dropMetaKeys(KEYS);   /* التصحيح الجديد يحل محل السابق كاملاً: لا تبقى مبالغ مطابقة خاطئة قديمة */
-    AnbarReg.setMetas(list);try{window.desktop&&window.desktop.auditNote&&window.desktop.auditNote('sit','finxl',`تصحيح السلف من ملف المالية «${file.name}»: ${list.length} مشروعاً (${ch.length} تغيّرت)`);}catch(_){}
+    AnbarReg.setMetas(list);try{window.desktop&&window.desktop.auditNote&&window.desktop.auditNote('sit','finxl',`أرقام السلف من ملف المالية «${file.name}» للمقارنة: ${list.length} مشروعاً (${ch.length} تختلف عن الموقف)`);}catch(_){}
     res(list.length);}));}
 async function pick(){const inp=document.createElement('input');inp.type='file';inp.accept='.xlsx,.xlsm,.csv';
   const file=await new Promise(r=>{inp.onchange=()=>r(inp.files&&inp.files[0]);inp.click();});if(!file)return 0;return importFile(file);}
@@ -101,7 +101,7 @@ async function importFile(file){let P,SH;try{SH=await AnbarReg.readSheets(file);
     try{if(window.FinLink){await window.FinLink.load(true);window.SitRender&&window.SitRender();window.FinLink.dlg();}}catch(_){}
     return 0;}
   if(!P.items.length){alert('لم يُعثر في الملف على جدول فيه «اسم المشروع» وعمود «السلف المرفوعة» أو «السلف المصروفة».\n\n«مجموع المصروف الكلي» هو كل ما صُرف للمشروع وليس السلف، فلا يُستعمل لتصحيح السلف.');return 0;}
-  const n=await preview(file,P);if(n){if(window.flash)window.flash(`صُحّحت سلف ${n} مشروعاً من ملف المالية`);try{window.SitRender&&window.SitRender();}catch(_){}}return n;}
+  const n=await preview(file,P);if(n){if(window.flash)window.flash(`حُفظت أرقام المالية لـ ${n} مشروعاً للمقارنة — موقف اللجنة لم يتغير`);try{window.SitRender&&window.SitRender();}catch(_){}}return n;}
 function clear(){const n=AnbarReg.dropMetaKeys(KEYS);try{window.SitRender&&window.SitRender();}catch(_){}if(window.flash)window.flash(n?`أُزيل تصحيح ملف المالية عن ${n} مشروعاً`:'لا تصحيح لإزالته');return n;}
 window.FinXl={parse,match,apply,pick,importFile,preview,clear,count};
 })();

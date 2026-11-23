@@ -248,10 +248,10 @@ function drawer0(fn){const S=AnbarReg.state(),p=ov(S.projects.find(x=>String(x.f
 /* ========== صور المشروع: 3 صور كحد أقصى، تُصغَّر هنا إلى 300 كيلوبايت أو أقل قبل حفظها (photos.js) ========== */
 const PPH_N=3,PPH_MAX=300*1024,PPH_RX=/^p[0-9a-z]{6,16}\.jpg$/;
 const pphList=fn=>String((AnbarReg.getMeta(fn)||{}).photos||'').split(';').filter(x=>PPH_RX.test(x)).slice(0,PPH_N);
-const pphSet=(fn,L)=>AnbarReg.setMeta(fn,{photos:L.length?L.join(';'):'-'});
+const pphSet=(fn,L)=>AnbarReg.setMeta(fn,{photos:L.length?L.join(';'):'-',photosAt:Date.now()});
 const pphDate=n=>{const t=parseInt(n.slice(1,-8),36);return isFinite(t)&&t>1e12?DMY(new Date(t).toISOString().slice(0,10)):'';};
 function photosSec(p){if(!window.desktop||!window.desktop.pph)return '';const fn=String(p.fileNo),L=pphList(fn);
-  return `<h5>📷 صور المشروع <small class="co">(${L.length} من ${PPH_N} — تُصغَّر تلقائياً إلى 300 كيلوبايت)</small></h5><div class="pphs">${L.map((n,k)=>`<figure class="pph"><img data-pph="${esc(n)}" data-fn="${esc(fn)}" alt="صورة ${k+1}" title="اضغط للتكبير"><figcaption><span>${esc(pphDate(n))}</span><button class="btn sm" data-pphdel="${esc(n)}" data-fn="${esc(fn)}" title="حذف الصورة">✕</button></figcaption></figure>`).join('')}${L.length<PPH_N?`<label class="pph add"><input type="file" accept="image/*" ${PPH_N-L.length>1?'multiple':''} data-pphadd="${esc(fn)}" hidden><span>＋ إضافة صورة<br><small>${PPH_N-L.length} متبقية</small></span></label>`:''}</div>`;}
+  return `<h5>📷 صور المشروع <small class="co">(${L.length} من ${PPH_N} — تُصغَّر تلقائياً إلى 300 كيلوبايت)</small></h5><div class="pphs">${L.map((n,k)=>`<figure class="pph"><img data-pph="${esc(n)}" data-fn="${esc(fn)}" alt="صورة ${k+1}" title="اضغط للتكبير"><figcaption><span>${esc(pphDate(n))}</span><button class="btn sm" data-pphdel="${esc(n)}" data-fn="${esc(fn)}" title="حذف الصورة">✕</button></figcaption></figure>`).join('')}${L.length<PPH_N?`<label class="pph add"><input type="file" accept="image/*" ${PPH_N-L.length>1?'multiple':''} data-pphadd="${esc(fn)}" hidden><span>＋ إضافة صورة<br><small>${PPH_N-L.length} متبقية</small></span></label><button type="button" class="pph add cam" data-pphcam="${esc(fn)}" title="التقاط صورة بكاميرا التابلت أو الحاسبة مباشرة"><span>📷 التقاط بالكاميرا</span></button>`:''}</div>`;}
 /* تصغير الصورة: أقصى بُعد 1600 بكسل، ثم خفض الجودة ثم الأبعاد حتى 300 كيلوبايت */
 async function pphCompress(file){let bmp;try{bmp=await createImageBitmap(file,{imageOrientation:'from-image'});}catch(_){bmp=await createImageBitmap(file);}
   let w=bmp.width,h=bmp.height;const k0=Math.min(1,1600/Math.max(w,h));w=Math.round(w*k0);h=Math.round(h*k0);
@@ -261,17 +261,27 @@ async function pphCompress(file){let bmp;try{bmp=await createImageBitmap(file,{i
   throw new Error('تعذّر تصغير الصورة');}
 async function pphLoad(root){for(const im of (root||document).querySelectorAll('img[data-pph]:not([src])')){const u=await window.desktop.pph.read(im.dataset.fn,im.dataset.pph);if(u)im.src=u;else im.alt='الصورة لم تصل بعد (المزامنة)';}}
 function drawer(fn){drawer0(fn);try{pphLoad($q('drawer'));}catch(_){}}
-document.addEventListener('change',async e=>{const inp=e.target.closest&&e.target.closest('input[data-pphadd]');if(!inp)return;const fn=inp.dataset.pphadd,files=[...(inp.files||[])];if(!files.length)return;
+document.addEventListener('change',async e=>{const inp=e.target.closest&&e.target.closest('input[data-pphadd]');if(!inp)return;await pphAddFiles(inp.dataset.pphadd,[...(inp.files||[])]);});
+async function pphAddFiles(fn,files){if(!files.length)return;
   let L=pphList(fn),n=0;for(const f of files){if(L.length>=PPH_N){flash(`الحد ${PPH_N} صور لكل مشروع — احذف صورة لإضافة أخرى`,true);break;}
     try{const c=await pphCompress(f);const r=await window.desktop.pph.save(fn,c.url);if(!r||r.error){flash(r&&r.error||'تعذّر حفظ الصورة',true);continue;}L=pphList(fn).concat(r.name).slice(0,PPH_N);pphSet(fn,L);n++;}catch(err){flash('تعذّرت قراءة الصورة: '+(err.message||err),true);}}
-  if(n){flash(`أُضيفت ${n} صورة للمشروع (مصغّرة إلى 300 كيلوبايت أو أقل)`);try{drawer(fn);}catch(_){}}});
+  if(n){flash(`أُضيفت ${n} صورة للمشروع (مصغّرة إلى 300 كيلوبايت أو أقل)`);try{drawer(fn);}catch(_){}}}
+/* التقاط بالكاميرا (لجان المتابعة في الموقع بالتابلت): الكاميرا الخلفية إن وُجدت، ثم تُصغَّر الصورة وتُحفظ كالمختارة من الملفات */
+async function pphCamera(fn){if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){flash('الكاميرا غير متاحة في هذا الجهاز',true);return;}
+  let st;try{st=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false});}catch(e){flash('تعذّر تشغيل الكاميرا: '+(e.message||e),true);return;}
+  const ov=document.createElement('div');ov.className='pphov cam';ov.innerHTML=`<div class="pphcam"><video autoplay playsinline muted></video><div class="row"><button class="btn pri" data-c="shot">📸 التقاط</button><button class="btn" data-c="x">إلغاء</button></div></div>`;
+  document.body.appendChild(ov);const v=ov.querySelector('video');v.srcObject=st;const stop=()=>{try{st.getTracks().forEach(t=>t.stop());}catch(_){}ov.remove();};
+  ov.addEventListener('click',async e=>{const b=e.target.closest('[data-c]');if(!b){return;}if(b.dataset.c==='x'){stop();return;}
+    const cv=document.createElement('canvas');cv.width=v.videoWidth||1280;cv.height=v.videoHeight||720;cv.getContext('2d').drawImage(v,0,0,cv.width,cv.height);
+    const blob=await new Promise(r=>cv.toBlob(r,'image/jpeg',0.92));stop();if(blob)await pphAddFiles(fn,[new File([blob],'camera.jpg',{type:'image/jpeg'})]);});}
+document.addEventListener('click',e=>{const c=e.target.closest&&e.target.closest('[data-pphcam]');if(c)pphCamera(c.dataset.pphcam);});
 document.addEventListener('click',async e=>{const d=e.target.closest&&e.target.closest('[data-pphdel]');if(d){const fn=d.dataset.fn,n=d.dataset.pphdel;if(!confirm('حذف هذه الصورة من المشروع؟'))return;
     pphSet(fn,pphList(fn).filter(x=>x!==n));await window.desktop.pph.del(fn,n);flash('حُذفت الصورة');try{drawer(fn);}catch(_){}return;}
   const im=e.target.closest&&e.target.closest('img[data-pph]');if(im&&im.src){const ov=document.createElement('div');ov.className='pphov';ov.innerHTML=`<img src="${im.src}" alt="">`;ov.onclick=()=>ov.remove();document.body.appendChild(ov);}});
 {const st=document.createElement('style');st.textContent=`.pphs{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 10px}.pph{margin:0;width:150px;border:1px solid var(--line,#dde3e0);border-radius:10px;overflow:hidden;background:#fff}
 .pph img{display:block;width:150px;height:112px;object-fit:cover;cursor:zoom-in;background:#eef2ef}.pph figcaption{display:flex;justify-content:space-between;align-items:center;padding:2px 6px;font-size:12px;color:#5b6660}
 .pph.add{display:flex;align-items:center;justify-content:center;height:136px;border-style:dashed;cursor:pointer;text-align:center;color:#2f6b34;font-weight:700}.pph.add small{font-weight:400;color:#7a817c}
-.pphov{position:fixed;inset:0;background:#000c;z-index:9500;display:flex;align-items:center;justify-content:center;cursor:zoom-out}.pphov img{max-width:94vw;max-height:92vh;border-radius:8px}`;document.head.appendChild(st);}
+.pphov{position:fixed;inset:0;background:#000c;z-index:9500;display:flex;align-items:center;justify-content:center;cursor:zoom-out}.pphov img{max-width:94vw;max-height:92vh;border-radius:8px}.pph.add.cam{font:inherit;color:#1f3c88}.pphov.cam{cursor:default}.pphcam{background:#111;padding:10px;border-radius:12px;text-align:center}.pphcam video{max-width:90vw;max-height:76vh;border-radius:8px;display:block;margin:0 auto 8px}.pphcam .row{display:flex;gap:8px;justify-content:center}`;document.head.appendChild(st);}
 window.SitOpen=fn=>{try{drawer(fn);}catch(_){}};
 window.SitDrawerRefresh=()=>{try{if(openFn&&!$q('drawer').hidden)drawer(openFn);}catch(_){}};
 /* تفاصيل السلف وأوامر التغيير المرفوعة للمشروع (تصل من نظامي السلف وأوامر التغيير لمشاريع الموقف فقط) */

@@ -136,7 +136,10 @@ module.exports = function createSync(ctx) {
       else if (it.id === 'R') { if ((it.u || 0) > (+s.rosterAt || 0) && it.v && Array.isArray(it.v.roster)) { s.roster = it.v.roster; s.rosterSrc = it.v.src || ''; s.rosterAt = it.u; changed++; } }
       else if (it.id === 'E') { if ((it.u || 0) > (+s.engineersAt || 0) && it.v && Array.isArray(it.v.engineers)) { const seen = new Set(it.v.engineers.map(e => RNr(e.name))); s.engineers = it.v.engineers.concat((s.engineers || []).filter(e => !seen.has(RNr(e.name)))); s.engineersAt = it.u; changed++; } }
       else if (it.id.startsWith('L|')) { const [, fn, sys] = it.id.split('|'); const cur = s.links[fn] && s.links[fn][sys]; if (!cur || (Date.parse(cur.at) || 0) < (it.u || 0)) { (s.links[fn] = s.links[fn] || {})[sys] = it.v; changed++; } }
-      else if (it.id.startsWith('M|')) { const fn = it.id.slice(2); if ((it.u || 0) > (+s.metaAt[fn] || 0)) { s.meta[fn] = it.v; s.metaAt[fn] = it.u; changed++; } }
+      else if (it.id.startsWith('M|')) { const fn = it.id.slice(2), cur = s.meta[fn], inc = it.v || {}, pa = o => +((o && o.photosAt) || 0);
+        /* صور المشروع لها وقتها (photosAt): بيانات مشروع أحدث من حاسبة أخرى (تصحيح مالية مثلاً) لا تمحو صوراً أضافتها لجنة المتابعة، والعكس */
+        if ((it.u || 0) > (+s.metaAt[fn] || 0)) { s.meta[fn] = pa(cur) > pa(inc) ? Object.assign({}, inc, { photos: cur.photos, photosAt: cur.photosAt }) : inc; s.metaAt[fn] = pa(cur) > pa(inc) ? Date.now() : it.u; changed++; }
+        else if (pa(inc) > pa(cur)) { s.meta[fn] = Object.assign({}, cur || {}, { photos: inc.photos, photosAt: inc.photosAt }); s.metaAt[fn] = Date.now(); changed++; } }
     }
     if (partsChanged) { s.projects = combineParts(s.parts); s.projectsAt = Math.max(+s.projectsAt || 0, ...Object.values(s.parts).map(v => +(v && v.at) || 0)); }
     if (changed) { s.updated = new Date().toISOString(); ctx.writeReg(JSON.stringify(s)); }

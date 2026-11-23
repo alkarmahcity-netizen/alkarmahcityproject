@@ -41,5 +41,16 @@ for i in range(4):
   const da = A.digest(), db = B.digest(); const need = Object.keys(da.ids).filter(k => !(k in db.ids));
   const n = B.apply(A.get(need)); const db2 = B.digest();
   ok('sync (pph): the other PC receives exactly the project photos', n === 2 && JSON.stringify(db2.ids) === JSON.stringify(da.ids), JSON.stringify({ n, a: Object.keys(da.ids).length, b: Object.keys(db2.ids).length }));
+  // سجل الموقف: بيانات مشروع أحدث (تصحيح مالية من حاسبة القسم) لا تمحو صوراً أضافتها لجنة المتابعة، والعكس
+  { const createSync = require('./sync.js'); const RF = path.join(mk('r3'), 'registry.json');
+    const base = { projects: [{ fileNo: '9', name: 'م' }], meta: { '9': { photos: 'pabcdef1234.jpg', photosAt: 2000, x: 1 } }, metaAt: { '9': 2000 } };
+    fs.writeFileSync(RF, JSON.stringify(base));
+    const sy = createSync({ dataDir: () => mk('d3'), regFile: () => RF, writeReg: t => fs.writeFileSync(RF, t), readData: () => null, onState: () => {}, applied: () => {}, acAvailable: () => false, version: 't' });
+    await sy._API.apply('reg', [{ id: 'M|9', u: 3000, v: { finPaid: 5, x: 2 } }]);
+    let m = JSON.parse(fs.readFileSync(RF, 'utf8')).meta['9'];
+    ok('newer project data from another PC keeps the committee photos', m.photos === 'pabcdef1234.jpg' && m.finPaid === 5, JSON.stringify(m));
+    await sy._API.apply('reg', [{ id: 'M|9', u: 1000, v: { photos: 'pzzzzzz9999.jpg', photosAt: 5000 } }]);
+    m = JSON.parse(fs.readFileSync(RF, 'utf8')).meta['9'];
+    ok('newer photos arriving with older project data are taken (other data kept)', m.photos === 'pzzzzzz9999.jpg' && m.finPaid === 5, JSON.stringify(m)); }
   R.forEach(x => console.log(x[0], x[1], x[2] ? '— ' + String(x[2]).slice(0, 300) : '')); console.log(`${R.filter(x => x[0] === 'PASS').length}/${R.length}`); process.exit(R.every(x => x[0] === 'PASS') ? 0 : 1);
 })().catch(e => { console.error(e); process.exit(1); });

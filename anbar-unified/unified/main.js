@@ -96,7 +96,7 @@ function atomicWrite(file, text) {
 let bs = null, bsLast = 0;
 const ACR_FILE = () => path.join(dataDir, 'Acceptance-Records.json');   // نسخة من سجلات شهادات الاستلام (تُخزَّن في نافذة الاستلام نفسها)
 const bsEnsure = () => { if (!bs) bs = require('./backupset')({ dataDir: () => dataDir, version: APP_VER(), keep: MAX_BACKUPS, device: () => deviceName(),
-  file: ds => ds === 'acr' ? ACR_FILE() : (APPS[ds] || EXTRA_DATA[ds]) ? dataFile(ds) : null, regFile: () => regFile(), archDir: () => archDir(), planDir: () => path.join(dataDir, 'planning'),
+  file: ds => ds === 'acr' ? ACR_FILE() : (APPS[ds] || EXTRA_DATA[ds]) ? dataFile(ds) : null, regFile: () => regFile(), archDir: () => archDir(), photoDir: () => path.join(dataDir, 'صور-المشاريع'), planDir: () => path.join(dataDir, 'planning'),
   extDirs: () => { try { const st = xbEnsure().state(); const d = st.folder ? path.join(st.folder, 'يومي') : ''; return d && fs.existsSync(d) ? [d] : []; } catch (_) { return []; } },
   write: (f, t) => atomicWrite(f, t) }); return bs; };
 function dailyBackup() {
@@ -648,6 +648,11 @@ ipcMain.handle('file:save', async (_e, name, data) => {
   try { const p = await askPath(name); if (!p) return 'cancel'; fs.writeFileSync(p, typeof data === 'string' ? data : Buffer.from(data)); return 'ok'; }
   catch (_) { return 'error'; }
 });
+/* صور المشاريع (بطاقة المشروع في الموقف العام): 3 صور لكل مشروع، تُصغَّر في الواجهة إلى 300 كيلوبايت (photos.js) */
+let _phs = null; const PHS = () => _phs || (_phs = require('./photos')({ dataDir: () => dataDir, regFile: () => regFile() }));
+ipcMain.handle('pph:save', (_e, fn, d) => { try { const r = PHS().save(fn, d); if (r.ok) audit.note('sit', 'photo', `إضافة صورة لمشروع الاضبارة ${fn} (${r.kb} ك.ب)`).catch(() => {}); return r; } catch (e) { return { error: String(e && e.message || e) }; } });
+ipcMain.handle('pph:read', (_e, fn, name) => PHS().read(fn, name));
+ipcMain.handle('pph:del', (_e, fn, name) => { const ok = PHS().del(fn, name); if (ok) audit.note('sit', 'photo', `حذف صورة من مشروع الاضبارة ${fn}`).catch(() => {}); return ok; });
 /* مرفقات الأرشيف: «ملفات-الأرشيف/<معرّف الكتاب>/<اسم الملف>» في مجلد البيانات (تُنقل بالمزامنة كمجموعة arf) */
 const archDir = () => path.join(dataDir, 'ملفات-الأرشيف');
 const okRec = r => /^[A-Za-z0-9_-]{1,40}$/.test(String(r || ''));

@@ -12,7 +12,7 @@ const crypto = require('crypto');
 const dgram = require('dgram');
 
 const JSON_KEYS = { fv: 'records', co: 'records', ad: 'records', du: 'recs', in: 'records', lt: 'records', fu: 'records', dm: 'records', cm: 'records', ar: 'records', wf: 'records', pl: 'records', wfa: 'records' };
-const ALL = ['co', 'du', 'ad', 'in', 'lt', 'fu', 'dm', 'cm', 'fv', 'ar', 'arf', 'reg', 'ac', 'wf', 'pl', 'wfa'];   // wf: لوحة سير المعاملات
+const ALL = ['co', 'du', 'ad', 'in', 'lt', 'fu', 'dm', 'cm', 'fv', 'ar', 'arf', 'reg', 'pph', 'ac', 'wf', 'pl', 'wfa'];   // pph: صور المشاريع (بعد سجل الموقف الذي يذكرها)   // wf: لوحة سير المعاملات
 const AC_TYPES = { pac: ['pac_records_v1', 'pac_counter_v1'], pap: ['pap_records_v1', 'pap_counter_v1'], fac: ['fac_records_v1', 'fac_counter_v1'], fpa: ['fpa_records_v1', 'fpa_counter_v1'] };
 const DEFAULT_PORT = +process.env.UNI_SYNC_PORT || 47900;   // للاختبار فقط: منفذ بديل إن كان 47900 مشغولاً في بيئة الاختبار
 const DISC_PORT = +process.env.UNI_DISC_PORT || 47901;   // الاكتشاف التلقائي (UDP): حاسبة القسم تجيب من يسأل عنها برمز القسم
@@ -223,10 +223,11 @@ module.exports = function createSync(ctx) {
         if (!same) { fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, b); n++; } } catch (_) {} }
     return n;
   }
+  let _ph = null; const PH = () => _ph || (_ph = require('./photos')({ dataDir: ctx.dataDir, regFile: ctx.regFile }));
   const API = {
-    digest: async ds => (JSON_KEYS[ds] ? jsonDigest(ds) : ds === 'arf' ? arfDigest() : ds === 'reg' ? regDigest() : acDigest()),
-    get: async (ds, ids, peer) => (JSON_KEYS[ds] ? jsonGet(ds, ids) : ds === 'arf' ? arfGet(ids, peer) : ds === 'reg' ? regGet(ids) : acGet(ids)),
-    apply: async (ds, items, tin) => (JSON_KEYS[ds] ? jsonApply(ds, items, tin) : ds === 'arf' ? arfApply(items) : ds === 'reg' ? regApply(items) : acApply(items, tin))
+    digest: async ds => (JSON_KEYS[ds] ? jsonDigest(ds) : ds === 'arf' ? arfDigest() : ds === 'pph' ? PH().digest() : ds === 'reg' ? regDigest() : acDigest()),
+    get: async (ds, ids, peer) => (JSON_KEYS[ds] ? jsonGet(ds, ids) : ds === 'arf' ? arfGet(ids, peer) : ds === 'pph' ? PH().get(ids) : ds === 'reg' ? regGet(ids) : acGet(ids)),
+    apply: async (ds, items, tin) => (JSON_KEYS[ds] ? jsonApply(ds, items, tin) : ds === 'arf' ? arfApply(items) : ds === 'pph' ? PH().apply(items) : ds === 'reg' ? regApply(items) : acApply(items, tin))
   };
   // ما ينقصه الطرف الآخر: عناصر أحدث عندي أو غير موجودة عنده (ما لم يكن لديه شاهد حذف أحدث)، وشواهد الحذف الأحدث
   function diff(mine, theirs) {
@@ -282,7 +283,7 @@ module.exports = function createSync(ctx) {
         { const um = req.method === 'GET' && String(req.url || '').match(/^\/sync\/update\/(info|file)$/);   // التحديث من حاسبة القسم
           if (um) { if (cfg.mode === 'server' && ctx.updater) return ctx.updater.serve(um[1], res); return send(404, { error: 'none' }); } }
         notePeer(req);
-        const m = req.url.match(/^\/sync\/(ping|(co|du|ad|in|lt|fu|dm|cm|fv|ar|arf|reg|ac|wf|pl|wfa)\/(digest|push))$/);
+        const m = req.url.match(/^\/sync\/(ping|(co|du|ad|in|lt|fu|dm|cm|fv|ar|arf|reg|pph|ac|wf|pl|wfa)\/(digest|push))$/);
         if (!m) return send(404, { error: 'nf' });
         if (m[1] === 'ping') return send(200, { ok: true, time: Date.now(), name: cfg.name || os.hostname(), sets: ALL, ver: String(ctx.version || '') });
         const ds = m[2], act = m[3];
@@ -349,7 +350,7 @@ module.exports = function createSync(ctx) {
     return new Promise((resolve, reject) => {
       const u = parseServer(); if (!u) return reject(new Error('أدخل عنوان الخادم'));
       const b = Buffer.from(JSON.stringify(bodyObj || {}));
-      const req = (u.tls ? https : http).request({ hostname: u.hostname, port: u.port, path: u.base + pathname, method: 'POST', timeout: /^\/sync\/arf\//.test(pathname) ? (+process.env.UNI_SYNC_ARF_MS || 120000) : u.tls ? 30000 : 12000, headers: { 'Content-Type': 'application/json', 'Content-Length': b.length, 'x-sync-key': cfg.key, 'x-sync-name': encodeURIComponent(cfg.name || os.hostname()), 'x-sync-ver': String(ctx.version || '') } }, r => {
+      const req = (u.tls ? https : http).request({ hostname: u.hostname, port: u.port, path: u.base + pathname, method: 'POST', timeout: /^\/sync\/(arf|pph)\//.test(pathname) ? (+process.env.UNI_SYNC_ARF_MS || 120000) : u.tls ? 30000 : 12000, headers: { 'Content-Type': 'application/json', 'Content-Length': b.length, 'x-sync-key': cfg.key, 'x-sync-name': encodeURIComponent(cfg.name || os.hostname()), 'x-sync-ver': String(ctx.version || '') } }, r => {
         const ch = []; r.on('data', c => ch.push(c)); r.on('end', () => { let j = {}; try { j = JSON.parse(Buffer.concat(ch).toString('utf8')); } catch (_) {} if (r.statusCode === 403) return reject(new Error('مفتاح المزامنة غير صحيح')); if (r.statusCode >= 300) return reject(new Error(j.error || ('خطأ ' + r.statusCode))); resolve(j); });
       });
       req.on('timeout', () => req.destroy(new Error('انتهت مهلة الاتصال بالخادم')));
@@ -421,10 +422,10 @@ module.exports = function createSync(ctx) {
       let dsErr = null;   /* خطأ في مجموعة واحدة لا يوقف مزامنة باقي المجموعات (كان يوقف الجولة كلها) */
       for (const ds of ALL) { try {
         if (ds === 'ac' && !ctx.acAvailable()) continue;
-        if (['in', 'lt', 'fu', 'dm', 'cm', 'fv', 'ar', 'arf', 'wf', 'pl', 'wfa'].includes(ds) && !(ping.sets || []).includes(ds)) continue;   // خادم أقدم لا يعرف هذه المجموعة   // خادم أو سحابة بإصدار أقدم لا يعرف «إطلاق التأمينات»
+        if (['in', 'lt', 'fu', 'dm', 'cm', 'fv', 'ar', 'arf', 'pph', 'wf', 'pl', 'wfa'].includes(ds) && !(ping.sets || []).includes(ds)) continue;   // خادم أقدم لا يعرف هذه المجموعة   // خادم أو سحابة بإصدار أقدم لا يعرف «إطلاق التأمينات»
         const rv = ping.revs ? (ping.revs[ds] || 0) : undefined;
         // مرفقات الأرشيف: تتكرر الجولة ما دام هناك ما يُنقل (أجزاء ملف كبير أو دفعات متتالية)، حتى 40 جولة
-        for (let round = 0; round < (ds === 'arf' ? 40 : 1); round++) {
+        for (let round = 0; round < (ds === 'arf' || ds === 'pph' ? 40 : 1); round++) {
           const mine = await API.digest(ds), sig = JSON.stringify(mine);
           if (round === 0 && rv !== undefined && lastRev[ds] === rv && lastSig[ds] === sig) break;   // لا تغيير محلياً ولا على السحابة: لا حاجة للمقارنة
           const cred = (ds === 'ar' || ds === 'arf') && ctx.archCred ? (ctx.archCred() || {}) : null;

@@ -4,7 +4,7 @@
 'use strict';
 const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const OP={add:'إضافة',edit:'تعديل',del:'حذف',login:'دخول',pwreset:'استرجاع كلمة سر',restore:'استرجاع نسخة احتياطية',import:'استيراد',finview:'إظهار المبالغ',flow:'سير المعاملات',numunlock:'فتح العدد والتاريخ'};
+const OP={add:'إضافة',edit:'تعديل',del:'حذف',photo:'صور المشاريع',login:'دخول',pwreset:'استرجاع كلمة سر',restore:'استرجاع نسخة احتياطية',import:'استيراد',finview:'إظهار المبالغ',flow:'سير المعاملات',numunlock:'فتح العدد والتاريخ'};
 const two=n=>String(n).padStart(2,'0');
 const dt=t=>{const d=new Date(t);return `${d.getFullYear()}/${two(d.getMonth()+1)}/${two(d.getDate())} ${two(d.getHours())}:${two(d.getMinutes())}`;};
 const tm=t=>{const d=new Date(t);return `${two(d.getHours())}:${two(d.getMinutes())}`;};

@@ -48,7 +48,7 @@ const GROUPS = [
   { id: 'du', t: 'المدد والتوقف', ds: ['du'] }, { id: 'dm', t: 'مطالعات لجنة المدد', ds: ['dm'] }, { id: 'ad', t: 'لجنة تدقيق السلف', ds: ['ad'] },
   { id: 'in', t: 'إطلاق التأمينات', ds: ['in'] }, { id: 'lt', t: 'المخاطبات والمطالعات', ds: ['lt'] }, { id: 'ar', t: 'الأرشيف والتوزيع (ومرفقاته إن وُجدت في النسخة)', ds: ['ar'], files: 'arf' },
   { id: 'fv', t: 'تقارير زيارة مشاريع التنفيذ', ds: ['fv'] }, { id: 'ac', t: 'شهادات الاستلام', ds: ['acr'] },
-  { id: 'wf', t: 'لوحة سير المعاملات ومرفقاتها', ds: ['wf', 'wfa'] }, { id: 'pl', t: 'مشاريع التخطيط', ds: ['pl'], files: 'plan' }, { id: 'reg', t: 'الموقف العام (سجل المشاريع)', ds: ['reg'] }];
+  { id: 'wf', t: 'لوحة سير المعاملات ومرفقاتها', ds: ['wf', 'wfa'] }, { id: 'pl', t: 'مشاريع التخطيط', ds: ['pl'], files: 'plan' }, { id: 'reg', t: 'الموقف العام (سجل المشاريع)', ds: ['reg'], files: 'pph' }];
 const countOf = text => { try { const o = JSON.parse(text); if (Array.isArray(o)) return o.length; for (const k of ['records', 'recs', 'projects', 'items', 'cards']) if (Array.isArray(o[k])) return o[k].length; if (o && typeof o === 'object') { const v = Object.values(o).filter(x => typeof x === 'string'); if (v.length) return v.reduce((a, s) => { try { return a + Object.keys(JSON.parse(s || '{}')).length; } catch (_) { return a; } }, 0); } return null; } catch (_) { return null; } };
 const PREFIX = 'نسخة-الشؤون-الهندسية_', SAFE = 'قبل-الاسترجاع_';
 
@@ -67,6 +67,7 @@ module.exports = function createBackupSet(ctx) {
       for (const ds of g.ds) { const f = ds === 'reg' ? ctx.regFile() : ctx.file(ds); if (!f || !fs.existsSync(f)) continue;
         const t = await fsp.readFile(f, 'utf8'); try { JSON.parse(t); } catch (_) { continue; } add('data/' + ds + '.json', t); have = true; const c = countOf(t); if (c != null) n += c; }
       if (g.files === 'plan') { const d = ctx.planDir(); for (const r of await walk(d, '', [])) { add('planning/' + r, await fsp.readFile(path.join(d, r))); have = true; } }
+      if (g.files === 'pph' && opt.attachments && ctx.photoDir) { const d = ctx.photoDir(); let k = 0; for (const r of await walk(d, '', [])) { add('project-photos/' + r, await fsp.readFile(path.join(d, r))); k++; } man.pphCount = k; }
       if (g.files === 'arf' && opt.attachments) { const d = ctx.archDir(); let k = 0; for (const r of await walk(d, '', [])) { add('archive-files/' + r, await fsp.readFile(path.join(d, r))); k++; } man.arfCount = k; }
       if (have) man.sys[g.id] = { t: g.t, n };
     }
@@ -108,7 +109,7 @@ module.exports = function createBackupSet(ctx) {
     if (item.kind === 'legacy') { const o = { data: {}, planning: {}, arf: {}, man: { sys: item.sys } };
       for (const g of GROUPS) for (const ds of g.ds) { const fn = ds === 'reg' ? 'registry.json' : path.basename(ctx.file(ds) || ''); if (fn && item.files[fn]) o.data[ds] = await fsp.readFile(item.files[fn], 'utf8'); } return o; }
     const z = readZip(await fsp.readFile(item.file)), o = { data: {}, planning: {}, arf: {}, man: {} };
-    for (const [n, b] of Object.entries(z)) { if (n === 'manifest.json') o.man = JSON.parse(b.toString('utf8')); else if (n.startsWith('data/')) o.data[n.slice(5).replace(/\.json$/, '')] = b.toString('utf8'); else if (n.startsWith('planning/')) o.planning[n.slice(9)] = b; else if (n.startsWith('archive-files/')) o.arf[n.slice(14)] = b; }
+    for (const [n, b] of Object.entries(z)) { if (n === 'manifest.json') o.man = JSON.parse(b.toString('utf8')); else if (n.startsWith('data/')) o.data[n.slice(5).replace(/\.json$/, '')] = b.toString('utf8'); else if (n.startsWith('planning/')) o.planning[n.slice(9)] = b; else if (n.startsWith('archive-files/')) o.arf[n.slice(14)] = b; else if (n.startsWith('project-photos/')) (o.pph || (o.pph = {}))[n.slice(15)] = b; }
     return o;
   }
   /* تفاصيل نسخة للعرض: عدد السجلات لكل نظام في النسخة وفي البرنامج الآن */
@@ -130,6 +131,7 @@ module.exports = function createBackupSet(ctx) {
       for (const ds of g.ds) { const t = o.data[ds]; if (t == null) continue; try { JSON.parse(t); } catch (_) { skipped.push(g.t + ' (ملف تالف)'); continue; }
         const f = ds === 'reg' ? ctx.regFile() : ctx.file(ds); if (!f) continue; await fsp.mkdir(path.dirname(f), { recursive: true }); ctx.write(f, t); any = true; }
       if (g.files === 'plan') for (const [r, b] of Object.entries(o.planning)) { const p = path.join(ctx.planDir(), r); await fsp.mkdir(path.dirname(p), { recursive: true }); await fsp.writeFile(p, b); any = true; }
+      if (g.files === 'pph' && ctx.photoDir) for (const [r, b] of Object.entries(o.pph || {})) { if (r.includes('..')) continue; const p = path.join(ctx.photoDir(), r); await fsp.mkdir(path.dirname(p), { recursive: true }); await fsp.writeFile(p, b); any = true; }
       if (g.files === 'arf') for (const [r, b] of Object.entries(o.arf)) { if (r.includes('..')) continue; const p = path.join(ctx.archDir(), r); await fsp.mkdir(path.dirname(p), { recursive: true }); await fsp.writeFile(p, b); any = true; }
       if (any) { done.push(g.id); if (hooks.after) await hooks.after(g, o); } else skipped.push(g.t + ' (ليس في النسخة)'); }
     return { done, skipped, safety: safety.file };

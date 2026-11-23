@@ -24,7 +24,7 @@ from PIL import Image
 Image.new('RGB',(240,180),(30,120,60)).save(sys.argv[1],quality=80)" ${path.join(IMG, 'a.jpg')}`);
   const P = require('./photos')({ dataDir: () => DD, regFile: () => path.join(RG, 'registry.json') });
   const ph = P.save('501', 'data:image/jpeg;base64,' + fs.readFileSync(path.join(IMG, 'a.jpg')).toString('base64'));
-  const reg = { projects: [{ fileNo: '501', name: 'مشروع الاطلاع الأول', contractor: 'شركة أ', status: 'مستمر', orig: 2e9, actual: 40, planned: 55, district: 'الرمادي' },
+  const reg = { projects: [{ fileNo: '501', name: 'مشروع الاطلاع الأول', contractor: 'شركة أ', status: 'مستمر', orig: 2e9, actual: 40, planned: 55, district: 'الرمادي', lat: '33.4258', lng: '43.2994' },
     { fileNo: '502', name: 'مشروع الاطلاع الثاني', contractor: 'شركة ب', status: 'متلكئ', orig: 1e9, actual: 10, planned: 60, district: 'هيت' }], meta: { '501': { photos: ph.name, photosAt: Date.now() } }, metaAt: { '501': Date.now() }, links: { '501': { co: { orders: 2, note: 'SECRET-LINK-CO' } } } };
   fs.writeFileSync(path.join(RG, 'registry.json'), JSON.stringify(reg));
   fs.writeFileSync(path.join(DD, 'Advances-Data.json'), JSON.stringify({ records: [{ project: { fileNo: '501', name: 'مشروع الاطلاع الأول', contractNo: 'C1' }, advances: [{ no: 1, note: 'SECRET-AD-NOTE' }, { no: 2 }] }] }));
@@ -52,6 +52,8 @@ Image.new('RGB',(240,180),(30,120,60)).save(sys.argv[1],quality=80)" ${path.join
   let pkg = {}; try { pkg = JSON.parse(V.unseal(c.key, raw).toString()); } catch (e) { pkg = { err: String(e) }; }
   const pj = JSON.stringify(pkg);
   ok('package = registry + advances count only (no change-order / advance details)', pkg.app === 'anbar-viewer' && /مشروع الاطلاع الثاني/.test(pkg.reg || '') && !/SECRET-CO-XYZ|SECRET-AD-NOTE|SECRET-LINK-CO/.test(pj) && pkg.ad && pkg.ad.recs[0].n === 2 && Object.keys(pkg.ph || {}).length === 1, pj.slice(0, 200));
+  await pa.evaluate(() => window.desktop.go('sit')); await sleep(1200); await pa.evaluate(() => window.SitOpen('501')); await sleep(1200);
+  ok('full program: no «الطريق إلى المشروع» button (governor copy only)', await pa.evaluate(() => /33\.4258/.test(document.getElementById('drawer').textContent) && !document.querySelector('#drawer .vwroute')));
   /* ---------- نسخة الاطلاع ---------- */
   const VD = mk('vd'), VR = mk('vr'); fs.writeFileSync(path.join(VR, 'registry.json'), '{"projects":[{"fileNo":"X","name":"سجل البرنامج الكامل على هذه الحاسبة"}]}');
   const vrBefore = fs.readFileSync(path.join(VR, 'registry.json'), 'utf8');
@@ -73,6 +75,10 @@ Image.new('RGB',(240,180),(30,120,60)).save(sys.argv[1],quality=80)" ${path.join
   ok('viewer: project card shows the photo (downloaded and decrypted), no add/delete photo controls', await pb.evaluate(() => { const d = document.getElementById('drawer');
     const imgs = [...d.querySelectorAll('img[data-pph]')].filter(i => /^data:image\/jpeg/.test(i.src)); const vis = x => x && getComputedStyle(x).display !== 'none' && x.offsetParent !== null;
     return imgs.length === 1 && !vis(d.querySelector('input[data-pphadd]')) && ![...d.querySelectorAll('[data-pphdel]')].some(vis); }));
+  ok('viewer: «🧭 الطريق إلى المشروع» next to the coordinates opens Google Maps directions from the current location', await pb.evaluate(() => { const a = document.querySelector('#drawer .vwroute');
+    return !!a && getComputedStyle(a).display !== 'none' && a.target === '_blank' && /^https:\/\/www\.google\.com\/maps\/dir\/\?api=1&destination=33\.4258%2C43\.2994&travelmode=driving$/.test(a.href) && !/origin=/.test(a.href); }), await pb.evaluate(() => (document.querySelector('#drawer .vwroute') || {}).href));
+  await pb.evaluate(() => window.SitOpen('502')); await sleep(800);
+  ok('viewer: no route button for a project without coordinates', await pb.evaluate(() => !document.querySelector('#drawer .vwroute')));
   ok('viewer: saving is refused in the main process (registry, photos, planning, files)', await pb.evaluate(async () => { const D = window.desktop; const r = [D.regSave && D.regSave('{"projects":[]}')];
     r.push(await D.pph.save('501', 'data:image/jpeg;base64,/9j/')); r.push(await D.plan.import()); r.push(await D.saveFile('x.xlsx', 'AA==')); return r.every(x => !x); }));
   ok('viewer registry not changed by the refused save', /مشروع الاطلاع الثاني/.test(fs.readFileSync(path.join(VD, 'سجل-المشاريع.json'), 'utf8')));

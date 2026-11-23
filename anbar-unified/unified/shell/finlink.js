@@ -18,8 +18,8 @@ const jac=(A,B)=>{if(!A.size||!B.size)return 0;let n=0;A.forEach(x=>{if(B.has(x)
 /* نسبة احتواء الاسم الأقصر في الأطول (الموقف يكتب أحياناً القضاء أو تفاصيل زائدة، أو العكس) */
 const cont=(A,B)=>{if(!A.size||!B.size)return 0;let n=0;A.forEach(x=>{if(B.has(x))n++;});return n/Math.min(A.size,B.size);};
 /* اقتراحات للمشروع الذي لم يُطابق تلقائياً: أقرب 3 مشاريع في المالية بالتشابه (لا تُربط إلا بضغطة من المستخدم) */
-function suggest(nt,ct,inv){if(!nt.size)return [];const seen=new Map();nt.forEach(t=>{(inv.get(t)||[]).forEach(x=>seen.set(x,(seen.get(x)||0)+1));});
-  const L=[];seen.forEach((c,x)=>{const sc=Math.max(jac(nt,x.nt),cont(nt,x.nt)*0.9)*0.8+coSim(ct,x.ct)*0.2;if(sc>=0.35)L.push({f:x.f,sc});});
+function suggest(nt,ct,inv,p){if(!nt.size)return [];const am=p?[p.orig,p.total,p.advPaid].map(v=>Math.round(num(v)/1000)).filter(v=>v>=1000):[];const seen=new Map();nt.forEach(t=>{(inv.get(t)||[]).forEach(x=>seen.set(x,(seen.get(x)||0)+1));});
+  const L=[];seen.forEach((c,x)=>{const sc=Math.min(1,Math.max(jac(nt,x.nt),cont(nt,x.nt)*0.9)*0.8+coSim(ct,x.ct)*0.2+([x.f.c0,x.f.c,x.f.sp].some(v=>am.includes(Math.round(num(v)/1000)))?0.25:0));if(sc>=0.35)L.push({f:x.f,sc});});
   return L.sort((a,b)=>b.sc-a.sc).slice(0,3).map(z=>Object.assign({},z.f,{_sc:Math.round(z.sc*100)}));}
 const coSim=(A,B)=>{const j=jac(A,B);if(!A.size||!B.size)return j;let n=0;A.forEach(x=>{if(B.has(x))n++;});const m=Math.min(A.size,B.size);return m>=2&&n/m>=0.99?Math.max(j,0.5):j;};
 const dig=s=>String(s==null?'':s).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/\D/g,'').replace(/^0+/,'');
@@ -39,17 +39,23 @@ function matchAll(){
   if(M&&mKey===key)return M;
   const F=D.P.map(f=>({f,nt:toks(f.nm),ct:toks(f.co),cn:dig(f.cno),y:yr(f.cdt)})),byId=new Map(F.map(x=>[x.f.id,x])),byC=new Map(),inv=new Map();
   F.forEach(x=>{if(x.cn)(byC.get(x.cn)||byC.set(x.cn,[]).get(x.cn)).push(x);x.nt.forEach(t=>(inv.get(t)||inv.set(t,[]).get(t)).push(x));});
+  /* المبالغ: مبلغ العقد (الأصلي وبعد التغيير) والمصروف الكلي في المالية تُقابل كلفة المشروع ومبلغه الكلي والسلف المصروفة في الموقف */
+  const ak=v=>{v=Math.round(num(v));return v>=1e6?String(Math.round(v/1000)):'';},byA=new Map(),byS=new Map();
+  F.forEach(x=>{[x.f.c0,x.f.c].forEach(v=>{const k=ak(v);if(k){const L=byA.get(k)||byA.set(k,[]).get(k);if(!L.includes(x))L.push(x);}});const k=ak(x.f.sp);if(k)(byS.get(k)||byS.set(k,[]).get(k)).push(x);});
   const out={},links=D.links||{},used={};
   S.projects.forEach(p=>{const fn=String(p.fileNo);
     if(fn in links){const id=links[fn];out[fn]=id&&byId.has(id)?{f:byId.get(id).f,how:'ربط يدوي',score:9}:{f:null,how:'لا يوجد مقابل (يدوي)',manual:true};return;}
     const nt=toks(p.name),ct=toks(p.contractor),cn=dig(p.contractNo),y=yr(p.year)||yr(p.start);const cand=[];
     {const fd=dig(fn);if(fd){const hit=F.filter(x=>x.f.fileNo&&dig(x.f.fileNo)===fd);if(hit.length===1){out[fn]={f:hit[0].f,how:'رقم الاضبارة',score:8};used[hit[0].f.id]=(used[hit[0].f.id]||0)+1;return;}}}
     if(cn)(byC.get(cn)||[]).forEach(x=>{if(y&&x.y&&y!==x.y&&Math.abs(+y-+x.y)>1)return;const cs=coSim(ct,x.ct),ns=jac(nt,x.nt);if(cs>=0.3||ns>=0.4)cand.push({x,s:3+cs+ns,how:'رقم العقد'+(x.y&&y?' وسنته':'')+(cs>=0.3?' والشركة':' واسم المشروع')});});
+    if(!cand.length){const seenA=new Set(),add=(x,how)=>{if(seenA.has(x))return;seenA.add(x);const ns=Math.max(jac(nt,x.nt),cont(nt,x.nt)*0.9),cs=coSim(ct,x.ct);if(ns>=0.3||(cs>=0.3&&ns>=0.15))cand.push({x,s:3.1+ns+cs*0.5,how:how+(cs>=0.3?' والشركة':' وتشابه الاسم')});};
+      [p.orig,p.total,num(p.orig)+num(p.changeCost)].forEach(v=>{const k=ak(v);if(k)(byA.get(k)||[]).forEach(x=>add(x,'مبلغ العقد'));});
+      {const k=ak(p.advPaid);if(k)(byS.get(k)||[]).forEach(x=>add(x,'المبلغ المصروف'));}}
     if(!cand.length&&nt.size){const seen=new Map();nt.forEach(t=>{(inv.get(t)||[]).forEach(x=>seen.set(x,(seen.get(x)||0)+1));});
       seen.forEach((c,x)=>{if(c<2&&nt.size>2)return;const ns=jac(nt,x.nt),cs=coSim(ct,x.ct);if(T(p.name)===T(x.f.nm))cand.push({x,s:2.5+cs,how:'اسم المشروع'+(cs>=0.3?' والشركة':'')});else if(ns>=0.6&&(cs>=0.3||!ct.size||!x.ct.size))cand.push({x,s:1+ns+cs*0.5,how:'تشابه اسم المشروع'+(cs>=0.3?' والشركة':'')});
         else{const ci=cont(nt,x.nt);if(ci>=0.85&&Math.min(nt.size,x.nt.size)>=3&&cs>=0.3)cand.push({x,s:1+ci*0.8+cs*0.5,how:'اسم المشروع ضمن الاسم الآخر والشركة'});}});}
     cand.sort((a,b)=>b.s-a.s);
-    if(!cand.length){out[fn]={f:null,how:'لم يُعثر على مقابل',alts:suggest(nt,ct,inv)};return;}
+    if(!cand.length){out[fn]={f:null,how:'لم يُعثر على مقابل',alts:suggest(nt,ct,inv,p)};return;}
     if(cand[1]&&cand[1].x!==cand[0].x&&cand[0].s-cand[1].s<0.05){out[fn]={f:null,how:'أكثر من مقابل محتمل — اربطه يدوياً',alts:cand.slice(0,4).map(c=>c.x.f)};return;}
     out[fn]={f:cand[0].x.f,how:cand[0].how,score:cand[0].s};used[cand[0].x.f.id]=(used[cand[0].x.f.id]||0)+1;});
   /* مشروع مالية واحد طابق تلقائياً أكثر من اضبارة: لا يُعتمد إلا الأعلى تطابقاً */

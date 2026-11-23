@@ -61,12 +61,14 @@ function match(items){const S=AnbarReg.state();const X=items.map(it=>({it,nt:tok
 
 /* التطبيق على عرض الموقف (يُستدعى من الموقف العام بعد تطبيق التخطيط) */
 function apply(p){try{const m=AnbarReg.getMeta(p.fileNo)||{};if((m.finRaised==null&&m.finPaid==null)||!(+m.finV>=FINV))return p;
-  const v=Object.assign({},p);if(m.finRaised!=null&&m.finRaised!=='')v.advRaised=+m.finRaised;if(m.finPaid!=null&&m.finPaid!=='')v.advPaid=+m.finPaid;
-  v._finXl={src:m.finSrc||'',at:m.finAt||'',origRaised:p.advRaised,origPaid:p.advPaid};return v;}catch(_){return p;}}
+  /* صفر في ملف المالية لا يمحو مبلغاً سجّلته اللجنة في موقفها (المالية لم تسجّل الصرف بعد، أو صفّها ناقص): يبقى مبلغ اللجنة ويُذكر ذلك */
+  const v=Object.assign({},p),pos=x=>+x>0,keepR=+m.finRaised===0&&pos(p.advRaised),keepP=+m.finPaid===0&&pos(p.advPaid);
+  const fixR=m.finRaised!=null&&m.finRaised!==''&&!keepR,fixP=m.finPaid!=null&&m.finPaid!==''&&!keepP;if(fixR)v.advRaised=+m.finRaised;if(fixP)v.advPaid=+m.finPaid;
+  if(!fixR&&!fixP)return p;v._finXl={src:m.finSrc||'',at:m.finAt||'',origRaised:p.advRaised,origPaid:p.advPaid,fixR,fixP,keepR,keepP};return v;}catch(_){return p;}}
 const count=()=>{try{const M=AnbarReg.state().meta||{};return Object.values(M).filter(m=>m&&(m.finRaised!=null||m.finPaid!=null)&&+m.finV>=FINV).length;}catch(_){return 0;}};
 
 /* معاينة ثم اعتماد */
-function preview(file,P){const R=match(P.items);const rows=[...R.m.values()].map(x=>({fn:x.p.fileNo,name:x.p.name,how:x.how,r0:x.p.advRaised,p0:x.p.advPaid,r1:x.raised,p1:x.paid}))
+function preview(file,P){const R=match(P.items);const rows=[...R.m.values()].map(x=>({fn:x.p.fileNo,name:x.p.name,how:x.how,r0:x.p.advRaised,p0:x.p.advPaid,r1:+x.raised===0&&+x.p.advRaised>0?null:x.raised,p1:+x.paid===0&&+x.p.advPaid>0?null:x.paid}))
     .map(x=>Object.assign(x,{ch:(x.r1!=null&&Math.round(+x.r1)!==Math.round(+(x.r0||0)))||(x.p1!=null&&Math.round(+x.p1)!==Math.round(+(x.p0||0)))}));
   const ch=rows.filter(x=>x.ch);
   const ov=document.createElement('div');ov.className='ov';ov.id='finXlOv';

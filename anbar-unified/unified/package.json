@@ -1,7 +1,7 @@
 {
   "name": "anbar-unified",
   "productName": "نظام الشؤون الهندسية الموحد",
-  "version": "2.14.1",
+  "version": "2.15.0",
   "description": "نظام الشؤون الهندسية الموحد: أوامر التغيير، المدد والتوقف، لجنة تدقيق السلف، إطلاق التأمينات، شهادات الاستلام، والموقف الشهري - محافظة الأنبار",
   "author": "Engineering Affairs Department - Anbar",
   "main": "main.js",
@@ -10,7 +10,8 @@
   },
   "scripts": {
     "start": "electron .",
-    "build:win": "electron-builder --win portable --x64"
+    "build:win": "electron-builder --win portable --x64",
+    "build:viewer": "electron-builder --win portable --x64 -c.extraMetadata.anbarViewer=true -c.extraMetadata.name=anbar-viewer -c.extraMetadata.productName=AnbarViewer -c.appId=iq.anbar.engineering.viewer -c.executableName=AnbarViewer -c.portable.artifactName=AnbarViewer-\\${version}-Windows-x64.exe"
   },
   "devDependencies": {
     "electron": "22.3.27",

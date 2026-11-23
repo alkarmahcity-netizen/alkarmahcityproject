@@ -101,5 +101,27 @@ module.exports = function createDrive(ctx) {
     if (name) { try { await req('PATCH', API + `/drive/v3/files/${id}?fields=id`, { headers: await auth(), body: { name: String(name).slice(0, 150) } }); } catch (_) {} }
     return { ok: true, id, url: `https://drive.google.com/file/d/${id}/view` };
   }
-  return { status, setApp, connect, disconnect, reserve, upload, owns };
+  /* نسخة الاطلاع (viewer.js): ملفات ثنائية مشفّرة في مجلدها، تُشارَك «لمن لديه الرابط ← عارض»، وتُحذف عند إيقاف النسخة */
+  async function reserveBin(name, folderName) {
+    const parent = await folder(folderName);
+    const r = await req('POST', API + '/drive/v3/files?fields=id', { headers: await auth(), body: { name: String(name || 'ملف.bin').slice(0, 150), mimeType: 'application/octet-stream', parents: [parent] } });
+    if (r.status !== 200 || !r.json || !r.json.id) throw gerr(r, 'تعذّر إنشاء ملف في Drive');
+    const id = r.json.id; { const c = load(); c.ids = [String(id)].concat((c.ids || []).filter(x => x !== String(id))).slice(0, 20000); save(c); }
+    const p = await req('POST', API + `/drive/v3/files/${id}/permissions?fields=id`, { headers: await auth(), body: { role: 'reader', type: 'anyone' } });
+    return { id, shared: p.status === 200 };
+  }
+  async function uploadBin(id, buf) {
+    if (!/^[A-Za-z0-9_-]{10,}$/.test(String(id))) throw new Error('معرّف ملف Drive غير صحيح');
+    const r = await req('PATCH', API + `/upload/drive/v3/files/${id}?uploadType=media&fields=id,size`, { headers: { ...(await auth()), 'Content-Type': 'application/octet-stream' }, body: buf });
+    if (r.status === 404) throw new Error('ملف نسخة الاطلاع غير موجود في Drive (حُذف؟) — أوقف النسخة ثم انشرها من جديد');
+    if (r.status !== 200) throw gerr(r, 'تعذّر رفع ملف نسخة الاطلاع');
+    return { ok: true, id };
+  }
+  async function trash(id) {
+    if (!/^[A-Za-z0-9_-]{10,}$/.test(String(id))) return false;
+    const r = await req('DELETE', API + `/drive/v3/files/${id}`, { headers: await auth() });
+    if (r.status !== 204 && r.status !== 200 && r.status !== 404) throw gerr(r, 'تعذّر حذف الملف من Drive');
+    return true;
+  }
+  return { status, setApp, connect, disconnect, reserve, upload, owns, reserveBin, uploadBin, trash };
 };

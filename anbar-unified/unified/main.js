@@ -18,7 +18,16 @@ const { spawn } = require('child_process');
 
 const TOP = 52;                       // ارتفاع شريط التبويبات
 const FOOT = 28;                      // ارتفاع التذييل («إعداد المهندس سيف»)
-const PAGES = new Set(['home', 'sit', 'cc', 'log', 'wf', 'pl', 'calc', 'guide']);   // guide: الدليل الاسترشادي (مفتوح)   // calc: حاسبة المدد (مفتوحة بلا كلمة سر)  // صفحات من الواجهة الرئيسية بلا نافذة نظام
+/* نسخة الاطلاع (viewer.js): ملف تشغيل مستقل («anbarViewer» في package.json عند البناء) — الموقف المركز والموقف العام ومشاريع التخطيط وصور المشاريع للعرض فقط.
+   لا أنظمة فيها ولا كلمات سر تفتحها، وكل قنوات الحفظ والاستيراد والنسخ والمزامنة تُرفض فيها. البرنامج الكامل لا يتأثر (VIEWER = false) */
+const VIEWER = !!process.env.UNI_VIEWER || (() => { try { return !!require('./package.json').anbarViewer; } catch (_) { return false; } })();
+if (VIEWER) {
+  const VWB = /^(reg:save|data:(save|saveSync|tomb|load|peek|openFolder)|report:data|pph:(save|del)|pl:(import|cmpOpen|cmpSave|clean|export)|pp:save|fin:unlock|finx:(use|choose|link|search)|xl:merge|comtpl:(choose|reset|save)|eng:rate|file:save|mapkey:set|earth:(write|pro|save)|jsonimp:|ad:(purgeLegacy|accessImport)|co:accessImport|auth:(change|reset|master)|mgr:numUnlock|bk:|xb:(set|run|pick)|upd:(fetch|apply)|sync:(set|now|discover|mode)|arch:|wf:(move|add|remove|unlock|annPublish|annHide|set|web)|gd:|mail:|guide:(add|docx|del)|audit:openDir|ac:)/;
+  const h0 = ipcMain.handle.bind(ipcMain), o0 = ipcMain.on.bind(ipcMain);
+  ipcMain.handle = (ch, fn) => h0(ch, VWB.test(ch) ? () => null : fn);
+  ipcMain.on = (ch, fn) => o0(ch, VWB.test(ch) ? (e => { e.returnValue = null; }) : fn);
+}
+const PAGES = new Set(VIEWER ? ['home', 'sit', 'cc', 'pl'] : ['home', 'sit', 'cc', 'log', 'wf', 'pl', 'calc', 'guide']);   // guide: الدليل الاسترشادي (مفتوح)   // calc: حاسبة المدد (مفتوحة بلا كلمة سر)  // صفحات من الواجهة الرئيسية بلا نافذة نظام
 const AC_PORT = +process.env.UNI_AC_PORT || 47831;
 const MAX_BACKUPS = 15;
 const APPS = {
@@ -74,11 +83,12 @@ function writable(dir) {
   try { fs.mkdirSync(dir, { recursive: true }); const t = path.join(dir, '.w' + process.pid); fs.writeFileSync(t, '1'); fs.unlinkSync(t); return true; }
   catch (_) { return false; }
 }
+const DATA_NAME = VIEWER ? 'بيانات-نسخة-الاطلاع' : 'بيانات-النظام-الموحد';
 function resolveDataDir() {
   const cands = [];
   if (process.env.UNI_DATA_DIR) cands.push(process.env.UNI_DATA_DIR);
-  if (process.env.PORTABLE_EXECUTABLE_DIR) cands.push(path.join(process.env.PORTABLE_EXECUTABLE_DIR, 'بيانات-النظام-الموحد'));
-  if (app.isPackaged) cands.push(path.join(path.dirname(app.getPath('exe')), 'بيانات-النظام-الموحد'));
+  if (process.env.PORTABLE_EXECUTABLE_DIR) cands.push(path.join(process.env.PORTABLE_EXECUTABLE_DIR, DATA_NAME));
+  if (app.isPackaged) cands.push(path.join(path.dirname(app.getPath('exe')), DATA_NAME));
   cands.push(path.join(app.getPath('userData'), 'data'));
   for (const d of cands) if (writable(d)) return d;
   return app.getPath('userData');
@@ -134,6 +144,7 @@ function readData(id) {
 }
 // سجل المشاريع المشترك (الموقف الشهري): %LOCALAPPDATA%\AnbarProjects\registry.json (نفس ملف الأنظمة المستقلة)
 function regFile() {
+  if (VIEWER) return path.join(dataDir, 'سجل-المشاريع.json');   // نسخة الاطلاع: سجلها الخاص (لا تمس سجل البرنامج الكامل إن كان على الحاسبة نفسها)
   const dir = process.env.ANBAR_REG_DIR || path.join(process.env.LOCALAPPDATA || path.join(require('os').homedir(), '.local', 'share'), 'AnbarProjects');
   return path.join(dir, 'registry.json');
 }
@@ -211,7 +222,7 @@ ipcMain.handle('mgr:numUnlock', (e, pw) => { if (!views.lt || e.sender !== views
   numOpen = true; audit.note('lt', 'numunlock', 'فتح حقلي العدد والتاريخ في المخاطبات بكلمة سر المدير').catch(() => {}); return 'ok'; });
 const prefsFile = () => path.join(dataDir, 'prefs.json');
 const prefs = () => { try { return JSON.parse(fs.readFileSync(prefsFile(), 'utf8')) || {}; } catch (_) { return {}; } };
-const finVisible = () => finOpen || !!prefs().finAlways;
+const finVisible = () => VIEWER || finOpen || !!prefs().finAlways;   // نسخة الاطلاع: المبالغ ظاهرة (لا كلمة سر مدير فيها)
 const sendFin = () => { try { if (win && !win.isDestroyed()) win.webContents.send('fin:state', { visible: finVisible(), always: !!prefs().finAlways }); } catch (_) {} };
 ipcMain.on('fin:state', e => { e.returnValue = { visible: finVisible(), always: !!prefs().finAlways }; });
 ipcMain.handle('fin:unlock', (_e, pw, always) => { const r = checkMaster(pw); if (r !== true) return r === 'wait' ? 'wait' : 'wrong';
@@ -651,7 +662,7 @@ ipcMain.handle('file:save', async (_e, name, data) => {
 /* صور المشاريع (بطاقة المشروع في الموقف العام): 3 صور لكل مشروع، تُصغَّر في الواجهة إلى 300 كيلوبايت (photos.js) */
 let _phs = null; const PHS = () => _phs || (_phs = require('./photos')({ dataDir: () => dataDir, regFile: () => regFile() }));
 ipcMain.handle('pph:save', (_e, fn, d) => { try { const r = PHS().save(fn, d); if (r.ok) audit.note('sit', 'photo', `إضافة صورة لمشروع الاضبارة ${fn} (${r.kb} ك.ب)`).catch(() => {}); return r; } catch (e) { return { error: String(e && e.message || e) }; } });
-ipcMain.handle('pph:read', (_e, fn, name) => PHS().read(fn, name));
+ipcMain.handle('pph:read', (_e, fn, name) => (VIEWER ? vwReader().photo(fn, name) : PHS().read(fn, name)));
 ipcMain.handle('pph:del', (_e, fn, name) => { const ok = PHS().del(fn, name); if (ok) audit.note('sit', 'photo', `حذف صورة من مشروع الاضبارة ${fn}`).catch(() => {}); return ok; });
 /* مرفقات الأرشيف: «ملفات-الأرشيف/<معرّف الكتاب>/<اسم الملف>» في مجلد البيانات (تُنقل بالمزامنة كمجموعة arf) */
 const archDir = () => path.join(dataDir, 'ملفات-الأرشيف');
@@ -996,7 +1007,7 @@ function loaded(v) {
   });
 }
 async function go(id, fileNo) {
-  if (!PAGES.has(id) && !APPS[id]) return false;
+  if (!PAGES.has(id) && (VIEWER || !APPS[id])) return false;
   touchActivity();
   if (!PAGES.has(id) && !isOpen(id)) { win.webContents.send('auth:ask', { id, title: APPS[id].title, fileNo: fileNo || '' }); sendState(); return false; }
   if (current !== id && views[current]) viewLeft[current] = Date.now();
@@ -1160,7 +1171,7 @@ ipcMain.handle('wf:annList', () => flow.anns(true));
 /* مفتاح خرائط Google مشترك: يُدخَل في أي حاسبة ويصل إلى بقية الحاسبات بالمزامنة (الشبكة المحلية والسحابة) */
 /* فهرس ملفات لجنة تدقيق السلف على هذه الحاسبة (الاضبارة واسم المشروع ورقم العقد وعدد السلف) — للتحقق من ملخص السلف في الموقف */
 let adIdxCache = { st: '', v: null };
-ipcMain.on('ad:index', e => { try { let st = ''; try { const x = fs.statSync(dataFile('ad')); st = x.mtimeMs + ':' + x.size; } catch (_) {}
+ipcMain.on('ad:index', e => { if (VIEWER) { e.returnValue = vwReader().adIndex(); return; } try { let st = ''; try { const x = fs.statSync(dataFile('ad')); st = x.mtimeMs + ':' + x.size; } catch (_) {}
   if (st !== adIdxCache.st) { const o = JSON.parse(readData('ad') || '{}'), recs = [];
     (Array.isArray(o.records) ? o.records : []).forEach(r => { const P = r && r.project; if (!P) return; recs.push({ fn: String(P.fileNo || ''), name: String(P.name || ''), cno: String(P.contractNo || ''), n: Array.isArray(r.advances) ? r.advances.length : 0, legacy: !!r.legacy }); });
     adIdxCache = { st, v: { mt: st ? +st.split(':')[0] : 0, recs } }; }
@@ -1238,6 +1249,48 @@ ipcMain.handle('ac:flowSnap', async (e, snap) => { try {
   flowSoon('ac'); return true; } catch (err) { logError('ac:flowSnap', String(err && err.message || err)); return false; } });
 /* Google Drive لبريد القسم: إصدار شهادة الاستلام مع رفع PDF تلقائياً، ورمز QR يفتح الملف نفسه عند الجميع (gdrive.js) */
 let gd = null; const gdEnsure = () => (gd = gd || require('./gdrive')({ file: () => path.join(dataDir, 'gdrive-config.json'), safeStorage, openExternal: u => { if (process.env.UNI_GD_AUTH && /^http:\/\/127\.0\.0\.1:/.test(u)) require('http').get(u, r => r.resume()).on('error', () => {}); /* اختبار: خادم Google وهمي محلي */ else shell.openExternal(u); }, log: m => logError('gdrive', m) }));
+/* ---------------- نسخة الاطلاع (viewer.js) ---------------- */
+/* حاسبة القسم: نشر ملف الاطلاع المشفّر على Drive القسم وتحديثه تلقائياً (كل 10 دقائق إن تغيّر الموقف أو التخطيط أو الصور) */
+function adIndexNow() { try { const o = JSON.parse(readData('ad') || '{}'), recs = [];
+  (Array.isArray(o.records) ? o.records : []).forEach(r => { const P = r && r.project; if (!P) return; recs.push({ fn: String(P.fileNo || ''), name: String(P.name || ''), cno: String(P.contractNo || ''), n: Array.isArray(r.advances) ? r.advances.length : 0, legacy: !!r.legacy }); });
+  let mt = 0; try { mt = fs.statSync(dataFile('ad')).mtimeMs; } catch (_) {} return { mt, recs }; } catch (_) { return null; } }
+let _vwPub = null, _vwRd = null;
+const vwPub = () => _vwPub || (_vwPub = require('./viewer').createPublisher({ file: () => path.join(dataDir, 'viewer-publish.json'), gd: () => gdEnsure(), safeStorage,
+  /* سجل الموقف دون «links» (ملخصات الأنظمة: أوامر التغيير والسلف والمدد لكل مشروع) — لا تخرج إلى نسخة الاطلاع */
+  readReg: () => { try { const o = JSON.parse(fs.readFileSync(regFile(), 'utf8')); o.links = {}; return JSON.stringify(o); } catch (_) { return null; } }, readPlan: () => readData('pl'), adIndex: adIndexNow,
+  photoRefs: () => PHS().refs(), photoRoot: () => path.join(dataDir, 'صور-المشاريع'), log: m => logError('viewer', m) }));
+function netGet(url) {
+  return new Promise((res, rej) => { const { net } = require('electron'); let done = false; const fin = (f, v) => { if (!done) { done = true; clearTimeout(t); f(v); } };
+    const rq = net.request({ url, redirect: 'follow' }); const t = setTimeout(() => { try { rq.abort(); } catch (_) {} fin(rej, new Error('انتهت مهلة الاتصال بـ Google Drive — تحقق من الإنترنت')); }, 90000);
+    rq.on('response', r => { if (r.statusCode !== 200) { fin(rej, new Error(r.statusCode === 404 || r.statusCode === 403 ? 'الملف غير متاح في Google Drive (أُوقفت نسخة الاطلاع من حاسبة القسم؟)' : 'Google Drive: خطأ ' + r.statusCode)); return; }
+      const ch = []; let n = 0; r.on('data', c => { n += c.length; if (n > 80 * 1048576) { try { rq.abort(); } catch (_) {} fin(rej, new Error('الملف أكبر من المتوقع')); } else ch.push(c); }); r.on('end', () => fin(res, Buffer.concat(ch))); r.on('error', e => fin(rej, e)); });
+    rq.on('error', e => fin(rej, new Error('تعذّر الاتصال بـ Google Drive — تحقق من الإنترنت'))); rq.end(); });
+}
+/* نسخة الاطلاع: تقرأ الملف فقط (عند التشغيل ثم كل 5 دقائق) */
+const vwReader = () => _vwRd || (_vwRd = require('./viewer').createReader({ dir: () => dataDir, get: netGet, safeStorage, log: m => logError('viewer', m),
+  writeReg: t => { JSON.parse(t); atomicWrite(regFile(), t); regVer++; }, writePlan: t => { JSON.parse(t); atomicWrite(dataFile('pl'), t); },
+  notify: ds => { try { if (win && !win.isDestroyed()) win.webContents.send('sync:data', { ds }); } catch (_) {} } }));
+const fromShell = e => !!(win && e.sender === win.webContents);
+ipcMain.on('vw:is', e => { e.returnValue = VIEWER; });
+ipcMain.handle('vw:pubStatus', (e, withCode) => (!VIEWER && fromShell(e) ? vwPub().status(!!withCode) : null));
+ipcMain.handle('vw:publish', async e => { if (VIEWER || !fromShell(e)) return null; const first = !vwPub().status().on; const r = await vwPub().publish(true); if (r && r.ok && first) audit.note('sit', 'viewer', 'تفعيل نسخة الاطلاع على Google Drive').catch(() => {}); return r; });
+ipcMain.handle('vw:stop', async e => { if (VIEWER || !fromShell(e)) return null; const r = await vwPub().stop(); audit.note('sit', 'viewer', 'إيقاف نسخة الاطلاع وحذف ملفاتها من Google Drive').catch(() => {}); return r; });
+ipcMain.handle('vw:status', e => (VIEWER && fromShell(e) ? vwReader().status() : null));
+ipcMain.handle('vw:link', (e, code) => (VIEWER && fromShell(e) ? vwReader().link(code) : null));
+ipcMain.handle('vw:refresh', e => (VIEWER && fromShell(e) ? vwReader().refresh() : null));
+function viewerStart() {
+  const zoom = d => () => { const w = win.webContents; w.setZoomLevel(d === 0 ? 0 : w.getZoomLevel() + d); };
+  Menu.setApplicationMenu(Menu.buildFromTemplate([
+    { label: 'ملف', submenu: [ { label: 'طباعة', accelerator: 'CmdOrCtrl+P', click: () => win.webContents.executeJavaScript("document.querySelector('[data-act=print]')?document.querySelector('[data-act=print]').click():window.print()").catch(() => {}) }, { type: 'separator' }, { label: 'خروج', role: 'quit' } ] },
+    { label: 'تحرير', submenu: [ { label: 'نسخ', role: 'copy' }, { label: 'لصق', role: 'paste' }, { label: 'تحديد الكل', role: 'selectAll' } ] },
+    { label: 'عرض', submenu: [ { label: 'تكبير', accelerator: 'CmdOrCtrl+=', click: zoom(0.5) }, { label: 'تصغير', accelerator: 'CmdOrCtrl+-', click: zoom(-0.5) }, { label: 'الحجم الأصلي', accelerator: 'CmdOrCtrl+0', click: zoom(0) }, { type: 'separator' }, { label: 'ملء الشاشة', role: 'togglefullscreen' } ] }
+  ]));
+  createWindow();
+  win.on('enter-full-screen', () => win.webContents.send('ui:fs', true)); win.on('leave-full-screen', () => win.webContents.send('ui:fs', false));
+  vwReader().start();
+  global.__uni = { VIEWER, go, views, APPS, get win() { return win; }, vwReader };
+}
+
 /* الأنظمة التي تُصدر مستنداتها مع رفع PDF إلى Drive (مجلد لكل نظام) */
 const GD_SYS = { ac: 'شهادات الاستلام — قسم الشؤون الهندسية', lt: 'المخاطبات والمطالعات — قسم الشؤون الهندسية', dm: 'مطالعات لجنة المدد — قسم الشؤون الهندسية', cm: 'مطالعات لجنة أوامر التغيير — قسم الشؤون الهندسية',
   co: 'لجنة أوامر التغيير — قسم الشؤون الهندسية', du: 'المدد والتوقف — قسم الشؤون الهندسية', ad: 'لجنة تدقيق السلف — قسم الشؤون الهندسية', fv: 'تقارير زيارة مشاريع التنفيذ أمانة — قسم الشؤون الهندسية' };
@@ -1327,7 +1380,7 @@ const showIntro = () => { if (process.env.UNI_FORCE_INTRO) return true; if (proc
 function createWindow() {
   win = new BrowserWindow({
     width: 1440, height: 920, minWidth: 980, minHeight: 640, show: false,
-    title: 'نظام الشؤون الهندسية الموحد - محافظة الأنبار',
+    title: VIEWER ? 'نسخة الاطلاع — نظام الشؤون الهندسية الموحد - محافظة الأنبار' : 'نظام الشؤون الهندسية الموحد - محافظة الأنبار',
     icon: path.join(__dirname, 'build', 'icon.png'),
     backgroundColor: '#eef2ee',
     webPreferences: { preload: path.join(__dirname, 'shell-preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: false, spellcheck: false }
@@ -1337,7 +1390,7 @@ function createWindow() {
   /* فيديو البداية: يُعرض قبل الواجهة (تُحمَّل الواجهة خلفه)، ثم تظهر الواجهة عند انتهائه أو تخطيه؛ ويُلغى من خياره في الفيديو */
   let ready = false, introOver = !showIntro();
   const reveal = () => { if (ready && introOver && win && !win.isDestroyed() && !win.isVisible()) { win.maximize(); win.show(); } };
-  win.once('ready-to-show', () => { ready = true; reveal(); autoJsonScan(); setTimeout(annCheck, 2500); });
+  win.once('ready-to-show', () => { ready = true; reveal(); if (VIEWER) return; autoJsonScan(); setTimeout(annCheck, 2500); });
   if (!introOver) {
     // بحجم الشاشة كاملة (الشاشة التي فيها مؤشر الفأرة)
     let B = { x: undefined, y: undefined, width: 1120, height: 630 }; try { const { screen } = require('electron'); B = screen.getDisplayNearestPoint(screen.getCursorScreenPoint()).bounds; } catch (_) {}
@@ -1366,6 +1419,7 @@ else {
   app.whenReady().then(() => {
     nativeTheme.themeSource = 'light';   // الواجهة بخلفية برتقالية مصفرّة ثابتة (لا تتبدل بوضع الويندوز الداكن)
     dataDir = resolveDataDir();
+    if (VIEWER) { viewerStart(); return; }
     dailyBackup();
     try { xbEnsure().start(); } catch (_) {}
     acStarting = startAcceptance();
@@ -1396,6 +1450,7 @@ else {
         { label: 'النسخ الاحتياطي الخارجي (فلاشة / قرص ثانٍ)', click: () => uiCmd('xbackup') },
         { label: '↺ استرجاع نسخة احتياطية', click: () => uiCmd('restore') },
         { label: '💾 حفظ نسخة احتياطية كاملة (ملف واحد)', click: () => uiCmd('bksave') },
+        { label: '👁 نسخة الاطلاع (المحافظ والنائب والمعاون)…', click: () => uiCmd('viewer') },
         { type: 'separator' },
         { label: 'قفل كل الأنظمة', accelerator: 'CmdOrCtrl+L', click: () => uiCmd('lock') },
         { label: 'تغيير كلمات السر', click: () => uiCmd('pw') },
@@ -1409,6 +1464,7 @@ else {
     startSync();
     try { flow.init(); } catch (e) { logError('flow', String(e && e.message || e)); }
     if (prefs().wfWeb) flowWebStart();
+    try { vwPub().start(); } catch (e) { logError('viewer', String(e && e.message || e)); }
     global.__uni = { fontCss, manualWin: () => manualWin, openManual, manualPath, sync: () => sync, go, views, flow, unloadView, refreshLinks, linksAt, get viewLeft() { return viewLeft; }, get flowWin() { return flowWin; }, get win() { return win; }, APPS, layout, get current() { return current; } };
   });
   app.on('before-quit', () => { try { if (sync) sync.stop(); } catch (_) {} flowWebStop(); stopAcceptance(); });

@@ -99,7 +99,11 @@ contextBridge.exposeInMainWorld('desktop', {
   adIndex: () => ipcRenderer.sendSync('ad:index'),
   mapKeySet: key => ipcRenderer.invoke('mapkey:set', key),
   wfAnnSeen: id => ipcRenderer.invoke('wf:annSeen', id),
-  onAnn: cb => ipcRenderer.on('wf:annState', (_e, s) => cb(s))
+  onAnn: cb => ipcRenderer.on('wf:annState', (_e, s) => cb(s)),
+  /* نسخة الاطلاع: viewer = هذه نسخة الاطلاع؛ vw = النشر من حاسبة القسم أو الربط والتحديث في نسخة الاطلاع */
+  viewer: (() => { try { return !!ipcRenderer.sendSync('vw:is'); } catch (_) { return false; } })(),
+  vw: { pubStatus: c => ipcRenderer.invoke('vw:pubStatus', c), publish: () => ipcRenderer.invoke('vw:publish'), stop: () => ipcRenderer.invoke('vw:stop'),
+    status: () => ipcRenderer.invoke('vw:status'), link: c => ipcRenderer.invoke('vw:link', c), refresh: () => ipcRenderer.invoke('vw:refresh') }
 });
 
 /* نشاط المستخدم (الفأرة والتمرير واللمس، لا لوحة المفاتيح فقط) يمدّ مهلة القفل التلقائي */

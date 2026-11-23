@@ -13018,6 +13018,7 @@ table.dt tr.apok td{background:#e3f4df;color:#1f6b25;font-weight:700}
 .fp{margin:0 0 .6mm;font-size:.95em;line-height:calc(1.65 * var(--lh,1));text-align:justify}
 .fproj{text-align:center;font-weight:700;font-size:.98em;margin:0 0 .8mm}
 .fboxes{display:grid;grid-template-columns:repeat(4,1fr);gap:3mm;margin:2mm 0}
+.dref{font-weight:700;font-size:calc(13pt*var(--k,1));margin:2mm 1mm 0;line-height:1.6}
 .fboxes.five{grid-template-columns:repeat(5,1fr)}
 .fb{border:1px solid #9aa;font-family:Arial,sans-serif;text-align:center}
 .fb-t{font-weight:700;font-size:.74em;padding:2px 3px;border-bottom:1px solid #9aa;font-family:'Amiri',serif}
@@ -13787,9 +13788,10 @@ function calc(r){
     const isW=ctOf(r)==='works',exAN=limited&&isW&&V>0&&anAmt>capANamt+0.5,exDel=limited&&isW&&V>0&&cd>capDelAmt+0.5,exDays=dur>0&&days>capDaysN+1e-9;
     const issues=[];if(exAN)issues.push(`المستحدثة والمضافة ${pctf(pctAN)} تتجاوز حد ${cAN}% بمبلغ ${fmt(anAmt-capANamt)} دينار`);
     if(exDel)issues.push(`المحذوفة ${pctf(pctDel)} تتجاوز حد ${cDel}% بمبلغ ${fmt(cd-capDelAmt)} دينار`);
-    if(exDays)issues.push(`المدد الإضافية ${days} يوم (${pctf(pctDays)}) تتجاوز حد ${cDays}% من مدة العقد (${Math.floor(capDaysN)} يوم)`);
+    /* تجاوز حد المدد الإضافية لا يمنع إكمال أمر التغيير: تُحال المدة الإضافية الى اللجنة المركزية (فقرة في الاستمارة والمحضر والأمر الإداري) */
+    const daysNote=exDays?`المدد الإضافية ${days} يوم (${pctf(pctDays)}) تجاوزت حد ${cDays}% من مدة العقد (${Math.floor(capDaysN)} يوم) — تُحال المدة الإضافية الى اللجنة المركزية`:'';
     return {i,d,n,a,net,prev,cumDel:cd,cumNew:cn,cumAdd:ca,cumNet:prevNet,anAmt,capANamt,capDelAmt,capDaysN,pctAN,pctDel,pctDays,
-      prevDays,pct:pctAN,netPct:V?prevNet/V*100:0,days,ownDays:+o.extraDays||0,exAN,exDel,exDays,issues,exceeds:exAN||exDel||exDays,newValue:V+prevNet,before:V+prev};
+      prevDays,pct:pctAN,netPct:V?prevNet/V*100:0,days,ownDays:+o.extraDays||0,exAN,exDel,exDays,daysNote,issues,exceeds:exAN||exDel,newValue:V+prevNet,before:V+prev};
   });
   const SC=supCalc(r,V),supRate=SC.rate,supAmt=SC.amt,approved=+r.project.approved||0,limit=approved-supAmt;
   const auth=CTYPES[ctOf(r)].auth,authAmt=V*auth/100;
@@ -14368,7 +14370,7 @@ function updateLive(){const r=R(),c=calc(r);
     ${x.exceeds?`<div class="warn">لا يُسمح بإصدار هذا الأمر: ${x.issues.join('؛ ')}.</div>`:c.V?'<div class="ok">ضمن جميع الحدود.</div>':''}`:
     (x.exceeds?`<div class="warn">لا يُسمح بإصدار هذا الأمر: ${x.issues.join('؛ ')}.</div>`:`<div class="ok">${c.works?'وفق تعليمات 2014: لا توجد حدود الـ 30%.':'حدود الـ 30% تخص عقود الأشغال.'}</div>`)}
     <div><span>المدد الإضافية التراكمية (حد ${r.capDays}% من مدة العقد)</span><b>${x.days} يوم${c.dur?' / '+pctf(x.pctDays):''}</b></div>
-    ${!c.dur?'<div class="warn">أدخل مدة العقد الأصلية لاحتساب حد المدد الإضافية (25%).</div>':x.exDays?'':`<div class="ok">المدد ضمن الحد. المتبقي: ${Math.max(0,Math.floor(x.capDaysN-x.days))} يوم</div>`}
+    ${!c.dur?'<div class="warn">أدخل مدة العقد الأصلية لاحتساب حد المدد الإضافية (25%).</div>':x.exDays?`<div class="warn" style="color:#b45309">${esc(x.daysNote)}.</div>`:`<div class="ok">المدد ضمن الحد. المتبقي: ${Math.max(0,Math.floor(x.capDaysN-x.days))} يوم</div>`}
     <div><span>صافي الزيادة على العقد (صلاحية جهة التعاقد ${c.auth}%)</span><b>${pctf(x.netPct)}</b></div>
     ${!c.V?'':x.exAuth?`<div class="warn">صافي الزيادة يتجاوز صلاحية جهة التعاقد (${c.auth}%) بمبلغ ${fmt(x.authDiff)} دينار (يُثبت في محضر اللجنة).</div>`:`<div class="ok">ضمن صلاحية جهة التعاقد. المتبقي: ${fmt(-x.authDiff)} دينار</div>`}
     ${!c.approved?'<div class="warn" style="background:transparent;color:var(--muted);padding:4px 0">أدخل المبلغ المصادق عليه للتحقق من سقف الكلفة.</div>':`<div><span>الحد الأعلى = المصادق عليه − الإشراف (${supTxt(c)})</span><b>${fmt(c.limit)}</b></div>
@@ -14404,9 +14406,9 @@ function pageMinutes(r,c,pi){const x=c.rows[pi],n=pi+1,P=r.project,o=r.orders[pi
   const rec=x.overAppr?`وتوصي اللجنة <b>بعدم ترويج أمر التغيير ( ${ord(pi)} )</b> بسبب تجاوز كلفة المشروع بعد التغيير المبلغ المصادق عليه.`:`وتوصي اللجنة بإصدار أمر التغيير ( ${ord(pi)} )${c.on339?esc(C339_TXT):''}.`;
   const verdict=!c.V?`<div class="verdict bad">لم يُحدد مبلغ العقد الأصلي، ولا يمكن الاحتساب.</div>`:
    x.exceeds?`<div class="verdict bad">أمر التغيير يخالف حدود ${REG[c.limited?'2025':'2014']}: ${x.issues.join('؛ ')}. ولا يجوز المصادقة عليه.</div>`:
-   (!c.limited||!c.works)?`<div class="verdict${x.overAppr?' bad':''}">احتُسب أمر التغيير وفق ${REG[c.limited?'2025':'2014']} (${CTYPES[c.ctype].t})، والمدد الإضافية ${dur?pctf(x.pctDays):'—'} ضمن الحد (${r.capDays}%)، ${rec}</div>`:
+   (!c.limited||!c.works)?`<div class="verdict${x.overAppr?' bad':''}">احتُسب أمر التغيير وفق ${REG[c.limited?'2025':'2014']} (${CTYPES[c.ctype].t})، ${x.exDays?`والمدد الإضافية ${pctf(x.pctDays)} تجاوزت حد (${r.capDays}%) فتُحال المدة الإضافية الى اللجنة المركزية`:`والمدد الإضافية ${dur?pctf(x.pctDays):'—'} ضمن الحد (${r.capDays}%)`}، ${rec}</div>`:
    x.exceeds?`<div class="verdict bad">أمر التغيير يخالف حدود ${REG['2025']}: ${x.issues.join('؛ ')}. ولا يجوز المصادقة عليه.</div>`:
-   `<div class="verdict${x.overAppr?' bad':''}">أمر التغيير ضمن حدود ${REG['2025']}: ${c.works?`المستحدثة والمضافة ${pctf(x.pctAN)}، المحذوفة ${pctf(x.pctDel)}، (الحد ${r.capAN}% لكلٍّ منهما)، المدد الإضافية ${dur?pctf(x.pctDays):'—'} (الحد ${r.capDays}%)`:`أوامر التغيير (المستحدثة والمضافة) ${pctf(x.pctAN)} من الحد الأعلى ${r.capAN}% لـ${CTYPES[c.ctype].t}`}. ${rec}</div>`;
+   `<div class="verdict${x.overAppr?' bad':''}">أمر التغيير ضمن حدود ${REG['2025']}: ${c.works?`المستحدثة والمضافة ${pctf(x.pctAN)}، المحذوفة ${pctf(x.pctDel)}، (الحد ${r.capAN}% لكلٍّ منهما)، المدد الإضافية ${dur?pctf(x.pctDays):'—'} (الحد ${r.capDays}%)${x.exDays?' — تجاوزت الحد فتُحال المدة الإضافية الى اللجنة المركزية':''}`:`أوامر التغيير (المستحدثة والمضافة) ${pctf(x.pctAN)} من الحد الأعلى ${r.capAN}% لـ${CTYPES[c.ctype].t}`}. ${rec}</div>`;
   const p1=`<div class="page pm" data-n="${n}" data-single="${pi===0?1:0}">${stampHTML(x)}${head()}
    <div class="d-meta"><span>العدد: ${dots(r.docNo,14)}</span><span>التاريخ: ${fd(o.date)}</span></div>
    <div class="d-title">محضر لجنة أوامر التغيير / ${isFix(o)?'تصحيح ':''}أمر التغيير رقم ( ${n} )<small>مشروع ( ${dots(P.name,30)} )</small></div>
@@ -14487,7 +14489,7 @@ function pageForm(r,c,pi){const P=r.project,o=r.orders[pi],x=c.rows[pi],n=pi+1;
   <div class="fboxes">${box('جهة التخصيص',esc(P.fund)||'&nbsp;','#e3f2d4','#eef7e6')}${box('كلفة المشروع حسب العقد',fmt(c.V),'#d6e6f7','#cfe1f5')}${box('المبلغ المصادق عليه',fmt(c.approved),'#c9bde6',!c.approved?'#b9aadd':x.overAppr?'#e0453a;color:#fff':'#3f9a3a;color:#fff')}${box('مبلغ الاشراف + كلفة المشروع بعد اوامر التغيير',fmt(x.withSup),'#d8e8b8',!c.approved?'#fff':x.overAppr?'#e0453a;color:#fff':'#3f9a3a;color:#fff')}</div>
   <div class="fcards">${Array.from({length:slots},(_,k)=>card(k)).join('')}</div>
   <div class="fboxes five">${box('قرار اللجنة بتاريخ',o.date?fd(o.date):'&nbsp;','#ddd3ef','#cfc2ea')}${box('نسبة الاضافة من العقد',pctf(x.netPct),'#f6ef9a',!c.V?'#f3ea7c':x.exAuth?'#e0453a;color:#fff':'#3f9a3a;color:#fff')}${box('المدة اللازمة لتنفيذ أمر التغير',(+o.extraDays||0)+' يوم','#d6e1f5','#c4d4f0')}${(()=>{const cum=c.V?x.newValue-c.V:c.rows.slice(0,pi+1).reduce((t,y)=>t+(+y.net||0),0),L=Array.from({length:n},(_,k)=>ord(k)),lab=n===1?'مجموع امر التغيير الأول':n<=4?'مجموع اوامر التغيير '+L.join(' و'):`مجموع اوامر التغيير ( ${L[0]} – ${L[n-1]} )`;
-    return box(lab,`<span dir="ltr">${cum<0?'-':''}${fmt(Math.abs(cum))}</span>`,'#f5c9cf','#f0b7bf');})()}${box('كلفة المشروع بعد اوامر التغيير',fmt(x.newValue),'#cfe8b9','#bfe0a3')}</div>
+    return box(lab,`<span dir="ltr">${cum<0?'-':''}${fmt(Math.abs(cum))}</span>`,'#f5c9cf','#f0b7bf');})()}${box('كلفة المشروع بعد اوامر التغيير',fmt(x.newValue),'#cfe8b9','#bfe0a3')}</div>${x.exDays?`<div class="dref">يتم احالة المدة الاضافية الى اللجنة المركزية كونها تجاوزت نسبة (${r.capDays}%) من مدة العقد</div>`:''}
   ${noPromo(x)}
   <div class="pin"><div class="fsig">${memO.map(msig).join('')}</div>
   <div class="fsig fapp">${audSig}${asig(appr[0],true,false)}${asig(appr[1],true,false)}${asig(appr[2],false,true)}</div></div>
@@ -14521,7 +14523,7 @@ function pageDecision(r,c,pi){const x=c.rows[pi],n=pi+1,P=r.project,o=r.orders[p
   <div class="dproj">( ${dots(P.name,40)} )</div>
   <p class="dp">واشارة الى كتاب دائرة المهندس المقيم ذي العدد ( ${dots(o.reNo,6)} ) في ${fdx(o.reDate)} والمتضمن ترويج ${isFix(o)?'تصحيح ':''}أمر التغيير للمشروع أعلاه${isFix(o)?`، وتصحيحاً لكتابنا ذي العدد ( ${dots(o.fixNo,6)} ) في ${fdx(o.fixDate)} المتضمن إصدار أمر التغيير ( ${ord(pi)} )${o.fixReason?' بسبب '+esc(o.fixReason):''}`:''} تقرر إصدار ${isFix(o)?'تصحيح ':''}أمر التغيير ( ${ord(pi)} ) وكما يلي:</p>
   <div class="dl">${shw('del',x.d)?line('كلفة الاعمال المحذوفة',x.d):''}${shw('add',x.a)?line('كلفة الاعمال المضافة',x.a):''}${shw('nw',x.n)?line('كلفة الاعمال المستحدثة',x.n):''}${line('كلفة المشروع بعد امر التغيير',x.newValue)}</div>
-  <p class="dp">${days?`لتنفيذ امر التغيير أعلاه تمنح الشركة مدة قدرها ( <b>${days}</b> ) فقط ${tafqit(days)} يوماً لاغير`:'لا تُمنح الشركة مدة إضافية لتنفيذ أمر التغيير أعلاه.'}</p>
+  <p class="dp">${days&&x.exDays?`تُحال المدة الإضافية لتنفيذ أمر التغيير أعلاه ( <b>${days}</b> ) ${tafqit(days)} يوماً الى اللجنة المركزية كونها تجاوزت نسبة (${r.capDays}%) من مدة العقد`:days?`لتنفيذ امر التغيير أعلاه تمنح الشركة مدة قدرها ( <b>${days}</b> ) فقط ${tafqit(days)} يوماً لاغير`:'لا تُمنح الشركة مدة إضافية لتنفيذ أمر التغيير أعلاه.'}</p>
   ${clauses}
   ${String(o.letterNote||'').trim()?`<p class="clause dnote">${esc(String(o.letterNote).trim()).replace(/\n/g,'<br>')}</p>`:''}
   ${atts.length?`<div class="att"><b>المرفقات:</b>${atts.map(a=>`<div class="ai"><span>${esc(a)}</span></div>`).join('')}</div>`:''}

@@ -14291,7 +14291,7 @@ function renderForm(){const r=R();
     <div class="grid2" style="margin-bottom:8px"><label class="fld"><span>نوع الأمر</span><select data-b="orders.${i}.isFix"><option value="" ${isFix(o)?'':'selected'}>أمر تغيير</option><option value="1" ${isFix(o)?'selected':''}>تصحيح أمر تغيير</option></select></label>
      ${isFix(o)?`${f('عدد كتاب أمر التغيير الأصلي',`orders.${i}.fixNo`)}${f('تاريخ الكتاب الأصلي',`orders.${i}.fixDate`,'date')}${f('سبب التصحيح',`orders.${i}.fixReason`)}<p class="hint full" style="margin:0">أدخل المبالغ والمدة بعد التصحيح؛ تحل محل مبالغ الأمر الأصلي في الاحتساب التراكمي.</p>`:''}</div>
     <div class="grid3">${f('كلفة الأعمال المحذوفة',`orders.${i}.del`,'money','del')}${f('كلفة الأعمال المضافة',`orders.${i}.add`,'money','add')}${f('كلفة الأعمال المستحدثة',`orders.${i}.nw`,'money','new')}</div>
-    <div class="ohide">في كتاب الأمر الإداري: ${[['del','المحذوفة'],['add','المضافة'],['nw','المستحدثة']].map(([k,t])=>`<label><input type="checkbox" data-oh="${i}|${k}" ${(o.hide||{})[k]?'':'checked'}> إظهار فقرة ${t}</label>`).join('')}<small>الفقرة التي مبلغها صفر أو فارغ تُحذف تلقائياً ويُعاد ترقيم الفقرات.</small></div>
+    <div class="ohide">في كتاب الأمر الإداري: ${[['del','الوفر'],['add','المضافة'],['nw','المستحدثة']].map(([k,t])=>`<label><input type="checkbox" data-oh="${i}|${k}" ${(o.hide||{})[k]?'':'checked'}> إظهار فقرة ${t}</label>`).join('')}<small>الفقرة التي مبلغها صفر أو فارغ تُحذف تلقائياً ويُعاد ترقيم الفقرات.</small></div>
     <label class="fld full" style="margin-top:6px"><span>ملاحظة في كتاب الأمر الإداري (تُكتب يدوياً وتظهر أسفل آخر نقطة في المتن؛ فارغ = لا تظهر)</span><textarea data-b="orders.${i}.letterNote" rows="2" placeholder="مثال: على أن يتم تنفيذ الأعمال وفق المواصفات الفنية المعتمدة.">${esc(o.letterNote||'')}</textarea></label>
     <div class="calc" id="oc-${i}"></div>
     <div class="grid2" style="margin-top:8px">${f('المدة الممنوحة (يوم)',`orders.${i}.extraDays`,'number')}${f('تاريخ المحضر',`orders.${i}.date`,'date')}
@@ -14464,7 +14464,7 @@ function pageForm(r,c,pi){const P=r.project,o=r.orders[pi],x=c.rows[pi],n=pi+1;
   const card=k=>{const y=k<=pi?c.rows[k]:null,[bg,bd]=CARD_COL[k%6],d=y?y.d:0,a=y?y.a:0,w=y?y.n:0,net=y?y.net:0;
     return `<div class="fc${k===pi?' fc-cur':''}" style="--cbg:${bg};--cbd:${bd}"><div class="fc-h">${isFix(r.orders[k])?'تصحيح ':''}أمر التغيير رقم (${k+1})</div><table>
      <tr><th>الكميات</th><th colspan="2">المبالغ</th></tr>
-     <tr><td class="lb l-del">الحذف</td><td colspan="2" class="am a-del">${fmt(d)}</td></tr>
+     <tr><td class="lb l-del">الوفر</td><td colspan="2" class="am a-del">${fmt(d)}</td></tr>
      <tr><td class="lb">الاضافة</td><td colspan="2" class="am">${fmt(a)}</td></tr>
      <tr><td class="lb l-new">الاستحداث</td><td colspan="2" class="am a-new">${fmt(w)}</td></tr>
      <tr class="tt"><td class="lb">مجموع امر التغيير</td><td class="am">${fmt(Math.abs(net))}</td><td class="wd">${word(net)}</td></tr></table></div>`;};
@@ -14519,7 +14519,7 @@ function pageDecision(r,c,pi){const x=c.rows[pi],n=pi+1,P=r.project,o=r.orders[p
   <p class="dp">استناداً الى الصلاحيات المخولة لنا بموجب ${esc(L.article)} واشارة الى العقد المبرم مع شركة ( <b>${dots(P.contractor,16)}</b> ) ولضرورة انجاز مشروع :</p>
   <div class="dproj">( ${dots(P.name,40)} )</div>
   <p class="dp">واشارة الى كتاب دائرة المهندس المقيم ذي العدد ( ${dots(o.reNo,6)} ) في ${fdx(o.reDate)} والمتضمن ترويج ${isFix(o)?'تصحيح ':''}أمر التغيير للمشروع أعلاه${isFix(o)?`، وتصحيحاً لكتابنا ذي العدد ( ${dots(o.fixNo,6)} ) في ${fdx(o.fixDate)} المتضمن إصدار أمر التغيير ( ${ord(pi)} )${o.fixReason?' بسبب '+esc(o.fixReason):''}`:''} تقرر إصدار ${isFix(o)?'تصحيح ':''}أمر التغيير ( ${ord(pi)} ) وكما يلي:</p>
-  <div class="dl">${shw('del',x.d)?line('كلفة الاعمال المحذوفة',x.d):''}${shw('add',x.a)?line('كلفة الاعمال المضافة',x.a):''}${shw('nw',x.n)?line('كلفة الاعمال المستحدثة',x.n):''}${line('كلفة المشروع بعد امر التغيير',x.newValue)}</div>
+  <div class="dl">${shw('del',x.d)?line('كلفة الوفر',x.d):''}${shw('add',x.a)?line('كلفة الاعمال المضافة',x.a):''}${shw('nw',x.n)?line('كلفة الاعمال المستحدثة',x.n):''}${line('كلفة المشروع بعد امر التغيير',x.newValue)}</div>
   <p class="dp">${days?`لتنفيذ امر التغيير أعلاه تمنح الشركة مدة قدرها ( <b>${days}</b> ) فقط ${tafqit(days)} يوماً لاغير`:'لا تُمنح الشركة مدة إضافية لتنفيذ أمر التغيير أعلاه.'}</p>
   ${clauses}
   ${String(o.letterNote||'').trim()?`<p class="clause dnote">${esc(String(o.letterNote).trim()).replace(/\n/g,'<br>')}</p>`:''}

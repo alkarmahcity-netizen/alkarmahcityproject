@@ -1248,7 +1248,7 @@ ipcMain.handle('ac:flowSnap', async (e, snap) => { try {
   atomicWrite(f, t); if (first) { flow.seenAll('ac'); return true; }
   flowSoon('ac'); return true; } catch (err) { logError('ac:flowSnap', String(err && err.message || err)); return false; } });
 /* Google Drive لبريد القسم: إصدار شهادة الاستلام مع رفع PDF تلقائياً، ورمز QR يفتح الملف نفسه عند الجميع (gdrive.js) */
-let gd = null; const gdEnsure = () => (gd = gd || require('./gdrive')({ file: () => path.join(dataDir, 'gdrive-config.json'), safeStorage, openExternal: u => { if (process.env.UNI_GD_AUTH && /^http:\/\/127\.0\.0\.1:/.test(u)) require('http').get(u, r => r.resume()).on('error', () => {}); /* اختبار: خادم Google وهمي محلي */ else shell.openExternal(u); }, log: m => logError('gdrive', m) }));
+let gd = null; const gdEnsure = () => (gd = gd || require('./gdrive')({ file: () => path.join(dataDir, 'gdrive-config.json'), safeStorage, net: process.env.UNI_GD_NODE ? null : require('electron').net, openExternal: u => { if (process.env.UNI_GD_AUTH && /^http:\/\/127\.0\.0\.1:/.test(u)) require('http').get(u, r => r.resume()).on('error', () => {}); /* اختبار: خادم Google وهمي محلي */ else shell.openExternal(u); }, log: m => logError('gdrive', m) }));
 /* ---------------- نسخة الاطلاع (viewer.js) ---------------- */
 /* حاسبة القسم: نشر ملف الاطلاع المشفّر على Drive القسم وتحديثه تلقائياً (كل 10 دقائق إن تغيّر الموقف أو التخطيط أو الصور) */
 function adIndexNow() { try { const o = JSON.parse(readData('ad') || '{}'), recs = [];

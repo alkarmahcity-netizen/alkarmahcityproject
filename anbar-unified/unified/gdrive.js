@@ -18,7 +18,32 @@ module.exports = function createDrive(ctx) {
   const load = () => { try { return JSON.parse(fs.readFileSync(ctx.file(), 'utf8')) || {}; } catch (_) { return {}; } };
   const save = c => { const f = ctx.file(), t = f + '.tmp'; fs.writeFileSync(t, JSON.stringify(c)); fs.renameSync(t, f); };
   let access = null;   // { token, until }
-  function req(method, url, { headers = {}, body = null } = {}) {
+  /* الاتصال بـ Google: عبر شبكة Chromium داخل البرنامج (ctx.net = net من Electron) — تأخذ إعدادات الإنترنت والـ Proxy في Windows
+     كالمتصفح، بدل اتصال Node المباشر الذي قد ينتهي بـ ETIMEDOUT في شبكات الدوائر. ومحاولة ثانية تلقائية عند انقطاع مؤقت */
+  const TRANSIENT = /ETIMEDOUT|ECONNRESET|ECONNREFUSED|ENETUNREACH|EHOSTUNREACH|EAI_AGAIN|ENOTFOUND|ERR_TIMED_OUT|ERR_CONNECTION|ERR_NETWORK|ERR_INTERNET_DISCONNECTED|ERR_NAME_NOT_RESOLVED|ERR_PROXY|انتهت مهلة/;
+  async function req(method, url, opt = {}) {
+    let last;
+    for (let i = 0; i < 2; i++) {
+      try { return ctx.net ? await reqNet(method, url, opt) : await reqNode(method, url, opt); }
+      catch (e) { last = e; if (!TRANSIENT.test(String(e && (e.code || '') + ' ' + (e.message || e)))) break; await new Promise(r => setTimeout(r, 1500)); }
+    }
+    const m = String(last && (last.message || last) || '');
+    throw TRANSIENT.test(m + ' ' + (last && last.code || '')) ? new Error('تعذّر الاتصال بـ Google — تحقق من الإنترنت في هذه الحاسبة ثم أعد المحاولة (' + m.slice(0, 80) + ')') : last;
+  }
+  function reqNet(method, url, { headers = {}, body = null } = {}) {
+    return new Promise((res, rej) => {
+      const b = body == null ? null : Buffer.isBuffer(body) ? body : Buffer.from(typeof body === 'string' ? body : JSON.stringify(body));
+      const h = { ...headers }; if (b && !h['Content-Type']) h['Content-Type'] = 'application/json; charset=utf-8';
+      let done = false; const fin = (f, v) => { if (!done) { done = true; clearTimeout(t); f(v); } };
+      const r = ctx.net.request({ method, url, redirect: 'follow', useSessionCookies: false });
+      Object.entries(h).forEach(([k, v]) => { if (!/^content-length$/i.test(k)) r.setHeader(k, String(v)); });
+      const t = setTimeout(() => { try { r.abort(); } catch (_) {} fin(rej, new Error('انتهت مهلة الاتصال بـ Google')); }, 90000);
+      r.on('response', x => { const ch = []; x.on('data', c => ch.push(c)); x.on('end', () => { const tx = Buffer.concat(ch).toString('utf8'); let j = null; try { j = JSON.parse(tx); } catch (_) {} fin(res, { status: x.statusCode, json: j, text: tx }); }); x.on('error', e => fin(rej, e)); });
+      r.on('error', e => fin(rej, e));
+      if (b) r.write(b); r.end();
+    });
+  }
+  function reqNode(method, url, { headers = {}, body = null } = {}) {
     return new Promise((res, rej) => {
       const u = new URL(url), mod = u.protocol === 'http:' ? http : https;
       const b = body == null ? null : Buffer.isBuffer(body) ? body : Buffer.from(typeof body === 'string' ? body : JSON.stringify(body));

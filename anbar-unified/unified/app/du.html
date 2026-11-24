@@ -4039,15 +4039,17 @@ function reqDays(e){
 function chain(){
   const dur=num(S.p.dur),prior=num(S.p.prior),reg=S.p.regime;
   const lim25=Math.floor(dur*0.25),lim30=Math.floor(dur*0.30);
-  let base=prior,shift=prior+num(S.p.priorStop);const out=[];
+  let base=prior,shift=prior+num(S.p.priorStop),fineB=0;const out=[];
+  /* الإعفاء من الغرامات التأخيرية: لا يغيّر مدة العقد، لكن مدته (مع المدد الإضافية والإعفاءات السابقة) إذا تجاوزت 25% من مدة العقد
+     تُحال الى اللجنة المركزية وتُطبع صفحة قرارها (بلا سقف 30% — السقف للمدد الإضافية) */
   S.exts.forEach((e,i)=>{
-    const k=e.kind||'ext',g=reqDays(e),isExt=isExtLike(e),moves=k==='custom'?e.cEffect!=='none':k!=='fine';
-    const cum=isExt?base+g:base,pct=dur?cum/dur*100:0,need=isExt&&dur>0&&pct>25;
-    const zMax=reg==='2025'?Math.max(0,lim30-base):g;
-    const zDays=need?zApproved(e,g,zMax,reg):g;
+    const k=e.kind||'ext',g=reqDays(e),isExt=isExtLike(e),isFine=k==='fine',moves=k==='custom'?e.cEffect!=='none':k!=='fine';
+    const cum=isExt?base+g:isFine?base+fineB+g:base,pct=dur?cum/dur*100:0,need=(isExt||isFine)&&dur>0&&pct>25;
+    const zMax=reg==='2025'&&!isFine?Math.max(0,lim30-base):g;
+    const zDays=need?zApproved(e,g,zMax,isFine?'2014':reg):g;
     const final=need?zDays:g;
-    out[i]={base,shift,g,cum,pct,need,zMax,zDays,final,kind:k};
-    if(e.active){if(isExt)base+=final;if(moves)shift+=final}
+    out[i]={base,shift,g,cum,pct,need,zMax,zDays,final,kind:k,fineB};
+    if(e.active){if(isExt)base+=final;if(isFine)fineB+=final;if(moves)shift+=final}
   });
   return {dur,prior,reg,lim25,lim30,out};
 }
@@ -4059,13 +4061,14 @@ function calc(){
   const {base,shift,g,cum,pct,zMax,zDays}=r,needCentral=r.need,before=base-prior;
   const extLike=isExtLike(cur),moves=kind==='custom'?cur.cEffect!=='none':kind!=='fine';
   let lvl='ok',msg=kind==='custom'?'قرار خاص: '+CEFF[cur.cEffect||'none']+'.':extLike?'ضمن صلاحية لجنة المدد الإضافية (لا تتجاوز 25% من مدة العقد).':kind==='fine'?'إعفاء من الغرامات التأخيرية: لا يغيّر مدة العقد ولا يُحسب ضمن نسبة المدد الإضافية.':'فترة توقف: تُضاف الى تاريخ الإنجاز ولا تُحسب ضمن نسبة المدد الإضافية (25%).',stamp='';
-  if(needCentral){
+  if(needCentral&&kind==='fine'){lvl='warn';msg='مدة الإعفاء من الغرامات التأخيرية مع المدد الإضافية والإعفاءات السابقة تتجاوز 25% من مدة العقد: يُرفع الطلب الى اللجنة المركزية للمصادقة.'}
+  else if(needCentral){
     if(reg==='2025'){
       if(pct<=30){lvl='warn';msg='تتجاوز 25% من مدة العقد: يُرفع الطلب الى اللجنة المركزية للمصادقة (لغاية 30%).'}
       else{lvl='bad';msg=`تتجاوز 30% من مدة العقد: لا يجوز منحها وفق ${REG['2025']}. أقصى ما يمكن للجنة المركزية المصادقة عليه ${Math.min(zMax,g)} يوم.`;stamp='يتجاوز الحدود المسموحة'}
     }else{lvl='warn';msg='تتجاوز 25% من مدة العقد: يقدم المهندس المقيم طلب المدة الإضافية الى اللجنة المركزية.'}
   }
-  const fcum=extLike?base+zDays:base,fpct=dur?fcum/dur*100:0;
+  const fcum=extLike?base+zDays:kind==='fine'?base+r.fineB+zDays:base,fpct=dur?fcum/dur*100:0;
   // contractual completion = start + duration (as on the official form: 18/12/2025 + 180 = 16/6/2026)
   const origEnd=S.p.start&&dur?addDays(S.p.start,dur):'';
   const curEnd=origEnd?addDays(origEnd,shift):'';               // before this request
@@ -4407,6 +4410,9 @@ function pageCommittee(c){
 const zFrom=c=>c.curEnd?addDays(c.curEnd,1):'';
 function zAuto(c){
   const e=c.cur,z=e.z,zd=c.zDays;
+  if(c.kind==='fine'){const per=(c.pFrom||c.pTo)?` للفترة من ( ${dt(c.pFrom)} ) ولغاية ( ${dt(c.pTo)} )`:'';
+    if(z.decision==='reject'||zd<=0)return `<b>عدم المصادقة</b> على طلب إعفاء الشركة من الغرامات التأخيرية`;
+    return `<b>المصادقة على إعفاء الشركة أعلاه من الغرامات التأخيرية عن مدة قدرها ( ${ar(zd)} يوماً فقط )</b>${zd<c.g?` من أصل ( ${ar(c.g)} ) يوماً أوصت بها لجنة المدد`:''}${per}`;}
   if(z.decision==='reject')return `<b>عدم المصادقة</b> على طلب منح الشركة مدة إضافية، وتبقى المدد الإضافية التراكمية ( ${ar(c.base)} ) يوماً`;
   if(zd<=0)return `<b>عدم المصادقة</b> على طلب منح الشركة مدة إضافية لاستنفاد الحد الأعلى البالغ ( ٣٠% ) من مدة العقد، وتبقى المدد الإضافية التراكمية ( ${ar(c.base)} ) يوماً`;
   return `<b>منح الشركة أعلاه مدة إضافية قدرها ( ${ar(zd)} يوماً فقط )</b>${zd<c.g?` من أصل ( ${ar(c.g)} ) يوماً أوصت بها لجنة المدد`:''} وللفترة اعتباراً من ( ${dt(zFrom(c))} ) ولغاية ( ${dt(c.finalEnd)} ) لتصبح المدد الإضافية التراكمية ( ${ar(c.fcum)} ) يوماً بنسبة ( ${ar(c.fpct.toFixed(2))}% ) من مدة العقد`;
@@ -4414,6 +4420,8 @@ function zAuto(c){
 function zText(c){const t=(c.cur.z.text||'').trim();return t?esc(t).replace(/\n/g,'<br>'):zAuto(c)}
 function zShort(c){
   const t=(c.cur.z.short||'').trim();if(t)return esc(t).replace(/\n/g,'<br>');
+  if(c.kind==='fine'){if(c.cur.z.decision==='reject'||c.zDays<=0)return 'عدم المصادقة على طلب الإعفاء من الغرامات التأخيرية';
+    return `إعفاء الشركة أعلاه من الغرامات التأخيرية عن مدة ( ${ar(c.zDays)} يوم فقط )${(c.pFrom||c.pTo)?` للفترة من ${dt(c.pFrom)} ولغاية ${dt(c.pTo)}`:''}`;}
   if(c.cur.z.decision==='reject'||c.zDays<=0)return 'عدم المصادقة على طلب المدة الإضافية';
   return `منح الشركة أعلاه مدة إضافية لمدة ( ${ar(c.zDays)} يوم فقط ) للفترة من ${dt(zFrom(c))} ولغاية ${dt(c.finalEnd)}`;
 }
@@ -4450,7 +4458,7 @@ function pageCentral(c){
     ${L('تاريخ المباشرة التعاقدي',P.start?dt(P.start):'','المدة حسب العقد',c.dur?ar(c.dur)+' يوم':'')}
     ${L('تاريخ المباشرة الفعلي',P.actual?dt(P.actual):'','المدة الاضافية الممنوحة سابقاً',ar(c.base)+' يوم')}
     ${L('تاريخ الإنجاز التعاقدي',c.origEnd?dt(c.origEnd):'','الفترة المقترحة د.م.م',prop?ar(prop)+' يوم':'غير محددة')}
-    <tr><th>أسباب طلب المدة الإضافية</th><td colspan="3">${reasons}</td></tr>
+    <tr><th>${c.kind==='fine'?'أسباب طلب الإعفاء من الغرامات التأخيرية':'أسباب طلب المدة الإضافية'}</th><td colspan="3">${reasons}</td></tr>
 
   </table>
   <div class="zl">كتب التأييد :</div>
@@ -4467,7 +4475,7 @@ function letterText(c){
   const e=c.cur,k=c.kind,P=S.p;
   const fin=c.needCentral?c.zDays:c.g;              // what is finally granted
   const end=c.needCentral?c.finalEnd:c.newEnd;
-  const from=c.pFrom,to=c.needCentral&&!e.to&&c.curEnd&&fin?addDays(c.curEnd,fin):c.pTo;
+  const from=c.pFrom,to=c.needCentral&&k!=='fine'&&!e.to&&c.curEnd&&fin?addDays(c.curEnd,fin):c.pTo;
   const decT=(e.decs||[]).map(d=>(d.t||'').trim().replace(/^(في حالة سريان|او بموجب|أو بموجب|حسب)\s*/,'')).filter(Boolean);
   const art=S.L.article?esc(S.L.article):(k==='fine'?(decT.length?ar(esc(decT.join(' او بموجب '))):ar(esc(FINE_DECISION.replace('قرارا','قراري').replace('والمتضمنان','المتضمنين')))):'أحكام '+ar(REG[c.reg]));
   const subj=k==='custom'?(esc(e.cTitle)||'قرار خاص'):{ext:'منح مدة إضافية',stop:'منح فترة توقف',partial:'منح فترة توقف جزئي',fine:'إعفاء من الغرامات التأخيرية'}[k];
@@ -4490,6 +4498,8 @@ function letterText(c){
   }else if(k==='partial'){
     items.push(`منح الشركة فترة توقف جزئي بنسبة ( ${ar(num(e.pct))}% ) قدرها ( <b>${ar(d)}</b> ) يوم${dw}${per} لا تُحتسب ضمن مدة تنفيذ العقد.`);
     items.push(`يصبح تاريخ الإنجاز التعاقدي للمشروع ( ${dt(end)} ).`);
+  }else if(c.needCentral&&d<=0){
+    items.push('عدم إعفاء الشركة من الغرامات التأخيرية لعدم مصادقة اللجنة المركزية.');
   }else{
     items.push(`إعفاء الشركة من الغرامات التأخيرية عن مدة قدرها ( <b>${ar(d)}</b> ) يوم${dw}${per}${e.fineCause?' بسبب '+ar(esc(e.fineCause))+confText(e):''}.`);
     items.push('لا يترتب على هذا الإعفاء تغيير في مدة العقد أو تاريخ الإنجاز التعاقدي.');

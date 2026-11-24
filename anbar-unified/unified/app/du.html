@@ -2466,6 +2466,7 @@ table.rs td.d{text-align:center;width:28mm}
 .pd .qrd .qr{width:16mm;height:16mm}
 .pd .dsub{margin:calc(4mm*var(--gap,1)) 0 calc(3mm*var(--gap,1));font-weight:700;font-size:calc(14pt*var(--k,1));text-align:center}
 .pd .dsub span{text-decoration:underline;text-underline-offset:4px}
+.pd .dsub.fine{font-size:calc(17pt*var(--k,1));margin-bottom:calc(4mm*var(--gap,1))}
 .pd .dp{text-align:justify;margin:0 0 1.2mm;font-size:1em;line-height:calc((1.45 + .4*var(--gap,1))*var(--lh,1))}
 .pd .dproj{text-align:center;font-weight:700;font-size:1em;margin:0 0 2.5mm}
 .pd .dl{margin:1mm 0 2mm;font-size:1em;line-height:calc((1.45 + .45*var(--gap,1))*var(--lh,1));font-weight:700}
@@ -4443,12 +4444,13 @@ function zSigs(){
 function pageCentral(c){
   const e=c.cur,z=e.z,P=S.p;
   const chair=S.mems.find(m=>m.role==='رئيس اللجنة');
+  const isF=c.kind==='fine',rq=num(e.requested);
   const refs=[
-    {party:'لجنة المدد / ديوان المحافظة',ref:(e.formNo?'استمارة '+e.formNo+' ':'')+'في '+(e.date||'').split('-').join('/'),prop:`منح الشركة مدة إضافية ( ${ar(c.g)} ) يوم`},
-    {party:'د.م.م للمشروع',ref:(e.reNo||'')+' في '+(e.reDate||'').split('-').join('/'),prop:`طلب مدة إضافية ( ${ar(num(e.requested))} ) يوم`},
-    {party:esc(P.ben)||'الجهة المستفيدة',ref:(e.benNo||'')+' في '+(e.benDate||'').split('-').join('/'),prop:'تأييد طلب المدة الإضافية'},
+    {party:'لجنة المدد / ديوان المحافظة',ref:(e.formNo?'استمارة '+e.formNo+' ':'')+'في '+(e.date||'').split('-').join('/'),prop:isF?`إعفاء الشركة من الغرامات التأخيرية ( ${ar(c.g)} ) يوم`:`منح الشركة مدة إضافية ( ${ar(c.g)} ) يوم`},
+    {party:'د.م.م للمشروع',ref:(e.reNo||'')+' في '+(e.reDate||'').split('-').join('/'),prop:isF?`طلب إعفاء من الغرامات التأخيرية${rq?` ( ${ar(rq)} ) يوم`:''}`:`طلب مدة إضافية ( ${ar(rq)} ) يوم`},
+    {party:esc(P.ben)||'الجهة المستفيدة',ref:(e.benNo||'')+' في '+(e.benDate||'').split('-').join('/'),prop:isF?'تأييد طلب الإعفاء من الغرامات التأخيرية':'تأييد طلب المدة الإضافية'},
     ...(z.refs||[]).map(r=>({party:esc(r.party),ref:r.ref,prop:esc(r.prop)}))];
-  const reasons=(e.reasons||[]).filter(r=>r.t).map(r=>esc(r.t)).join('، ')||'&nbsp;';
+  const reasons=(e.reasons||[]).filter(r=>r.t).map(r=>esc(r.t)).join('، ')||(isF&&e.fineCause?esc(e.fineCause):'')||'&nbsp;';
   const L=(a,b,cc,d)=>`<tr><th>${a}</th><td>${b||'&nbsp;'}</td><th>${cc}</th><td class="c">${d||'&nbsp;'}</td></tr>`;
   const prop=num(e.requested);
   const basis=c.reg==='2025'?REG['2025']:'تعليمات تنفيذ العقود الحكومية رقم ( ٢ ) لعام ٢٠١٤';
@@ -4525,6 +4527,7 @@ function pageOrder(c){
   const clauses=String(L.clauses||'').split('\n').map(x=>x.trim()).filter(Boolean).map(x=>`<p class="clause">- ${esc(x)}</p>`).join('');
   const atts=String(L.attachments||'').split('\n').map(x=>x.trim()).filter(Boolean);
   const blocked=c.needCentral&&T.fin<=0;
+  if(c.kind==='fine')return pageOrderFine(c,T,no,date,atts,blocked);
   return `<div class="page pd" data-p="o">${blocked?'<div class="stamp">لا يصدر الأمر</div>':''}${head().replace('class="hd lhd"','class="hd lhd hd5"')}
   <div class="dtop"><div class="dmeta">العدد / <b>${no}</b><br>التاريخ / <b>${date}</b></div>${qrBlock('qrO',e.qr?'رابط القرار':'بيانات الأمر')}</div>
   <div class="dsub">م / <span>( ${T.subj}${c.kind==='partial'&&num(e.pct)?' بنسبة '+ar(num(e.pct))+'%':''} )</span></div>
@@ -4533,6 +4536,29 @@ function pageOrder(c){
   <p class="dp">واشارة الى ${T.reLetter} ${T.committee}${T.central}، تقرر ما يلي :</p>
   <div class="dl">${T.items.map((x,i)=>`<div class="li"><span class="lno">${ar(i+1)} -</span><div>${x}</div></div>`).join('')}</div>
   ${clauses}
+  <div class="sigrow"><div class="att">${atts.length?`<b>المرفقات:</b>${atts.map(a=>`<div class="ai"><span>${esc(a)}</span></div>`).join('')}`:''}</div><div class="signer">${esc(L.signerName)}<br>${esc(L.signerTitle)}<br><span dir="ltr">${blankDate()}</span></div></div>
+  <div class="bottom"><div class="endrow"><div class="ccb"><b>صورة عنه الى</b><div class="ccw">
+   ${L.cc.filter(x=>x.to).map(x=>`<div class="ccl"><span class="t">${ccRep(x.to,c)}${x.purpose?' / '+ccRep(x.purpose,c):''}</span>${x.end?`<span class="dots"></span><span class="e">${esc(x.end)}</span>`:''}</div>`).join('')}</div></div>
+</div></div>
+  ${gbar}</div>`;
+}
+/* أمر الإعفاء من الغرامات التأخيرية — بصيغة الأمر الإداري المعتمد في القسم («امر اداري»: بناءً على كتاب م.م … واستناداً الى قرار لجنة المصادقة ومطالعة لجنة المدد وقراري مجلس الوزراء … تقرر ما يلي) */
+function pageOrderFine(c,T,no,date,atts,blocked){
+  const e=c.cur,P=S.p,L=S.L,z=S.z||{};
+  const zo=(z.orders||[]).filter(o=>o.no||o.date)[0];
+  const zRef=c.needCentral?`ما جاء بقرار لجنة المصادقة المشكلة بموجب الامر الاداري المرقم ( ${ar(esc(zo&&zo.no||'......'))} ) في ${dt(zo&&zo.date)}${e.z.formNo?' ذي العدد ( '+ar(esc(e.z.formNo))+' )':''}${e.z.date?' في '+dt(e.z.date):''} و`:'';
+  const comm=`مطالعة لجنة المدد الاضافية${e.formNo?' ذات الاستمارة المرقمة ( '+ar(esc(e.formNo))+' )':''}${e.date?' في '+dt(e.date):''} والمشكلة بموجب الأمر الإداري ذي العدد ( ${ar(dots(S.d.orderNo,6))} ) في ${dt(S.d.orderDate)}`;
+  const why=e.fineCause?ar(esc(e.fineCause))+confText(e):((e.reasons||[]).filter(r=>r.t).map(r=>ar(esc(r.t))).join('، '));
+  const d=T.fin,per=(c.pFrom||c.pTo)?` للفترة من ${dt(c.pFrom)} ولغاية ${dt(c.pTo)}`:'';
+  const items=c.needCentral&&d<=0?['عدم إعفاء الشركة من الغرامات التأخيرية لعدم مصادقة لجنة المصادقة.']
+    :[`اعفاء الشركة أعلاه من الغرامات التأخيرية المترتبة على الفترة البالغ مقدارها ( <b>${ar(d)}</b> ) يوم${d?' ( '+daysWords(d)+' )':''}${per}${why?' بسبب '+why:''}، على ان لا تترتب أي التزامات مالية لصالح الشركة.`,
+      'تتحمل دائرة المهندس المقيم المسؤولية القانونية عن صحة الأوراق والوثائق لمدة الإعفاء أعلاه.'];
+  return `<div class="page pd pdf5" data-p="o">${blocked?'<div class="stamp">لا يصدر الأمر</div>':''}${head().replace('class="hd lhd"','class="hd lhd hd5"')}
+  <div class="dtop"><div class="dmeta">العدد / <b>${no}</b><br>التاريخ / <b>${date}</b></div>${qrBlock('qrO',e.qr?'رابط القرار':'بيانات الأمر')}</div>
+  <div class="dsub fine"><span>امر اداري</span></div>
+  <p class="dp">بناءً على ما جاء بكتاب دائرة المهندس المقيم ذي العدد ( ${ar(dots(e.reNo,6))} ) في ${dt(e.reDate)} والمتضمن طلب اعفاء الشركة من الغرامات التأخيرية لمشروع : ( <b>${dots(P.name,40)}</b> ) والمحال بعهدة شركة ( <b>${dots(P.contractor,16)}</b> ).</p>
+  <p class="dp">واستناداً الى ${zRef}${comm} واستناداً الى ${T.art}، تقرر ما يلي : -</p>
+  <div class="dl">${items.map((x,i)=>`<div class="li"><span class="lno">${ar(i+1)} -</span><div>${x}</div></div>`).join('')}</div>
   <div class="sigrow"><div class="att">${atts.length?`<b>المرفقات:</b>${atts.map(a=>`<div class="ai"><span>${esc(a)}</span></div>`).join('')}`:''}</div><div class="signer">${esc(L.signerName)}<br>${esc(L.signerTitle)}<br><span dir="ltr">${blankDate()}</span></div></div>
   <div class="bottom"><div class="endrow"><div class="ccb"><b>صورة عنه الى</b><div class="ccw">
    ${L.cc.filter(x=>x.to).map(x=>`<div class="ccl"><span class="t">${ccRep(x.to,c)}${x.purpose?' / '+ccRep(x.purpose,c):''}</span>${x.end?`<span class="dots"></span><span class="e">${esc(x.end)}</span>`:''}</div>`).join('')}</div></div>

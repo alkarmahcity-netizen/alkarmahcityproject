@@ -181,14 +181,20 @@ function render(){if(!PKG)return;$('nav').hidden=false;[...document.querySelecto
   if(view==='sit')return sit();if(view==='map')return map();if(view==='eng')return eng();if(view==='cc')return cc();if(view==='dist')return dist();return plan();}
 function filtered(){const q=F.q.trim();return P().filter(p=>(!F.d||normD(p.district)===F.d)&&(!F.k||stKind(p.status)===F.k)&&(!q||[p.name,p.fileNo,p.contractor,p.contractNo,p.district,p.sub,p.resident].some(v=>String(v||'').includes(q))))
   .sort((a,b)=>F.sort==='act'?num(a.actualPct)-num(b.actualPct):F.sort==='late'?(num(b.planPct)-num(b.actualPct))-(num(a.planPct)-num(a.actualPct)):F.sort==='cost'?num(b.total||b.orig)-num(a.total||a.orig):String(a.name||'').localeCompare(String(b.name||''),'ar'));}
-function kpis(L){const n=L.length,avg=k=>n?L.reduce((s,p)=>s+num(p[k]),0)/n:0,sum=k=>L.reduce((s,p)=>s+num(p[k]),0);
-  const cnt={};L.forEach(p=>{const k=stKind(p.status);cnt[k]=(cnt[k]||0)+1;});const cost=L.reduce((s,p)=>s+num(has(p.total)?p.total:p.orig),0),r=sum('advRaised'),pd=sum('advPaid');
-  return `<div class="kp"><div class="k wide"><span>عدد المشاريع</span><b>${n}</b><div class="stb">${KN.filter(([k])=>cnt[k]).map(([k])=>`<i style="width:${cnt[k]/n*100}%;background:${KC[k]}"></i>`).join('')}</div>
-   <div class="lg">${KN.filter(([k])=>cnt[k]).map(([k,l])=>`<span><i style="background:${KC[k]}"></i>${l} ${cnt[k]}</span>`).join('')}</div></div>
-   <div class="k"><span>متوسط الإنجاز الفعلي</span><b>${pc(avg('actualPct'))}%</b><small>المخطط ${pc(avg('planPct'))}%</small></div>
-   <div class="k"><span>الكلفة الكلية</span><b>${compact(cost)}</b><small>أوامر التغيير ${compact(sum('changeCost'))}</small></div>
-   <div class="k"><span>السلف المرفوعة</span><b>${compact(r)}</b><small>دينار</small></div>
-   <div class="k"><span>السلف المصروفة</span><b>${compact(pd)}</b><small>${r?pc(pd/r*100)+'% من المرفوعة':'دينار'}</small></div></div>`;}
+/* بطاقات «الموقف» كما في الموقف العام في البرنامج: عدد المشاريع وتوزيعها، مبالغ أوامر التغيير، إجمالي كلفة العقود، متوسط الإنجاز، السلف المرفوعة والمصروفة والمتبقي */
+function kpis(L){const n=L.length,sum=f=>L.reduce((s,p)=>s+num(f(p)),0),tot=p=>has(p.total)?num(p.total):num(p.orig)+num(p.changeCost);
+  const cnt={};L.forEach(p=>{const k=stKind(p.status);cnt[k]=(cnt[k]||0)+1;});
+  const chg=sum(p=>p.changeCost),orig=sum(p=>p.orig),cost=L.reduce((s,p)=>s+tot(p),0),r=sum(p=>p.advRaised),pd=sum(p=>p.advPaid);
+  const avg=k=>{const W=L.filter(p=>has(p[k]));return W.length?W.reduce((s,p)=>s+num(p[k]),0)/W.length:0;},aA=avg('actualPct'),aP=avg('planPct');
+  const K=(ic,l,v,sm,c,full)=>`<div class="k${full?' wide':''}"><span>${ic} ${l}</span><b${c?` style="color:${c}"`:''}>${v}</b>${sm?`<small>${sm}</small>`:''}</div>`;
+  return `<div class="kp"><div class="k wide"><span>🏢 مشروع في الموقف</span><b>${n}</b><div class="stb">${KN.filter(([k])=>cnt[k]).map(([k])=>`<i style="width:${cnt[k]/n*100}%;background:${KC[k]}"></i>`).join('')}</div>
+   <div class="lg">${KN.filter(([k])=>cnt[k]).map(([k,l])=>`<span><i style="background:${KC[k]}"></i>${l} ${cnt[k]}</span>`).join('')}</div><small>مشاريع الخطة الحالية = الكلي ${n} − المنجز ${cnt.ok||0} = <b style="font-size:13px">${n-(cnt.ok||0)}</b></small></div>
+   ${K('📝','مبالغ أوامر التغيير (دينار)',compact(chg),`${L.filter(p=>num(p.changeCost)).length} مشروع بأوامر تغيير — ${orig?pc(chg/orig*100):0}% من الكلفة الأصلية`,'#a15c00')}
+   ${K('💵','إجمالي كلفة العقود (دينار)',compact(cost),`أوامر التغيير: ${chg>=0?'+':''}${compact(chg)}`)}
+   ${K('📊','متوسط الإنجاز الفعلي',pc(aA)+'%',`المخطط ${pc(aP)}% — الفرق ${pc(aA-aP)}%`,aA<aP?'#c2570c':'#2563a8')}
+   ${K('🪙','السلف المرفوعة (دينار)',compact(r),`${L.filter(p=>num(p.advRaised)>0).length} مشروع (من الموقف)`)}
+   ${K('👛','السلف المصروفة (دينار)',compact(pd),r?`${pc(pd/r*100)}% من المرفوعة`:'','#2f8a45')}
+   ${K('⏳','المبلغ المتبقي للصرف (دينار)',compact(r-pd),`${r?pc((r-pd)/r*100)+'% من المرفوعة — ':''}${L.filter(p=>num(p.advRaised)-num(p.advPaid)>0).length} مشروع لم تُصرف سلفه كاملة`)}</div>`;}
 function sit(){const all=P(),L=filtered(),dists=[...new Set(all.map(p=>normD(p.district)))].sort((a,b)=>a.localeCompare(b,'ar'));
   $('main').innerHTML=kpis(F.d||F.k||F.q?L:all)+`<div class="flt"><input id="fq" type="search" placeholder="🔍 بحث: المشروع، الاضبارة، الشركة، المقيم" value="${esc(F.q)}">
    <div class="row2"><select id="fd"><option value="">كل الأقضية</option>${dists.map(d=>`<option${d===F.d?' selected':''}>${esc(d)}</option>`).join('')}</select>

@@ -32,7 +32,9 @@ const sleep = ms => new Promise(r => setTimeout(r, ms)); const R = []; const ok 
     return fs.existsSync(f) ? r.fulfill({ status: 200, contentType: 'application/javascript', body: fs.readFileSync(f) }) : r.fulfill({ status: 404, body: '' }); });
   const pg = await ctx.newPage(); const errs = []; pg.on('pageerror', e => errs.push(String(e)));
   await pg.goto(B + '#' + code); await sleep(1500);
-  ok('opens with the code in the link: projects list + summary', await pg.evaluate(() => document.querySelectorAll('.it[data-fn]').length === 3 && /عدد المشاريع/.test(document.body.textContent) && /آخر تحديث من حاسبة القسم/.test(document.getElementById('upd').textContent)));
+  ok('opens with the code in the link: projects list + summary', await pg.evaluate(() => document.querySelectorAll('.it[data-fn]').length === 3 && /مشروع في الموقف/.test(document.body.textContent) && /آخر تحديث من حاسبة القسم/.test(document.getElementById('upd').textContent)));
+  ok('situation cards as in the program: projects, change orders, total contract cost, average progress, advances raised / paid / remaining', await pg.evaluate(() => { const t = document.querySelector('.kp').textContent;
+    return /مشروع في الموقف/.test(t) && /مبالغ أوامر التغيير/.test(t) && /200 مليون/.test(t) && /إجمالي كلفة العقود/.test(t) && /3\.7 مليار/.test(t) && /متوسط الإنجاز الفعلي/.test(t) && /السلف المرفوعة/.test(t) && /500 مليون/.test(t) && /السلف المصروفة/.test(t) && /300 مليون/.test(t) && /المبلغ المتبقي للصرف/.test(t) && /200 مليون/.test(t) && /الكلي 3 − المنجز 1 = 2/.test(t); }), await pg.evaluate(() => document.querySelector('.kp').textContent.replace(/\s+/g, ' ').slice(0, 400)));
   ok('summary figures (3 projects, stopped 1, avg actual 50%)', await pg.evaluate(() => { const t = document.querySelector('.kp').textContent; return /متوقف 1/.test(t) && /50%/.test(t); }), await pg.evaluate(() => document.querySelector('.kp').textContent.slice(0, 200)));
   await pg.fill('#fq', 'الثاني'); await sleep(500);
   ok('search filters the list', await pg.evaluate(() => document.querySelectorAll('.it[data-fn]').length === 1));

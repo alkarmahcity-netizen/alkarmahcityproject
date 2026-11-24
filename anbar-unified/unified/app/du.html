@@ -2518,11 +2518,6 @@ table.rs td.d{text-align:center;width:28mm}
 .toast.bad{background:var(--bad);color:#fff}
 @media (prefers-reduced-motion:reduce){.toast{transition:none}}
 .hz .hzt{font-weight:700;line-height:1.55}
-.hz2{display:grid;grid-template-columns:auto 1fr auto;align-items:start;height:calc(30mm*var(--hs,1));margin:0 0 1mm}
-.hz2t{font-family:"AL-Mohanad Bold","PT Bold Heading","Simplified Arabic",var(--pf,"Amiri"),serif;font-weight:800;font-size:calc(21px*var(--hs,1));line-height:1.5;text-align:center;color:#222;padding-top:3mm;letter-spacing:.3px}
-.hz2l{height:calc(29mm*var(--hs,1));width:auto;display:block;justify-self:end}
-.hz2ln{margin:0 0 1.5mm;width:78%}.hz2ln i{display:block;border-top:1.6px dashed #c0392b;margin-bottom:1.2mm}.hz2ln u{display:block;border-top:2px solid #c0392b}
-.hz2n{display:flex;justify-content:flex-end;gap:8mm;font-size:12.5px;font-weight:700;margin:-1mm 0 1mm}.hz2n b{font-weight:600}
 .hz .hzt.ar{font-family:"Amiri","Traditional Arabic",serif;font-size:19px;text-align:center;align-self:flex-start;padding:2mm 4mm 0;color:#111}
 .hz .hzt.en{font-family:"Times New Roman",Times,serif;font-size:15.5px;text-align:center;direction:ltr;align-self:flex-end;padding:1.5mm 4mm 0;color:#111;line-height:1.35}
 .hz .hzn{display:grid;grid-template-columns:auto auto;column-gap:2mm;align-items:baseline;align-self:flex-end;font-size:13px;line-height:1.45;margin-top:auto;padding:0 1mm 1mm}
@@ -4291,11 +4286,11 @@ function head(){return `<div class="wm"><img src="${IMG_WM}" alt=""></div>
 function headZ(z){
   const no=z.formNo?ar(esc(z.formNo)):'&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;';
   const d=z.date?z.date.split('-'):null;
-  /* كما في استمارة اللجنة المركزية الرسمية: النص يميناً، شعار المحافظة يساراً، وتحتهما خطان أحمران (متقطع ثم متصل) */
   return `<div class="wm"><img src="${IMG_WM}" alt=""></div>
-  <div class="hz2"><div class="hz2t">جمهورية العراق<br>ديوان محافظة الأنبار<br>اللجنة المركزية للمصادقة</div><div class="hz2s"></div><img class="hz2l" src="${IMG_LOGO}" alt="شعار محافظة الأنبار"></div>
-  <div class="hz2ln"><i></i><u></u></div>
-  <div class="hz2n"><span>العدد : <b>${no}</b></span><span>التاريخ : <b dir="ltr">${d?bxd(z.date):blankDate()}</b></span></div>`;
+  <div class="hd hz"><div class="hd-s hd-r"><div class="hzt ar">جمهورية العراق<br>محافظة الانبار<br>اللجنة المركزية للمصادقة</div><div class="ln"></div></div>
+  <div class="hd-c"><img src="${IMG_LOGO}" alt=""></div>
+  <div class="hd-s hd-l"><div class="hzt en">Republic of Iraq<br>Anbar Governorate<br>Central Approval Committee</div>
+   <div class="hzn"><span class="l">العدد :</span><b>${no}</b><span class="l">التاريخ :</span><b dir="ltr">${d?bxd(z.date):blankDate()}</b></div><div class="ln"></div></div></div>`;
 }
 const gbar=`<div class="gbar lhb"><img src="${IMG_LHB}" alt="website: www.anbar.iq — E-mail: Eng@anbar.iq"></div>`;
 function box(h,v,hb,vb){return `<div class="bx"><div class="h" style="background:${hb}">${h}</div><div class="v" style="background:${vb}">${v||'&nbsp;'}</div></div>`}

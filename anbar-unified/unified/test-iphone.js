@@ -61,6 +61,8 @@ const sleep = ms => new Promise(r => setTimeout(r, ms)); const R = []; const ok 
     return document.querySelectorAll('.ccr[data-d]').length === 2 && /مركز متابعة/.test(t) && /هيت: 1 مشروع متوقف/.test(t) && /القطاعات/.test(t) && /الانحراف/.test(t); }), await pg.evaluate(() => document.getElementById('main').textContent.slice(0, 300)));
   await pg.evaluate(() => document.querySelector('.ccmap g[data-md="هيت"]').dispatchEvent(new MouseEvent('click', { bubbles: true }))); await sleep(400);
   ok('tapping a district on the center map stays on the center and shows its summary (no jump to the list)', await pg.evaluate(() => !!document.querySelector('svg.ccmap') && /قضاء هيت/.test(document.getElementById('ccSel').textContent) && /متوقف/.test(document.getElementById('ccSel').textContent) && document.querySelector('nav button.on').dataset.v === 'cc' && !!document.querySelector('.ccmap g.msel')));
+  ok('center map animated as in the program: comet lines around Anbar, flowing district boundaries, moving outline around the selected district', await pg.evaluate(() => { const an = sel => { const e = document.querySelector(sel); return e ? getComputedStyle(e).animationName : ''; };
+    return an('.ccmap .comet') === 'cccomet' && an('.ccmap .flow') === 'ccflow' && document.querySelectorAll('#ccFx .fxedge').length >= 1 && an('#ccFx .fxedge') === 'fxdash'; }));
   await pg.evaluate(() => document.querySelector('#ccSel button[data-d]').click()); await sleep(400);
   ok('«عرض مشاريع القضاء» in the summary opens the district list', await pg.evaluate(() => document.querySelectorAll('.it[data-fn]').length === 1 && document.getElementById('fd').value === 'هيت'));
   await pg.click('nav button[data-v="cc"]'); await sleep(400);

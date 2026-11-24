@@ -4,7 +4,7 @@
 <base target="_top">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>موقف المشاريع — محافظة الأنبار</title>
+<title>صفحة كبار الشخصيات للاطلاع — محافظة الأنبار</title>
 <style>
 :root{--g:#1f5f36;--g2:#2f8a45;--bg:#eef2ee;--card:#fff;--ink:#1d2a22;--mut:#6b7a72;--line:#dde6e0;--ok:#2f8a45;--bad:#c0392b;--warn:#d19a1a;--warn2:#c2570c;--blue:#2563a8;--none:#8a968f}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -47,6 +47,8 @@ nav button b{font-size:20px;line-height:1}nav button.on{color:var(--g);font-weig
 .pg{display:flex;flex-direction:column;gap:8px}.pg .bar{flex:none;height:9px}.pg .l{display:flex;justify-content:space-between;font-size:13px}
 .ph{display:flex;gap:8px;overflow-x:auto;padding:2px 0}.ph img,.ph .ld{width:140px;height:105px;object-fit:cover;border-radius:10px;background:#e6ece8;flex:none}
 .ph .ld{display:flex;align-items:center;justify-content:center;color:var(--mut);font-size:12px}
+.shb{display:flex;gap:8px;margin:10px 12px 0}.shb>*{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;border:0;border-radius:12px;padding:11px 6px;font:inherit;font-weight:700;font-size:14.5px;text-decoration:none}
+#shPdf{background:#fff;color:var(--g);border:1.5px solid var(--g)}#shWa{background:#25d366;color:#fff}.shm{margin:8px 12px 0;font-size:13px;color:var(--mut);text-align:center}
 .route{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px;background:var(--g);color:#fff;text-decoration:none;border-radius:12px;padding:13px;font-weight:700;font-size:16px}
 .route2{display:block;text-align:center;margin-top:8px;color:var(--g);font-size:13px}
 .big{position:fixed;inset:0;z-index:20;background:#000;display:flex;align-items:center;justify-content:center}.big img{max-width:100%;max-height:100%}
@@ -59,6 +61,13 @@ nav button b{font-size:20px;line-height:1}nav button.on{color:var(--g);font-weig
 .err{color:var(--bad);font-size:13.5px;margin-top:8px}
 .load{text-align:center;color:var(--mut);padding:50px 10px}
 .empty{text-align:center;color:var(--mut);padding:30px 10px}
+#intro{position:fixed;inset:0;z-index:50;background:#000;display:flex;align-items:center;justify-content:center;transition:opacity .5s}#intro[hidden]{display:none}#intro.out{opacity:0}
+#intro video{width:100%;height:100%;object-fit:cover}#intro .it1{position:absolute;bottom:calc(70px + env(safe-area-inset-bottom));left:0;right:0;text-align:center;color:#f5d27a;font-size:20px;font-weight:800;text-shadow:0 2px 10px #000;animation:itin 1.2s ease 1s both}
+#intro .it1 small{display:block;color:#fff;font-size:13px;font-weight:600;margin-top:4px}@keyframes itin{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+#introX{position:absolute;top:calc(14px + env(safe-area-inset-top));left:14px;background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:20px;padding:7px 14px;font:inherit;font-size:13px}
+#intro .inoff{position:absolute;bottom:calc(22px + env(safe-area-inset-bottom));left:0;right:0;text-align:center;color:#ccc;font-size:12.5px}
+.nav2{display:flex;gap:8px;margin-top:10px}.nav2 a{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;border-radius:12px;padding:12px 6px;font-weight:700;font-size:15px;text-decoration:none;color:#fff}
+.nav2 .gm{background:#1a73e8}.nav2 .wz{background:#33ccff;color:#05233a}.navh{font-weight:700;color:var(--g);margin-top:10px;font-size:14px}
 .cc{background:linear-gradient(180deg,#06142a,#0a1f3c);color:#dff7ff;border-radius:16px;padding:12px;margin-bottom:10px;box-shadow:0 2px 10px rgba(0,0,0,.2)}
 .cc h3{margin:0 0 8px;font-size:13px;color:#38e8ff;font-weight:700;letter-spacing:.3px;border-bottom:1px solid rgba(56,232,255,.2);padding-bottom:5px}
 .cck{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.cck div{border:1px solid rgba(56,232,255,.22);background:rgba(56,232,255,.06);border-radius:8px;padding:7px 6px;text-align:center}
@@ -66,6 +75,7 @@ nav button b{font-size:20px;line-height:1}nav button.on{color:var(--g);font-weig
 .ccr{display:grid;grid-template-columns:1fr 46px 54px 46px;gap:6px;align-items:center;font-size:13px;padding:7px 0;border-top:1px solid rgba(56,232,255,.12)}.ccr.h{font-size:11px;color:#8fb3c9;border-top:0;padding-top:0}
 .ccr .n{text-align:center;font-weight:700}.ccr .mini{display:block;height:4px;background:rgba(56,232,255,.15);border-radius:3px;margin-top:3px}.ccr .mini i{display:block;height:100%;border-radius:3px}
 .ccs{margin:7px 0}.ccs .t{display:flex;justify-content:space-between;font-size:12.5px}.ccs .tr{height:6px;background:rgba(56,232,255,.12);border-radius:4px;position:relative;margin-top:4px}.ccs .tr i{position:absolute;inset-block:0;right:0;background:#38e8ff;border-radius:4px}.ccs .tr u{position:absolute;inset-block:-2px;width:2px;background:#ffc23d}
+.ccmap{display:block;width:100%;height:auto;max-height:62vh;background:radial-gradient(ellipse at 45% 45%,rgba(14,111,143,.25),transparent 70%);border:1px solid rgba(56,232,255,.18);border-radius:10px}.ccmap [data-d]{cursor:pointer}
 .cca{display:flex;gap:8px;align-items:flex-start;font-size:13px;padding:6px 0;line-height:1.6}.cca i{width:9px;height:9px;border-radius:50%;flex:none;margin-top:6px;background:#ff4d6a;box-shadow:0 0 8px #ff4d6a}.cca.w i{background:#ffc23d;box-shadow:0 0 8px #ffc23d}.cca.g i{background:#3dffa8;box-shadow:0 0 8px #3dffa8}
 #map{height:calc(100vh - 210px - env(safe-area-inset-bottom));border-radius:14px;overflow:hidden;background:#dfe7e2}
 .mlg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;margin:0 2px 8px}.mlg span{display:inline-flex;align-items:center;gap:4px}.mlg i{width:10px;height:10px;border-radius:50%;display:inline-block}
@@ -78,10 +88,11 @@ nav button b{font-size:20px;line-height:1}nav button.on{color:var(--g);font-weig
 </style>
 </head>
 <body>
-<header><div><h1>موقف المشاريع</h1><small>محافظة الأنبار — قسم الشؤون الهندسية</small></div><span class="sp"></span><button class="hbtn" id="bRef" type="button">🔄 تحديث</button></header>
+<header><div><h1>صفحة كبار الشخصيات للاطلاع</h1><small>موقف المشاريع — محافظة الأنبار / قسم الشؤون الهندسية</small></div><span class="sp"></span><button class="hbtn" id="bRef" type="button">🔄 تحديث</button></header>
 <div class="upd" id="upd"></div>
 <main id="main"><div class="load">⏳ جارٍ التحميل…</div></main>
 <nav id="nav" hidden><button class="on" data-v="sit"><b>📊</b>الموقف</button><button data-v="cc"><b>🛰</b>المركز</button><button data-v="map"><b>📍</b>الخريطة</button><button data-v="eng"><b>👷</b>المشرفون</button><button data-v="pl"><b>📐</b>التخطيط</button></nav>
+<div id="intro" hidden><video id="introV" muted playsinline webkit-playsinline preload="auto"></video><div class="it1">صفحة كبار الشخصيات للاطلاع<small>محافظة الأنبار — قسم الشؤون الهندسية</small></div><button type="button" id="introX">تخطي ✕</button><label class="inoff"><input type="checkbox" id="introOff"> عدم عرض المقدمة مرة أخرى</label></div>
 <div class="sheet" id="sheet" hidden><div class="sh" id="sh"></div></div>
 <script>
 /* أي خطأ في الصفحة يُكتب على الشاشة (للتشخيص على iPhone) بدل أن تبقى «جارٍ التحميل» */
@@ -226,10 +237,37 @@ function cc(){const all=P();if(!all.length){$('main').innerHTML='<div class="emp
      <div><b>${T.n}</b><span>مشروع</span></div><div><b style="color:${ccol(T.act)}">${T.act==null?'—':T.act.toFixed(1)+'%'}</b><span>الإنجاز الفعلي</span></div><div><b>${T.plan==null?'—':T.plan.toFixed(1)+'%'}</b><span>المخطط</span></div>
      <div><b style="color:${dev!=null&&dev<0?'#ff4d6a':'#3dffa8'}">${dev==null?'—':(dev>0?'+':'')+dev.toFixed(1)+'%'}</b><span>الانحراف</span></div><div><b>${T.fin==null?'—':T.fin.toFixed(0)+'%'}</b><span>نسبة الصرف</span></div><div><b>${compact(T.cost)}</b><span>الكلفة</span></div>
      <div><b style="color:#3dffa8">${T.done}</b><span>منجز</span></div><div><b style="color:#ffc23d">${T.lag}</b><span>متلكئ</span></div><div><b style="color:#ff4d6a">${T.stop}</b><span>متوقف</span></div></div></div>
+   <div class="cc"><h3>خريطة الأقضية — نسبة الإنجاز الفعلي وعدد المشاريع (اضغط على القضاء)</h3>${ccMap(D)}
+     <div class="mlg" style="color:#cfe3f5;margin:6px 0 0"><span><i style="background:#3dffa8"></i>≥ 70%</span><span><i style="background:#38e8ff"></i>50–69%</span><span><i style="background:#ffc23d"></i>30–49%</span><span><i style="background:#ff4d6a"></i>&lt; 30%</span></div></div>
    <div class="cc"><h3>ترتيب الأقضية — اضغط على القضاء لعرض مشاريعه</h3><div class="ccr h"><span>القضاء</span><span class="n">مشاريع</span><span class="n">فعلي</span><span class="n">صرف</span></div>
      ${D.map(d=>`<div class="ccr" data-d="${esc(d.d)}" style="cursor:pointer"><span>${esc(d.d)}</span><span class="n">${d.n}</span><span class="n" style="color:${ccol(d.act)}">${d.act==null?'—':d.act.toFixed(0)+'%'}<span class="mini"><i style="width:${d.act||0}%;background:${ccol(d.act)}"></i></span></span><span class="n">${d.fin==null?'—':d.fin.toFixed(0)+'%'}</span></div>`).join('')}</div>
    <div class="cc"><h3>⚠ إنذارات</h3>${A.slice(0,8).map(a=>`<div class="cca ${a[0]}"><i></i><span>${esc(a[1])}</span></div>`).join('')||'<div class="cca g"><i></i><span>لا توجد إنذارات</span></div>'}</div>
    <div class="cc"><h3>القطاعات — الإنجاز الفعلي (والخط الأصفر = المخطط)</h3>${SE.map(x=>`<div class="ccs"><div class="t"><span>${esc(x.s)} <small style="color:#8fb3c9">(${x.n})</small></span><b>${x.act==null?'—':x.act.toFixed(0)+'%'}</b></div><div class="tr"><i style="width:${x.act||0}%"></i>${x.plan!=null?`<u style="right:${Math.min(100,x.plan)}%"></u>`:''}</div></div>`).join('')}</div>`;}
+
+/* خريطة الأقضية كما في «مركز المتابعة» في البرنامج: حدود الأنبار وأقضيتها ونواحيها (من ملف الحدود الإدارية نفسه)، كل قضاء بلون نسبة إنجازه الفعلي، ودوائر بعدد المشاريع ونسبتها، ونقاط المشاريع */
+const GEO=/*GEO*/null;
+const dkey=s=>normD(s).replace(/^ال/,'').replace(/[ةه]$/,'ه').replace(/\s+/g,'');
+function ccMap(D){if(!GEO||!GEO.outline)return '';
+  const W=600,H=430,LAT=[30.85,35.35],LNG=[38.5,44.7],xy=(la,ln)=>[20+(ln-LNG[0])/(LNG[1]-LNG[0])*(W-40),15+(LAT[1]-la)/(LAT[1]-LAT[0])*(H-30)];
+  const pth=(pts,cl)=>pts.map((p,i)=>(i?'L':'M')+xy(p[0],p[1]).map(v=>v.toFixed(1)).join(',')).join(' ')+(cl?' Z':'');
+  const O=GEO.outline.map(p=>xy(p[0],p[1])),xs=O.map(p=>p[0]),ys=O.map(p=>p[1]),x0=Math.min(...xs)-14,y0=Math.min(...ys)-14,vw=Math.max(...xs)-x0+44,vh=Math.max(...ys)-y0+20;
+  const k=vw/300,by={};D.forEach(d=>{by[dkey(d.d)]=d;});   /* k: الخطوط والدوائر بحجم مقروء على شاشة الهاتف */
+  const cen={};(GEO.subs||[]).forEach(sb=>{const k=dkey(sb.d),c=cen[k]||(cen[k]={n:sb.d,x:0,y:0,w:0});sb.p.forEach(q=>{const [x,y]=xy(q[0],q[1]);c.x+=x;c.y+=y;c.w++;});});
+  const cells=(GEO.subs||[]).map(sb=>{const d=by[dkey(sb.d)];return `<path d="${pth(sb.p,true)}" fill="${d?ccol(d.act):'#28415f'}" fill-opacity="${d?.42:.3}" stroke="#9fefff" stroke-opacity=".5" stroke-width=".7" stroke-dasharray="3 3"${d?` data-d="${esc(d.d)}"`:''}><title>${esc(sb.n)} — قضاء ${esc(sb.d)}</title></path>`;}).join('');
+  const dl=(GEO.dists||[]).map(q=>`<path d="${pth(q.p,true)}" fill="none" stroke="#d6f6ff" stroke-opacity=".75" stroke-width="1.3" pointer-events="none"/>`).join('');
+  const pins=P().map(p=>{const c=coord(p);if(!c)return '';const [x,y]=xy(c.lat,c.lng);return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(2.6*k).toFixed(1)}" fill="${KC[stKind(p.status)]}" stroke="#fff" stroke-width=".4" pointer-events="none"/>`;}).join('');
+  /* دوائر الأقضية: تُبعَد المتداخلة عن بعضها (بحد أقصى للإزاحة) ويُرسم خط رفيع الى الموضع الحقيقي — كما في خريطة البرنامج */
+  const nodes=Object.entries(cen).filter(([kk,c])=>c.w).map(([kk,c])=>{const d=by[kk],x=c.x/c.w,y=c.y/c.w;return {d,n:c.n,x,y,x0:x,y0:y,r:d?(6+Math.min(5,Math.sqrt(d.n)))*k:0};});
+  const act=nodes.filter(n=>n.d),MAXD=70*k;
+  for(let it=0;it<160;it++){for(let a=0;a<act.length;a++)for(let b=a+1;b<act.length;b++){const A=act[a],B=act[b],dx=(B.x-A.x)||.01*(a-b),dy=(B.y-A.y)||.01,sx=A.r+B.r+44*k,sy=A.r+B.r+22*k,nx=Math.abs(dx)/sx,ny=Math.abs(dy)/sy;
+      if(nx<1&&ny<1){if(nx>ny){const m=(1-nx)*sx/2*Math.sign(dx);A.x-=m;B.x+=m;}else{const m=(1-ny)*sy/2*Math.sign(dy);A.y-=m;B.y+=m;}}}
+    act.forEach(n=>{const ddx=n.x-n.x0,ddy=n.y-n.y0,dd=Math.hypot(ddx,ddy);if(dd>MAXD){n.x=n.x0+ddx*MAXD/dd;n.y=n.y0+ddy*MAXD/dd;}
+      n.x=Math.max(x0+n.r+26*k,Math.min(x0+vw-n.r-26*k,n.x));n.y=Math.max(y0+n.r+2*k,Math.min(y0+vh-n.r-12*k,n.y));});}
+  const lbl=nodes.map(n=>{const {d,x,y,r}=n,f=v=>v.toFixed(1);
+    if(!d)return `<text x="${f(x)}" y="${f(y)}" text-anchor="middle" font-size="${f(7.5*k)}" fill="#8fb3c9" paint-order="stroke" stroke="#030a14" stroke-width="${f(2*k)}" pointer-events="none">${esc(n.n)}</text>`;
+    return `<g data-d="${esc(d.d)}">${Math.hypot(x-n.x0,y-n.y0)>r?`<line x1="${f(n.x0)}" y1="${f(n.y0)}" x2="${f(x)}" y2="${f(y)}" stroke="#9fefff" stroke-opacity=".6" stroke-width="${f(.8*k)}"/><circle cx="${f(n.x0)}" cy="${f(n.y0)}" r="${f(1.6*k)}" fill="#9fefff"/>`:''}<circle cx="${f(x)}" cy="${f(y)}" r="${f(r)}" fill="#06142a" fill-opacity=".8" stroke="${ccol(d.act)}" stroke-width="${f(1.4*k)}"/><text x="${f(x)}" y="${f(y+2.8*k)}" text-anchor="middle" font-size="${f(8*k)}" font-weight="700" fill="#fff">${d.n}</text><text x="${f(x)}" y="${f(y+r+9*k)}" text-anchor="middle" font-size="${f(8.5*k)}" font-weight="700" fill="#fff" paint-order="stroke" stroke="#030a14" stroke-width="${f(2.4*k)}">${esc(n.n)} <tspan fill="${ccol(d.act)}">${d.act==null?'':d.act.toFixed(0)+'%'}</tspan></text></g>`;}).join('');
+  return `<svg class="ccmap" viewBox="${x0.toFixed(1)} ${y0.toFixed(1)} ${vw.toFixed(1)} ${vh.toFixed(1)}" role="img" aria-label="خريطة أقضية محافظة الأنبار">
+    <path d="${pth(GEO.outline,true)}" fill="#0e6f8f" fill-opacity=".3"/>${cells}${dl}<path d="${pth(GEO.outline,true)}" fill="none" stroke="#5ff3ff" stroke-width="2" style="filter:drop-shadow(0 0 4px #38e8ff)"/>${pins}${lbl}</svg>`;}
 
 /* ---------- الخريطة التفاعلية (Leaflet + خرائط OpenStreetMap، تُحمَّل عند أول فتح) ---------- */
 let LF=null,MP=null;
@@ -270,11 +308,14 @@ function card(fn){const p=P().find(x=>String(x.fileNo)===String(fn));if(!p)retur
   const ae=has(p.actualEnd)?p.actualEnd:M.actualEnd;
   const photos=String(M.photos||'').split(';').filter(n=>/^p[0-9a-z]{6,16}\.jpg$/.test(n));
   $('sh').innerHTML=`<div class="shh"><h2>${esc(p.name)}<small>${esc([p.fileNo&&'اضبارة '+p.fileNo,p.contractor].filter(Boolean).join(' — '))}</small></h2><button class="hbtn" id="shX" type="button">✕</button></div>
+   <div class="shb"><button type="button" id="shPdf">📄 حفظ PDF / مشاركة</button><a id="shWa" target="_blank" rel="noopener" href="${esc(waLink(p))}">🟢 إرسال بالواتساب</a></div><div class="shm" id="shMsg" hidden></div>
    <div class="sec"><div class="pg"><div class="l"><span>الحالة</span>${chip(p.status)}</div>
     <div class="l"><span>الإنجاز الفعلي</span><b>${pc(p.actualPct)}%</b></div>${bar(p.actualPct,p.planPct,KC[stKind(p.status)])}<div class="l"><span>المخطط</span><b>${pc(p.planPct)}%</b></div></div></div>
    ${photos.length?`<div class="sec"><h3>📷 صور المشروع</h3><div class="ph">${photos.map(n=>`<div class="ld" data-ph="${esc(n)}">⏳</div>`).join('')}</div></div>`:''}
    ${c?`<div class="sec"><h3>📍 الموقع</h3>${fld('الاحداثيات',c.lat+' , '+c.lng)}
-     <a class="route" id="route" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(c.lat+','+c.lng)}&travelmode=driving" target="_blank" rel="noopener">🧭 الطريق إلى المشروع</a>
+     <div class="navh">🧭 وصّلني الى المشروع (من موقعي الحالي):</div>
+     <div class="nav2"><a class="gm" id="route" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(c.lat+','+c.lng)}&travelmode=driving" data-app="comgooglemaps://?daddr=${encodeURIComponent(c.lat+','+c.lng)}&directionsmode=driving" target="_blank" rel="noopener">Google Maps</a>
+      <a class="wz" id="routeW" href="https://waze.com/ul?ll=${encodeURIComponent(c.lat+','+c.lng)}&navigate=yes" data-app="waze://?ll=${encodeURIComponent(c.lat+','+c.lng)}&navigate=yes" target="_blank" rel="noopener">Waze</a></div>
      <a class="route2" id="route2" href="https://maps.apple.com/?daddr=${encodeURIComponent(c.lat+','+c.lng)}&dirflg=d" target="_blank" rel="noopener">أو بخرائط Apple</a></div>`:''}
    <div class="sec"><h3>بيانات المشروع والعقد</h3>${fld('رقم العقد',esc([p.contractNo,p.year].filter(has).join(' / ')))}${fld('برنامج التمويل',esc(p.fund))}${fld('الجهة المستفيدة',esc(p.sector))}${fld('القضاء / الناحية',esc([p.district,p.sub].filter(Boolean).join(' / ')))}${fld('الإجراءات القانونية',esc(p.legal))}</div>
    <div class="sec"><h3>الكلفة</h3>${fld('الكلفة الأصلية',fmt(p.orig))}${fld('كلفة أوامر التغيير',has(p.changeCost)?fmt(p.changeCost):'')}${fld('الكلفة الكلية',has(p.total)?fmt(p.total):'')}${fld('الكلفة المصادقة',has(p.approvedCost)?fmt(p.approvedCost):'')}</div>
@@ -282,8 +323,33 @@ function card(fn){const p=P().find(x=>String(x.fileNo)===String(fn));if(!p)retur
    <div class="sec"><h3>السلف (موقف اللجنة)</h3>${fld('المرفوعة',fmt(p.advRaised))}${fld('المصروفة',fmt(p.advPaid))}${fld('المتبقي للصرف',fmt(num(p.advRaised)-num(p.advPaid)))}</div>
    ${has(p.resident)||has(p.residentOffice)||has(p.supervisor)||(p.staff||[]).length?`<div class="sec"><h3>الإشراف</h3>${fld('المهندس المقيم',esc(p.resident))}${fld('دائرة المقيم',esc(p.residentOffice))}${fld('المهندس المشرف',esc(p.supervisor))}${(p.staff||[]).filter(x=>x&&has(x.name)&&RN(x.name)!==RN(p.resident)&&RN(x.name)!==RN(p.supervisor)).map(x=>fld(esc(x.role||'مشرف'),esc(x.name))).join('')}${has(p.phone)?fld('الهاتف',`<a href="tel:${esc(String(p.phone).replace(/[^\d+]/g,''))}">${esc(p.phone)}</a>`):''}</div>`:''}
    ${has(p.notes)?`<div class="sec"><h3>الملاحظات</h3><div style="line-height:1.8;font-size:14px">${esc(p.notes)}</div></div>`:''}`;
-  $('sheet').hidden=false;$('sh').scrollTop=0;$('shX').onclick=()=>{$('sheet').hidden=true;};
+  $('sheet').hidden=false;$('sh').scrollTop=0;$('shX').onclick=()=>{$('sheet').hidden=true;};$('shPdf').onclick=()=>cardPdf(p);
   photos.forEach(n=>photo(String(p.fileNo),n).then(u=>{const el=document.querySelector(`#sh [data-ph="${n}"]`);if(!el)return;if(!u){el.textContent='تعذّر التحميل';return;}const i=new Image();i.src=u;i.dataset.big='1';el.replaceWith(i);}));}
+/* إرسال بطاقة المشروع بالواتساب: ملخص نصي + رابط الموقع؛ وحفظ البطاقة PDF (صورة البطاقة كما تظهر، فلا يتغير شكل الكتابة العربية) */
+function cardText(p){const c=coord(p),L=[`*${p.name||''}*`,p.fileNo?`اضبارة: ${p.fileNo}`:'',p.contractor?`الشركة: ${p.contractor}`:'',[p.district,p.sub].filter(Boolean).length?`القضاء: ${[p.district,p.sub].filter(Boolean).join(' / ')}`:'',
+  p.status?`الحالة: ${p.status}`:'',`الإنجاز الفعلي: ${pc(p.actualPct)}% — المخطط: ${pc(p.planPct)}%`,has(p.total)||has(p.orig)?`الكلفة: ${fmt(has(p.total)?p.total:p.orig)} دينار`:'',
+  has(p.advRaised)?`السلف المرفوعة: ${fmt(p.advRaised)} — المصروفة: ${fmt(p.advPaid)}`:'',p.resident?`المهندس المقيم: ${p.resident}`:'',c?`الموقع: https://www.google.com/maps?q=${c.lat},${c.lng}`:'',
+  PKG&&PKG.at?`(موقف حاسبة القسم بتاريخ ${tm(PKG.at)})`:''];return L.filter(Boolean).join('\n');}
+const waLink=p=>'https://wa.me/?text='+encodeURIComponent(cardText(p));
+const libs={};const lib=(n,u)=>libs[n]||(libs[n]=new Promise((res,rej)=>{const j=document.createElement('script');j.src=u;j.onload=()=>res(1);j.onerror=()=>{delete libs[n];rej(new Error('تعذّر تحميل أداة PDF — تحقق من الإنترنت'));};document.head.appendChild(j);}));
+async function cardPdf(p){const msg=t=>{const m=$('shMsg');if(m){m.hidden=!t;m.textContent=t||'';}};
+  msg('⏳ جارٍ تجهيز ملف PDF…');
+  try{await lib('h2c','https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');await lib('jspdf','https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+    const box=document.createElement('div');box.id='pdfBox';box.dir='rtl';box.style.cssText='position:fixed;left:-12000px;top:0;width:720px;background:#fff;padding:0 0 10px;font-family:inherit;color:#1d2a22';
+    const sh=$('sh').cloneNode(true);sh.querySelectorAll('.shb,.shm,#shX,.route,.route2').forEach(x=>x.remove());sh.removeAttribute('id');sh.style.cssText='max-height:none;overflow:visible;border-radius:0;background:#eef2ee';
+    sh.querySelectorAll('.shh').forEach(x=>{x.style.position='static';x.style.borderRadius='0';});
+    box.appendChild(sh);const ft=document.createElement('div');ft.style.cssText='text-align:center;font-size:12px;color:#6b7a72;padding:8px';ft.textContent='قسم الشؤون الهندسية — محافظة الأنبار'+(PKG&&PKG.at?' — موقف بتاريخ '+tm(PKG.at):'');box.appendChild(ft);document.body.appendChild(box);
+    let cv;try{cv=await html2canvas(box,{scale:2,backgroundColor:'#ffffff',useCORS:true,logging:false});}finally{box.remove();}
+    const {jsPDF}=window.jspdf,doc=new jsPDF({unit:'mm',format:'a4',orientation:'portrait'}),pw=210,ph=297,m=8,iw=pw-2*m,pxPerMm=cv.width/iw,pageH=Math.floor((ph-2*m)*pxPerMm);
+    for(let y=0,i=0;y<cv.height;y+=pageH,i++){const h=Math.min(pageH,cv.height-y),c2=document.createElement('canvas');c2.width=cv.width;c2.height=h;c2.getContext('2d').drawImage(cv,0,y,cv.width,h,0,0,cv.width,h);
+      if(i)doc.addPage();doc.addImage(c2.toDataURL('image/jpeg',.9),'JPEG',m,m,iw,h/pxPerMm);}
+    const name=('مشروع-'+(p.fileNo||'')+'-'+String(p.name||'').slice(0,40)).replace(/[\\/:*?"<>|]+/g,' ').trim()+'.pdf',blob=doc.output('blob');
+    window.__lastPdf={name,size:blob.size,pages:doc.getNumberOfPages()};
+    const file=new File([blob],name,{type:'application/pdf'});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:p.name||'بطاقة مشروع',text:p.name||''});msg('');return;}catch(e){if(e&&e.name==='AbortError'){msg('');return;}}}
+    const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;a.target='_blank';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000);
+    msg('✔ جُهّز الملف «'+name+'» — إن لم تظهر نافذة الحفظ/المشاركة، استخدم «🟢 إرسال بالواتساب» للنص');
+  }catch(e){msg('⚠ '+(e&&e.message||e));}}
 const PHC={};
 async function photo(fn,name){const k=fn+'/'+name;if(PHC[k])return PHC[k];const ph=PKG.ph||{};const key=Object.keys(ph).find(x=>ph[x].fn===fn&&x.endsWith('/'+name));if(!key)return null;
   try{const b=await unseal(C.key,await getBin(ph[key].id));if(!(b[0]===0xff&&b[1]===0xd8))return null;return (PHC[k]=URL.createObjectURL(new Blob([b],{type:'image/jpeg'})));}catch(_){return null;}}
@@ -299,7 +365,23 @@ $('bRef').onclick=async()=>{if(!C)return;$('bRef').disabled=true;status('⏳ ج�
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&C&&PKG&&Date.now()-(load.last||0)>120000){load.last=Date.now();load(true);}});
 setInterval(()=>{if(!document.hidden&&C){load.last=Date.now();load(true);}},5*60*1000);
 
-(async()=>{const h=parseCode(await hashCode()),s=parseCode(LS.get('vw_code'));C=h||s;
+/* «وصّلني»: يفتح تطبيق Google Maps أو Waze مباشرة إن كان مثبتاً، وإلا رابط الويب نفسه (الذي يفتح التطبيق أو الخرائط في المتصفح) */
+document.addEventListener('click',e=>{const a=e.target.closest&&e.target.closest('a[data-app]');if(!a)return;if(!/iPhone|iPad|iPod|Android/i.test(navigator.userAgent))return;
+  e.preventDefault();const web=a.href,app=a.dataset.app;let gone=false;const vis=()=>{if(document.hidden)gone=true;};document.addEventListener('visibilitychange',vis);
+  try{window.top.location.href=app;}catch(_){try{window.location.href=app;}catch(__){}}
+  setTimeout(()=>{document.removeEventListener('visibilitychange',vis);if(!gone&&!document.hidden)window.open(web,'_blank');},1600);},true);
+/* فيديو المقدمة عند التشغيل (فيديو البرنامج نفسه مصغّراً) — يُحمَّل مرة ويُحفظ في الهاتف، ويُتخطى بزر، أو يُلغى بـ«عدم عرض المقدمة مرة أخرى» */
+function introRun(){if(LS.get('vw_intro_off')==='1')return;const box=$('intro'),v=$('introV');let done=false;
+  const end=()=>{if(done)return;done=true;box.classList.add('out');setTimeout(()=>{box.hidden=true;try{v.pause();v.removeAttribute('src');v.load();}catch(_){}},500);};
+  $('introX').onclick=end;$('introOff').onchange=e=>{if(e.target.checked){LS.set('vw_intro_off','1');end();}};
+  const get=()=>{const c=LS.get('vw_intro_b64');if(c)return Promise.resolve(c);
+    if(window.google&&google.script&&google.script.run)return new Promise(r=>google.script.run.withSuccessHandler(b=>r(b||'')).withFailureHandler(()=>r('')).vwIntro());
+    return fetch((window.VW_DEV_INTRO||'intro.html')).then(r=>r.ok?r.text():'').then(t=>t.replace(/[^A-Za-z0-9+/=]/g,'')).catch(()=>'');};
+  box.hidden=false;const t0=setTimeout(end,9000);   // لا تنتظر المقدمة أكثر من 9 ثوانٍ إن لم تصل
+  get().then(b=>{if(!b||done){if(!b)end();return;}if(!LS.get('vw_intro_b64'))LS.set('vw_intro_b64',b);clearTimeout(t0);
+    const u=URL.createObjectURL(new Blob([fromB64(b)],{type:'video/mp4'}));v.src=u;v.onended=end;v.onerror=end;setTimeout(end,14000);
+    const pr=v.play();if(pr&&pr.catch)pr.catch(()=>end());window.__introPlayed=1;});}
+(async()=>{introRun();const h=parseCode(await hashCode()),s=parseCode(LS.get('vw_code'));C=h||s;
   if(h&&(!s||s.code!==h.code)){LS.set('vw_code',h.code);LS.del('vw_pkg');}
   if(!C){status('');return linkScreen('');}
   $('main').innerHTML='<div class="load">⏳ جارٍ قراءة الرمز…</div>';

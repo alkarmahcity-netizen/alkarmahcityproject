@@ -17,15 +17,19 @@ const sleep = ms => new Promise(r => setTimeout(r, ms)); const R = []; const ok 
   const html = fs.readFileSync(path.join(__dirname, 'iphone', 'build', 'index.html'), 'utf8');
   let hits = 0;
   const srv = http.createServer((q, s) => { const u = new URL(q.url, 'http://x'); let m;
+    if (u.pathname === '/intro.html') { s.writeHead(200, { 'Content-Type': 'text/plain' }); return s.end(fs.readFileSync(path.join(__dirname, 'iphone', 'build', 'intro.html'))); }
     if (u.pathname === '/') { s.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }); return s.end(html); }
     if ((m = u.pathname.match(/^\/dl\/(\w+)$/))) { hits++; if (!FILES[m[1]]) { s.writeHead(404); return s.end(); } s.writeHead(200); return s.end(FILES[m[1]]); }
     s.writeHead(404); s.end(); });
   await new Promise(r => srv.listen(48660, '127.0.0.1', r)); const B = 'http://127.0.0.1:48660/';
   const br = await chromium.launch(); const ctx = await br.newContext({ ...devices['iPhone 13'], deviceScaleFactor: process.env.UNI_TEST_SHOT ? 2 : 1 });
-  await ctx.addInitScript(() => { window.VW_DEV_DL = '/dl/'; });
+  await ctx.addInitScript(() => { window.VW_DEV_DL = '/dl/'; window.VW_DEV_INTRO = '/intro.html'; try { if (!sessionStorage.getItem('introTest')) localStorage.setItem('vw_intro_off', '1'); } catch (_) {} });
   await ctx.route(/cdnjs\.cloudflare\.com\/.*leaflet\.min\.(js|css)$/, r => { const js = /\.js$/.test(r.request().url()); const f = path.join(__dirname, 'shell', 'vendor', js ? 'leaflet.js' : 'leaflet.css');
     return fs.existsSync(f) ? r.fulfill({ status: 200, contentType: js ? 'application/javascript' : 'text/css', body: fs.readFileSync(f) }) : r.fulfill({ status: 200, contentType: 'text/css', body: '' }); });
   await ctx.route(/tile\.openstreetmap\.org/, r => r.fulfill({ status: 404, body: '' }));
+  const LIBS = process.env.UNI_TEST_LIBS || '';   // نسخ html2canvas و jsPDF (للاختبار فقط — في الهاتف تُحمَّل من cdnjs)
+  await ctx.route(/cdnjs\.cloudflare\.com\/ajax\/libs\/(html2canvas|jspdf)\//, r => { const u = r.request().url(), f = /html2canvas/.test(u) ? path.join(LIBS, 'html2canvas-1.4.1/package/dist/html2canvas.min.js') : path.join(LIBS, 'jspdf-2.5.1/package/dist/jspdf.umd.min.js');
+    return fs.existsSync(f) ? r.fulfill({ status: 200, contentType: 'application/javascript', body: fs.readFileSync(f) }) : r.fulfill({ status: 404, body: '' }); });
   const pg = await ctx.newPage(); const errs = []; pg.on('pageerror', e => errs.push(String(e)));
   await pg.goto(B + '#' + code); await sleep(1500);
   ok('opens with the code in the link: projects list + summary', await pg.evaluate(() => document.querySelectorAll('.it[data-fn]').length === 3 && /عدد المشاريع/.test(document.body.textContent) && /آخر تحديث من حاسبة القسم/.test(document.getElementById('upd').textContent)));
@@ -36,9 +40,15 @@ const sleep = ms => new Promise(r => setTimeout(r, ms)); const R = []; const ok 
   await pg.click('.it[data-fn="501"]'); await sleep(1200);
   if (process.env.UNI_TEST_SHOT) await pg.screenshot({ path: path.join(process.env.UNI_TEST_SHOT, 'ip-card.png') });
   const href = await pg.evaluate(() => (document.getElementById('route') || {}).href || '');
-  ok('project card: «🧭 الطريق إلى المشروع» → Google Maps directions from current location (driving), plus Apple Maps', /^https:\/\/www\.google\.com\/maps\/dir\/\?api=1&destination=33\.4258%2C43\.2994&travelmode=driving$/.test(href) && await pg.evaluate(() => /maps\.apple\.com\/\?daddr=33\.4258%2C43\.2994&dirflg=d/.test(document.getElementById('route2').href) && document.getElementById('route').target === '_blank'), href);
+  ok('project card: «وصّلني الى المشروع» → Google Maps app (comgooglemaps://) or Waze app (waze://), web links as fallback, plus Apple Maps', /^https:\/\/www\.google\.com\/maps\/dir\/\?api=1&destination=33\.4258%2C43\.2994&travelmode=driving$/.test(href) && await pg.evaluate(() => { const g = document.getElementById('route'), w = document.getElementById('routeW'); return /^comgooglemaps:\/\/\?daddr=33\.4258%2C43\.2994&directionsmode=driving$/.test(g.dataset.app) && /^https:\/\/waze\.com\/ul\?ll=33\.4258%2C43\.2994&navigate=yes$/.test(w.href) && /^waze:\/\/\?ll=33\.4258%2C43\.2994&navigate=yes$/.test(w.dataset.app) && /maps\.apple\.com\/\?daddr=33\.4258%2C43\.2994&dirflg=d/.test(document.getElementById('route2').href) && /وصّلني/.test(document.getElementById('sh').textContent); }), href);
   ok('project card: photo downloaded and decrypted on the phone', await pg.evaluate(() => [...document.querySelectorAll('#sh .ph img')].some(i => /^blob:/.test(i.src))));
   ok('project card: figures and phone link', await pg.evaluate(() => { const t = document.getElementById('sh').textContent; return /2,200,000,000/.test(t) && /200,000,000/.test(t) && /1\/3\/2025/.test(t) && !!document.querySelector('#sh a[href^="tel:07700000000"]'); }));
+  const wa = await pg.evaluate(() => (document.getElementById('shWa') || {}).href || '');
+  ok('card: «🟢 إرسال بالواتساب» → wa.me with the project summary and location link', /^https:\/\/wa\.me\/\?text=/.test(wa) && /مشروع الهاتف الأول/.test(decodeURIComponent(wa.split('text=')[1])) && /الإنجاز الفعلي: 40%/.test(decodeURIComponent(wa.split('text=')[1])) && /maps\?q=33\.4258,43\.2994/.test(decodeURIComponent(wa.split('text=')[1])), decodeURIComponent(wa.split('text=')[1] || '').slice(0, 200));
+  if (LIBS) { const dlP = process.env.UNI_TEST_SHOT ? pg.waitForEvent('download', { timeout: 15000 }).catch(() => null) : null; await pg.click('#shPdf'); await sleep(6000);
+    if (dlP) { const dl = await dlP; if (dl) await dl.saveAs(path.join(process.env.UNI_TEST_SHOT, 'card.pdf')); }
+    const pdf = await pg.evaluate(() => window.__lastPdf || null);
+    ok('card: «📄 حفظ PDF / مشاركة» builds an A4 PDF of the project card', pdf && pdf.pages >= 1 && pdf.size > 20000 && /مشروع-501/.test(pdf.name), JSON.stringify(pdf) + ' ' + await pg.evaluate(() => (document.getElementById('shMsg') || {}).textContent)); }
   await pg.click('#shX'); await pg.click('.it[data-fn="502"]'); await sleep(500);
   ok('packed DMS coordinates (334145 / 424930) converted for the route', /destination=33\.69583\d*%2C42\.825/.test(await pg.evaluate(() => (document.getElementById('route') || {}).href || '')), await pg.evaluate(() => (document.getElementById('route') || {}).href || ''));
   await pg.click('#shX'); await pg.click('.it[data-fn="503"]'); await sleep(400);
@@ -46,6 +56,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms)); const R = []; const ok 
   await pg.click('#shX');
   await pg.click('nav button[data-v="cc"]'); await sleep(500);
   if (process.env.UNI_TEST_SHOT) await pg.screenshot({ path: path.join(process.env.UNI_TEST_SHOT, 'ip-cc.png'), fullPage: true });
+  ok('monitoring center: district map as in the program (Anbar districts/sub-districts colored by progress, project pins)', await pg.evaluate(() => { const sv = document.querySelector('svg.ccmap'); return !!sv && sv.querySelectorAll('path[data-d]').length >= 3 && sv.querySelectorAll('g[data-d]').length === 2 && sv.querySelectorAll('circle').length >= 4 && /الرمادي/.test(sv.textContent) && /هيت/.test(sv.textContent); }), await pg.evaluate(() => { const sv = document.querySelector('svg.ccmap'); return sv ? sv.querySelectorAll('path[data-d]').length + ' cells, ' + sv.querySelectorAll('g[data-d]').length + ' labels' : 'no map'; }));
   ok('monitoring center: KPIs, district ranking, alerts (stopped), sectors', await pg.evaluate(() => { const t = document.getElementById('main').textContent;
     return document.querySelectorAll('.ccr[data-d]').length === 2 && /مركز متابعة/.test(t) && /هيت: 1 مشروع متوقف/.test(t) && /القطاعات/.test(t) && /الانحراف/.test(t); }), await pg.evaluate(() => document.getElementById('main').textContent.slice(0, 300)));
   await pg.click('.ccr[data-d="هيت"]'); await sleep(400);
@@ -67,12 +78,22 @@ const sleep = ms => new Promise(r => setTimeout(r, ms)); const R = []; const ok 
   await pg.click('nav button[data-v="pl"]'); await sleep(400);
   ok('planning view with components', await pg.evaluate(() => /مشروع خطة تجريبي/.test(document.body.textContent) && /مكوّن الطريق/.test(document.body.textContent)));
   if (process.env.UNI_TEST_SHOT) { await pg.click('nav button[data-v="sit"]'); await sleep(300); await pg.evaluate(() => { document.getElementById('fd').value = ''; document.getElementById('fd').dispatchEvent(new Event('change')); }); await sleep(300); await pg.screenshot({ path: path.join(process.env.UNI_TEST_SHOT, 'ip-sit.png') }); }
+  ok('header: «صفحة كبار الشخصيات للاطلاع»', await pg.evaluate(() => /صفحة كبار الشخصيات للاطلاع/.test(document.querySelector('header h1').textContent) && /صفحة كبار الشخصيات/.test(document.title)));
+  { const ci = await br.newContext({ ...devices['iPhone 13'] }); await ci.addInitScript(() => { window.VW_DEV_DL = '/dl/'; window.VW_DEV_INTRO = '/intro.html'; });
+    const pi = await ci.newPage(); await pi.goto(B + '#' + code); await sleep(700);
+    const st = await pi.evaluate(() => ({ shown: !document.getElementById('intro').hidden || !!window.__introPlayed, title: document.querySelector('#intro .it1').textContent, src: document.getElementById('introV').src }));
+    await sleep(1500); const st2 = await pi.evaluate(() => ({ played: !!window.__introPlayed, cached: (localStorage.getItem('vw_intro_b64') || '').length }));
+    await pi.evaluate(() => document.getElementById('introX').click()); await sleep(800);
+    ok('intro video at start (the program intro, compressed), with «صفحة كبار الشخصيات للاطلاع», skip button; cached on the phone', st.shown && /صفحة كبار الشخصيات للاطلاع/.test(st.title) && st2.played && st2.cached > 300000 && await pi.evaluate(() => document.getElementById('intro').hidden && document.querySelectorAll('.it[data-fn]').length === 3), JSON.stringify([st.shown, st2]));
+    await pi.evaluate(() => localStorage.setItem('vw_intro_off', '1')); await pi.reload(); await sleep(800);
+    ok('«عدم عرض المقدمة مرة أخرى» keeps it off', await pi.evaluate(() => document.getElementById('intro').hidden && !window.__introPlayed));
+    await ci.close(); }
   /* الزيارة التالية بلا رمز في الرابط: الرمز محفوظ في الهاتف، ويُعرض المخزَّن فوراً */
   const pg2 = await ctx.newPage(); pg2.on('pageerror', e => errs.push(String(e))); await pg2.goto(B); await sleep(1200);
   ok('next visit without the code in the link still works (saved on the phone)', await pg2.evaluate(() => document.querySelectorAll('.it[data-fn]').length === 3));
   delete FILES.MAINFILE00001; await pg2.click('#bRef'); await sleep(800);
   ok('if the section stops the viewer: warning shown, last data kept', await pg2.evaluate(() => /غير متاح/.test(document.getElementById('upd').textContent) && document.querySelectorAll('.it[data-fn]').length === 3));
-  const ctx3 = await br.newContext({ ...devices['iPhone 13'] }); await ctx3.addInitScript(() => { window.VW_DEV_DL = '/dl/'; }); const p3 = await ctx3.newPage(); p3.on('pageerror', e => errs.push(String(e)));
+  const ctx3 = await br.newContext({ ...devices['iPhone 13'] }); await ctx3.addInitScript(() => { window.VW_DEV_DL = '/dl/'; window.VW_DEV_INTRO = '/intro.html'; }); const p3 = await ctx3.newPage(); p3.on('pageerror', e => errs.push(String(e)));
   await p3.goto(B); await sleep(600);
   ok('first visit without a code asks for it', await p3.evaluate(() => !!document.getElementById('cIn')));
   await p3.fill('#cIn', 'AV1.WRONG000001.' + b64u(crypto.randomBytes(16))); await p3.click('#cOk'); await sleep(600);

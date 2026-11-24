@@ -5,7 +5,7 @@
    التي تبدأ بعلامة ملف نسخة الاطلاع — فلا يصل أحد عبره إلى أي ملف آخر في بريد القسم. */
 function doGet() {
   return HtmlService.createHtmlOutputFromFile('index')
-    .setTitle('موقف المشاريع — محافظة الأنبار')
+    .setTitle('صفحة كبار الشخصيات للاطلاع — محافظة الأنبار')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1, viewport-fit=cover')
     .addMetaTag('apple-mobile-web-app-capable', 'yes');
 }
@@ -21,4 +21,9 @@ function vwGet(id) {
   var b = r.getBlob().getBytes();
   if (b.length < 31 || b[0] !== 65 || b[1] !== 86 || b[2] !== 49) throw new Error('الملف غير متاح للعرض (أُوقفت نسخة الاطلاع من حاسبة القسم؟)');
   return Utilities.base64Encode(b);
+}
+
+/* فيديو المقدمة (ملف «intro» في المشروع: الفيديو نفسه في البرنامج مصغّراً، مكتوباً Base64). إن لم يوجد الملف تُفتح الصفحة بلا مقدمة */
+function vwIntro() {
+  try { return HtmlService.createHtmlOutputFromFile('intro').getContent().replace(/[^A-Za-z0-9+\/=]/g, ''); } catch (e) { return ''; }
 }

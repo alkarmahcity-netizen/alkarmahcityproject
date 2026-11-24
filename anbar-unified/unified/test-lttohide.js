@@ -1,0 +1,22 @@
+// المخاطبات — المطالعة: علامة ☑ بجانب مستطيل «الى /» تُخفي «الى /» والجهات من المطبوع (وملف Word)، وإزالتها تُبقيها
+const { _electron: electron } = require('playwright'); const fs = require('fs'), path = require('path'), os = require('os');
+const sleep = ms => new Promise(r => setTimeout(r, ms)); const R = []; const ok = (n, c, d = '') => R.push([c ? 'PASS' : 'FAIL', n, d]);
+(async () => { const T = fs.mkdtempSync(path.join(os.tmpdir(), 'lttohide-')); const mk = n => { const d = path.join(T, n); fs.mkdirSync(d); return d; };
+  const app = await electron.launch({ executablePath: require('electron'), args: ['--no-sandbox', __dirname], env: { ...process.env, UNI_MULTI: mk('u'), UNI_DATA_DIR: mk('d'), ANBAR_REG_DIR: mk('r'), UNI_AC_PORT: '48523', UNI_NO_JSONSCAN: '1', UNI_NO_LINKREFRESH: '1', UNI_NO_INTRO: '1' } });
+  const pg = await app.firstWindow(); await pg.waitForLoadState('domcontentloaded'); await sleep(1500);
+  await pg.evaluate(() => window.desktop.go('lt')); await sleep(2500);
+  const lt = c => app.evaluate(async (_, c) => global.__uni.views.lt.webContents.executeJavaScript(c), c);
+  await lt(`(()=>{window.confirm=()=>true;document.querySelector('[data-act=new][data-t=memo]').click();const r=R();r.subject='مطالعة تجريبية';r.to='السيد نائب المحافظ للشؤون الفنية المحترم';touch();renderForm();renderPreview(true);return 1})()`); await sleep(1500);
+  const st = () => lt(`JSON.stringify({cb:!!document.querySelector('input[type=checkbox][data-b=toHide]'),checked:(document.querySelector('input[data-b=toHide]')||{}).checked,toBlk:document.querySelectorAll('.page .to').length,txt:[...document.querySelectorAll('.page')].map(p=>p.textContent).join(' '),issues:(typeof issues==='function'?JSON.stringify(issues(R())):'')})`).then(JSON.parse);
+  let s = await st();
+  ok('memo: «إخفاء «الى /»» checkbox beside the «الى /» box, unchecked by default; «الى /» printed', s.cb && !s.checked && s.toBlk === 1 && /الى \/|إلى \//.test(s.txt) && /نائب المحافظ/.test(s.txt), JSON.stringify({ cb: s.cb, checked: s.checked, toBlk: s.toBlk }));
+  await lt(`(()=>{const c=document.querySelector('input[data-b=toHide]');c.click();return 1})()`); await sleep(1500); s = await st();
+    ok('☑ checked: «الى /» and the recipient are not printed; the box keeps the text', s.checked && s.toBlk === 0 && !/نائب المحافظ للشؤون الفنية المحترم/.test(s.txt) && await lt(`R().to==='السيد نائب المحافظ للشؤون الفنية المحترم'&&R().toHide===true`), JSON.stringify({ toBlk: s.toBlk }));
+  ok('☑ checked: subject «م /» still printed', /م \/ مطالعة تجريبية/.test(s.txt));
+  await lt(`(()=>{const c=document.querySelector('input[data-b=toHide]');c.click();return 1})()`); await sleep(1500); s = await st();
+  ok('checkbox removed: «الى /» printed again', !s.checked && s.toBlk === 1 && /نائب المحافظ/.test(s.txt));
+  ok('letters (not memos) unchanged: no checkbox', await lt(`(()=>{const r=R();r.type='letter';touch();renderForm();renderPreview(true);return !document.querySelector('input[data-b=toHide]')&&document.querySelectorAll('.page .to').length===1})()`));
+  const e = await app.evaluate(() => (global.__uniErrors || []).slice()); ok('no JavaScript errors', e.length === 0, e.join(' | ').slice(0, 300));
+  await app.close();
+  R.forEach(x => console.log(x[0], x[1], x[2] ? '— ' + String(x[2]).slice(0, 300) : '')); console.log(`${R.filter(x => x[0] === 'PASS').length}/${R.length}`); process.exit(R.every(x => x[0] === 'PASS') ? 0 : 1);
+})().catch(e => { console.error(e); process.exit(1); });

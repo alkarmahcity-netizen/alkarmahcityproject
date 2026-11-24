@@ -84,6 +84,11 @@ nav button b{font-size:20px;line-height:1}nav button.on{color:var(--g);font-weig
 <nav id="nav" hidden><button class="on" data-v="sit"><b>📊</b>الموقف</button><button data-v="cc"><b>🛰</b>المركز</button><button data-v="map"><b>📍</b>الخريطة</button><button data-v="eng"><b>👷</b>المشرفون</button><button data-v="pl"><b>📐</b>التخطيط</button></nav>
 <div class="sheet" id="sheet" hidden><div class="sh" id="sh"></div></div>
 <script>
+/* أي خطأ في الصفحة يُكتب على الشاشة (للتشخيص على iPhone) بدل أن تبقى «جارٍ التحميل» */
+(function(){const show=m=>{try{const u=document.getElementById('upd');if(u){u.className='upd bad';u.textContent='⚠ خطأ في الصفحة: '+m;}const mm=document.getElementById('main');if(mm&&/جارٍ التحميل/.test(mm.textContent))mm.innerHTML='<div class="load">⚠ '+String(m).replace(/</g,'&lt;')+'</div>';}catch(_){}};
+  window.addEventListener('error',e=>show((e.message||'')+(e.lineno?' (سطر '+e.lineno+')':'')));window.addEventListener('unhandledrejection',e=>show(e.reason&&e.reason.message||String(e.reason)));})();
+</script>
+<script>
 /* صفحة الاطلاع (iPhone): تفك ملف نسخة الاطلاع المشفّر داخل الهاتف برمز الربط — عرض فقط */
 (function(){
 'use strict';
@@ -117,7 +122,9 @@ const b64u=s=>{s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';c
 const fromB64=s=>{const b=atob(s),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u;};
 const toB64=u=>{let s='';for(let i=0;i<u.length;i+=32768)s+=String.fromCharCode.apply(null,u.subarray(i,i+32768));return btoa(s);};
 function parseCode(s){const m=/^AV1\.([A-Za-z0-9_-]{10,})\.([A-Za-z0-9_-]{22})$/.exec(String(s||'').replace(/\s+/g,''));if(!m)return null;const key=b64u(m[2]);return key.length===16?{id:m[1],key,code:m[0]}:null;}
-function getBin(id){
+const withTimeout=(p,ms,msg)=>Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej(new Error(msg)),ms))]);
+function getBin(id){return withTimeout(getBin0(id),90000,'لم يصل الموقف من Google خلال 90 ثانية — تحقق من الإنترنت ثم اضغط «🔄 تحديث»');}
+function getBin0(id){
   if(window.google&&google.script&&google.script.run)return new Promise((res,rej)=>google.script.run.withSuccessHandler(b=>res(fromB64(b))).withFailureHandler(e=>rej(new Error(e&&e.message||String(e)))).vwGet(id));
   return fetch((window.VW_DEV_DL||'')+encodeURIComponent(id)).then(r=>{if(!r.ok)throw new Error('الملف غير متاح في Google Drive (أُوقفت نسخة الاطلاع من حاسبة القسم؟)');return r.arrayBuffer();}).then(b=>new Uint8Array(b));}
 async function gunzip(u){if(typeof DecompressionStream==='undefined')throw new Error('حدّث نظام iPhone (iOS 16.4 أو أحدث) لعرض الموقف');
@@ -132,14 +139,15 @@ let C=null,PKG=null,view='sit',F={q:'',d:'',k:'',sort:'name'},shown=60,plQ='';
 const LS={get:k=>{try{return localStorage.getItem(k);}catch(_){return null;}},set:(k,v)=>{try{localStorage.setItem(k,v);return true;}catch(_){return false;}},del:k=>{try{localStorage.removeItem(k);}catch(_){}}};
 const P=()=>(PKG&&PKG.R&&Array.isArray(PKG.R.projects)?PKG.R.projects:[]);
 const meta=fn=>(PKG&&PKG.R&&PKG.R.meta&&PKG.R.meta[fn])||{};
-function hashCode(){return new Promise(res=>{try{if(window.google&&google.script&&google.script.url){google.script.url.getLocation(l=>res(String((l&&l.hash)||'').replace(/^#/,'')));return;}}catch(_){}res(String(location.hash||'').replace(/^#/,''));});}
+function hashCode(){return new Promise(res=>{const t=setTimeout(()=>res(''),4000);const ok=v=>{clearTimeout(t);res(v);};try{if(window.google&&google.script&&google.script.url){google.script.url.getLocation(l=>ok(String((l&&l.hash)||'').replace(/^#/,'')));return;}}catch(_){}ok(String(location.hash||'').replace(/^#/,''));});}
 function status(t,bad){const u=$('upd');u.textContent=t;u.className='upd'+(bad?' bad':'');}
 async function useRaw(raw){const o=JSON.parse(new TextDecoder().decode(await unseal(C.key,raw)));if(!o||o.app!=='anbar-viewer')throw new Error('الملف المستلم ليس ملف نسخة الاطلاع');
   let R={};try{R=JSON.parse(o.reg||'{}')||{};}catch(_){}let pl=null;try{const t=o.pl?JSON.parse(o.pl):null;const r=t&&Array.isArray(t.records)?t.records.find(x=>x&&x.id==='plan'):null;pl=r&&r.model||null;}catch(_){}
   PKG={at:o.at,R,pl,ph:o.ph||{}};}
 async function load(net){
   if(!net){const c=LS.get('vw_pkg');if(c){try{await useRaw(fromB64(c));render();status('آخر تحديث من حاسبة القسم: '+tm(PKG.at)+' — جارٍ التحقق…');}catch(_){LS.del('vw_pkg');}}}
-  try{const raw=await getBin(C.id);const old=PKG&&PKG.at;await useRaw(raw);LS.set('vw_pkg',toB64(raw));if(PKG.at!==old)render();status('آخر تحديث من حاسبة القسم: '+tm(PKG.at));return true;}
+  const step=t=>{if(!PKG){const m=$('main');if(m)m.innerHTML='<div class="load">'+t+'</div>';}else status(t);};
+  try{step('⏳ جارٍ تنزيل الموقف من Google Drive… (أول مرة قد تأخذ نصف دقيقة)');const raw=await getBin(C.id);step('⏳ جارٍ فك التشفير وعرض الموقف…');const old=PKG&&PKG.at;await useRaw(raw);LS.set('vw_pkg',toB64(raw));if(PKG.at!==old)render();status('آخر تحديث من حاسبة القسم: '+tm(PKG.at));return true;}
   catch(e){status((PKG?'آخر تحديث: '+tm(PKG.at)+' — ':'')+'⚠ '+(e.message||e),true);if(!PKG)linkScreen(e.message||String(e));return false;}}
 
 /* ---------- الربط ---------- */
@@ -294,6 +302,7 @@ setInterval(()=>{if(!document.hidden&&C){load.last=Date.now();load(true);}},5*60
 (async()=>{const h=parseCode(await hashCode()),s=parseCode(LS.get('vw_code'));C=h||s;
   if(h&&(!s||s.code!==h.code)){LS.set('vw_code',h.code);LS.del('vw_pkg');}
   if(!C){status('');return linkScreen('');}
+  $('main').innerHTML='<div class="load">⏳ جارٍ قراءة الرمز…</div>';
   load.last=Date.now();await load(false);})();
 })();
 </script>

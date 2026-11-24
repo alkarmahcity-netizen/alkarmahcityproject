@@ -26,7 +26,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms)); const R = []; const ok 
   await ctx.addInitScript(() => { window.VW_DEV_DL = '/dl/'; window.VW_DEV_INTRO = '/intro.html'; try { if (!sessionStorage.getItem('introTest')) localStorage.setItem('vw_intro_off', '1'); } catch (_) {} });
   await ctx.route(/cdnjs\.cloudflare\.com\/.*leaflet\.min\.(js|css)$/, r => { const js = /\.js$/.test(r.request().url()); const f = path.join(__dirname, 'shell', 'vendor', js ? 'leaflet.js' : 'leaflet.css');
     return fs.existsSync(f) ? r.fulfill({ status: 200, contentType: js ? 'application/javascript' : 'text/css', body: fs.readFileSync(f) }) : r.fulfill({ status: 200, contentType: 'text/css', body: '' }); });
-  await ctx.route(/tile\.openstreetmap\.org/, r => r.fulfill({ status: 404, body: '' }));
+  const TILES = []; await ctx.route(/tile\.openstreetmap\.org|mt\d\.google\.com\/vt/, r => { TILES.push(r.request().url()); return r.fulfill({ status: 404, body: '' }); });
   const LIBS = process.env.UNI_TEST_LIBS || '';   // نسخ html2canvas و jsPDF (للاختبار فقط — في الهاتف تُحمَّل من cdnjs)
   await ctx.route(/cdnjs\.cloudflare\.com\/ajax\/libs\/(html2canvas|jspdf)\//, r => { const u = r.request().url(), f = /html2canvas/.test(u) ? path.join(LIBS, 'html2canvas-1.4.1/package/dist/html2canvas.min.js') : path.join(LIBS, 'jspdf-2.5.1/package/dist/jspdf.umd.min.js');
     return fs.existsSync(f) ? r.fulfill({ status: 200, contentType: 'application/javascript', body: fs.readFileSync(f) }) : r.fulfill({ status: 404, body: '' }); });
@@ -56,9 +56,14 @@ const sleep = ms => new Promise(r => setTimeout(r, ms)); const R = []; const ok 
   await pg.click('#shX');
   await pg.click('nav button[data-v="cc"]'); await sleep(500);
   if (process.env.UNI_TEST_SHOT) await pg.screenshot({ path: path.join(process.env.UNI_TEST_SHOT, 'ip-cc.png'), fullPage: true });
-  ok('monitoring center: district map as in the program (Anbar districts/sub-districts colored by progress, project pins)', await pg.evaluate(() => { const sv = document.querySelector('svg.ccmap'); return !!sv && sv.querySelectorAll('path[data-d]').length >= 3 && sv.querySelectorAll('g[data-d]').length === 2 && sv.querySelectorAll('circle').length >= 4 && /الرمادي/.test(sv.textContent) && /هيت/.test(sv.textContent); }), await pg.evaluate(() => { const sv = document.querySelector('svg.ccmap'); return sv ? sv.querySelectorAll('path[data-d]').length + ' cells, ' + sv.querySelectorAll('g[data-d]').length + ' labels' : 'no map'; }));
+  ok('monitoring center: district map as in the program (Anbar districts/sub-districts colored by progress, project pins)', await pg.evaluate(() => { const sv = document.querySelector('svg.ccmap'); return !!sv && sv.querySelectorAll('path[data-md]').length >= 3 && sv.querySelectorAll('g[data-md]').length === 2 && sv.querySelectorAll('circle').length >= 4 && /الرمادي/.test(sv.textContent) && /هيت/.test(sv.textContent); }), await pg.evaluate(() => { const sv = document.querySelector('svg.ccmap'); return sv ? sv.querySelectorAll('path[data-md]').length + ' cells, ' + sv.querySelectorAll('g[data-md]').length + ' labels' : 'no map'; }));
   ok('monitoring center: KPIs, district ranking, alerts (stopped), sectors', await pg.evaluate(() => { const t = document.getElementById('main').textContent;
     return document.querySelectorAll('.ccr[data-d]').length === 2 && /مركز متابعة/.test(t) && /هيت: 1 مشروع متوقف/.test(t) && /القطاعات/.test(t) && /الانحراف/.test(t); }), await pg.evaluate(() => document.getElementById('main').textContent.slice(0, 300)));
+  await pg.evaluate(() => document.querySelector('.ccmap g[data-md="هيت"]').dispatchEvent(new MouseEvent('click', { bubbles: true }))); await sleep(400);
+  ok('tapping a district on the center map stays on the center and shows its summary (no jump to the list)', await pg.evaluate(() => !!document.querySelector('svg.ccmap') && /قضاء هيت/.test(document.getElementById('ccSel').textContent) && /متوقف/.test(document.getElementById('ccSel').textContent) && document.querySelector('nav button.on').dataset.v === 'cc' && !!document.querySelector('.ccmap g.msel')));
+  await pg.evaluate(() => document.querySelector('#ccSel button[data-d]').click()); await sleep(400);
+  ok('«عرض مشاريع القضاء» in the summary opens the district list', await pg.evaluate(() => document.querySelectorAll('.it[data-fn]').length === 1 && document.getElementById('fd').value === 'هيت'));
+  await pg.click('nav button[data-v="cc"]'); await sleep(400);
   await pg.click('.ccr[data-d="هيت"]'); await sleep(400);
   ok('tapping a district shows its projects', await pg.evaluate(() => document.querySelectorAll('.it[data-fn]').length === 1 && document.getElementById('fd').value === 'هيت'));
   await pg.click('nav button[data-v="map"]'); await sleep(1500);
@@ -66,6 +71,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms)); const R = []; const ok 
   ok('map tab: interactive map with 2 project markers (1 without coordinates noted)', await pg.evaluate(() => document.querySelectorAll('#map .leaflet-interactive').length === 2 && /بلا إحداثيات/.test(document.body.textContent)), await pg.evaluate(() => document.querySelectorAll('#map .leaflet-interactive').length));
   await pg.evaluate(() => document.querySelector('#map .leaflet-interactive').dispatchEvent(new MouseEvent('click', { bubbles: true }))); await sleep(500);
   await pg.evaluate(() => { const b = document.querySelector('.leaflet-popup .pbtn'); if (b) b.click(); }); await sleep(800);
+  ok('map tab uses Google Maps tiles (Arabic labels), with satellite and OpenStreetMap in the layer switch', TILES.some(u => /mt\d\.google\.com\/vt\/lyrs=m&hl=ar/.test(u)) && await pg.evaluate(() => /قمر صناعي Google/.test(document.querySelector('.leaflet-control-layers').textContent)), TILES.slice(0, 2).join(' '));
   ok('map marker → popup → project card opens', await pg.evaluate(() => !document.getElementById('sheet').hidden && !!document.getElementById('route')));
   await pg.click('#shX');
   await pg.click('nav button[data-v="eng"]'); await sleep(500);

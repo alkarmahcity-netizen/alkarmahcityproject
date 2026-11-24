@@ -75,7 +75,8 @@ nav button b{font-size:20px;line-height:1}nav button.on{color:var(--g);font-weig
 .ccr{display:grid;grid-template-columns:1fr 46px 54px 46px;gap:6px;align-items:center;font-size:13px;padding:7px 0;border-top:1px solid rgba(56,232,255,.12)}.ccr.h{font-size:11px;color:#8fb3c9;border-top:0;padding-top:0}
 .ccr .n{text-align:center;font-weight:700}.ccr .mini{display:block;height:4px;background:rgba(56,232,255,.15);border-radius:3px;margin-top:3px}.ccr .mini i{display:block;height:100%;border-radius:3px}
 .ccs{margin:7px 0}.ccs .t{display:flex;justify-content:space-between;font-size:12.5px}.ccs .tr{height:6px;background:rgba(56,232,255,.12);border-radius:4px;position:relative;margin-top:4px}.ccs .tr i{position:absolute;inset-block:0;right:0;background:#38e8ff;border-radius:4px}.ccs .tr u{position:absolute;inset-block:-2px;width:2px;background:#ffc23d}
-.ccmap{display:block;width:100%;height:auto;max-height:62vh;background:radial-gradient(ellipse at 45% 45%,rgba(14,111,143,.25),transparent 70%);border:1px solid rgba(56,232,255,.18);border-radius:10px}.ccmap [data-d]{cursor:pointer}
+.ccmap{display:block;width:100%;height:auto;max-height:62vh;background:radial-gradient(ellipse at 45% 45%,rgba(14,111,143,.25),transparent 70%);border:1px solid rgba(56,232,255,.18);border-radius:10px}.ccmap [data-md]{cursor:pointer}.ccmap .msel path,.ccmap path.msel{stroke:#fff;stroke-width:2.2;stroke-opacity:1;stroke-dasharray:none}.ccmap g.msel circle:first-of-type{stroke-width:3}
+.ccsel{margin-top:8px;border:1px solid rgba(56,232,255,.35);border-radius:10px;padding:9px 10px;background:rgba(56,232,255,.06)}.ccsel b{color:#fff}.ccsel .g2{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin:6px 0;text-align:center}.ccsel .g2 div{background:rgba(56,232,255,.07);border-radius:7px;padding:5px 2px}.ccsel .g2 b{display:block;font-size:16px}.ccsel .g2 span{font-size:11px;color:#8fb3c9}.ccsel button{width:100%;margin-top:4px;background:#38e8ff;color:#06142a;border:0;border-radius:9px;padding:9px;font:inherit;font-weight:700}
 .cca{display:flex;gap:8px;align-items:flex-start;font-size:13px;padding:6px 0;line-height:1.6}.cca i{width:9px;height:9px;border-radius:50%;flex:none;margin-top:6px;background:#ff4d6a;box-shadow:0 0 8px #ff4d6a}.cca.w i{background:#ffc23d;box-shadow:0 0 8px #ffc23d}.cca.g i{background:#3dffa8;box-shadow:0 0 8px #3dffa8}
 #map{height:calc(100vh - 210px - env(safe-area-inset-bottom));border-radius:14px;overflow:hidden;background:#dfe7e2}
 .mlg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;margin:0 2px 8px}.mlg span{display:inline-flex;align-items:center;gap:4px}.mlg i{width:10px;height:10px;border-radius:50%;display:inline-block}
@@ -226,7 +227,7 @@ function agg(L){let aw=0,ww=0,pw=0,pp=0,cost=0,paid=0;L.forEach(p=>{const w=num(
   const k=t=>L.filter(p=>stKind(p.status)===t).length;return {n:L.length,act:ww?aw/ww:null,plan:pw?pp/pw:null,cost,paid,fin:cost?Math.min(100,paid/cost*100):null,stop:k('bad'),lag:k('warn2'),done:k('ok')};}
 function cc(){const all=P();if(!all.length){$('main').innerHTML='<div class="empty">لا توجد مشاريع في الموقف</div>';return;}
   const T=agg(all),G={};all.forEach(p=>{const d=normD(p.district);(G[d]=G[d]||[]).push(p);});
-  const D=Object.entries(G).map(([n,L])=>Object.assign({d:n},agg(L))).sort((a,b)=>(b.act||0)-(a.act||0));
+  const D=Object.entries(G).map(([n,L])=>Object.assign({d:n},agg(L))).sort((a,b)=>(b.act||0)-(a.act||0));cc.D=D;
   const S={};all.forEach(p=>{const n=sectorOf(p);(S[n]=S[n]||[]).push(p);});const SE=Object.entries(S).map(([n,L])=>Object.assign({s:n},agg(L))).sort((a,b)=>b.n-a.n);
   const A=[];D.forEach(d=>{const dev=d.act!=null&&d.plan!=null?d.act-d.plan:null;
     if(dev!=null&&dev<-10)A.push(['',`${d.d}: الإنجاز الفعلي أقل من المخطط بـ ${Math.abs(dev).toFixed(1)}% — ${d.lag} متلكئ`,3+(-dev)/10]);
@@ -238,6 +239,7 @@ function cc(){const all=P();if(!all.length){$('main').innerHTML='<div class="emp
      <div><b style="color:${dev!=null&&dev<0?'#ff4d6a':'#3dffa8'}">${dev==null?'—':(dev>0?'+':'')+dev.toFixed(1)+'%'}</b><span>الانحراف</span></div><div><b>${T.fin==null?'—':T.fin.toFixed(0)+'%'}</b><span>نسبة الصرف</span></div><div><b>${compact(T.cost)}</b><span>الكلفة</span></div>
      <div><b style="color:#3dffa8">${T.done}</b><span>منجز</span></div><div><b style="color:#ffc23d">${T.lag}</b><span>متلكئ</span></div><div><b style="color:#ff4d6a">${T.stop}</b><span>متوقف</span></div></div></div>
    <div class="cc"><h3>خريطة الأقضية — نسبة الإنجاز الفعلي وعدد المشاريع (اضغط على القضاء)</h3>${ccMap(D)}
+     <div id="ccSel" class="ccsel">اضغط على أي قضاء في الخريطة لعرض موقفه هنا.</div>
      <div class="mlg" style="color:#cfe3f5;margin:6px 0 0"><span><i style="background:#3dffa8"></i>≥ 70%</span><span><i style="background:#38e8ff"></i>50–69%</span><span><i style="background:#ffc23d"></i>30–49%</span><span><i style="background:#ff4d6a"></i>&lt; 30%</span></div></div>
    <div class="cc"><h3>ترتيب الأقضية — اضغط على القضاء لعرض مشاريعه</h3><div class="ccr h"><span>القضاء</span><span class="n">مشاريع</span><span class="n">فعلي</span><span class="n">صرف</span></div>
      ${D.map(d=>`<div class="ccr" data-d="${esc(d.d)}" style="cursor:pointer"><span>${esc(d.d)}</span><span class="n">${d.n}</span><span class="n" style="color:${ccol(d.act)}">${d.act==null?'—':d.act.toFixed(0)+'%'}<span class="mini"><i style="width:${d.act||0}%;background:${ccol(d.act)}"></i></span></span><span class="n">${d.fin==null?'—':d.fin.toFixed(0)+'%'}</span></div>`).join('')}</div>
@@ -253,7 +255,7 @@ function ccMap(D){if(!GEO||!GEO.outline)return '';
   const O=GEO.outline.map(p=>xy(p[0],p[1])),xs=O.map(p=>p[0]),ys=O.map(p=>p[1]),x0=Math.min(...xs)-14,y0=Math.min(...ys)-14,vw=Math.max(...xs)-x0+44,vh=Math.max(...ys)-y0+20;
   const k=vw/300,by={};D.forEach(d=>{by[dkey(d.d)]=d;});   /* k: الخطوط والدوائر بحجم مقروء على شاشة الهاتف */
   const cen={};(GEO.subs||[]).forEach(sb=>{const k=dkey(sb.d),c=cen[k]||(cen[k]={n:sb.d,x:0,y:0,w:0});sb.p.forEach(q=>{const [x,y]=xy(q[0],q[1]);c.x+=x;c.y+=y;c.w++;});});
-  const cells=(GEO.subs||[]).map(sb=>{const d=by[dkey(sb.d)];return `<path d="${pth(sb.p,true)}" fill="${d?ccol(d.act):'#28415f'}" fill-opacity="${d?.42:.3}" stroke="#9fefff" stroke-opacity=".5" stroke-width=".7" stroke-dasharray="3 3"${d?` data-d="${esc(d.d)}"`:''}><title>${esc(sb.n)} — قضاء ${esc(sb.d)}</title></path>`;}).join('');
+  const cells=(GEO.subs||[]).map(sb=>{const d=by[dkey(sb.d)];return `<path d="${pth(sb.p,true)}" fill="${d?ccol(d.act):'#28415f'}" fill-opacity="${d?.42:.3}" stroke="#9fefff" stroke-opacity=".5" stroke-width=".7" stroke-dasharray="3 3"${d?` data-md="${esc(d.d)}"`:''}><title>${esc(sb.n)} — قضاء ${esc(sb.d)}</title></path>`;}).join('');
   const dl=(GEO.dists||[]).map(q=>`<path d="${pth(q.p,true)}" fill="none" stroke="#d6f6ff" stroke-opacity=".75" stroke-width="1.3" pointer-events="none"/>`).join('');
   const pins=P().map(p=>{const c=coord(p);if(!c)return '';const [x,y]=xy(c.lat,c.lng);return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(2.6*k).toFixed(1)}" fill="${KC[stKind(p.status)]}" stroke="#fff" stroke-width=".4" pointer-events="none"/>`;}).join('');
   /* دوائر الأقضية: تُبعَد المتداخلة عن بعضها (بحد أقصى للإزاحة) ويُرسم خط رفيع الى الموضع الحقيقي — كما في خريطة البرنامج */
@@ -265,9 +267,17 @@ function ccMap(D){if(!GEO||!GEO.outline)return '';
       n.x=Math.max(x0+n.r+26*k,Math.min(x0+vw-n.r-26*k,n.x));n.y=Math.max(y0+n.r+2*k,Math.min(y0+vh-n.r-12*k,n.y));});}
   const lbl=nodes.map(n=>{const {d,x,y,r}=n,f=v=>v.toFixed(1);
     if(!d)return `<text x="${f(x)}" y="${f(y)}" text-anchor="middle" font-size="${f(7.5*k)}" fill="#8fb3c9" paint-order="stroke" stroke="#030a14" stroke-width="${f(2*k)}" pointer-events="none">${esc(n.n)}</text>`;
-    return `<g data-d="${esc(d.d)}">${Math.hypot(x-n.x0,y-n.y0)>r?`<line x1="${f(n.x0)}" y1="${f(n.y0)}" x2="${f(x)}" y2="${f(y)}" stroke="#9fefff" stroke-opacity=".6" stroke-width="${f(.8*k)}"/><circle cx="${f(n.x0)}" cy="${f(n.y0)}" r="${f(1.6*k)}" fill="#9fefff"/>`:''}<circle cx="${f(x)}" cy="${f(y)}" r="${f(r)}" fill="#06142a" fill-opacity=".8" stroke="${ccol(d.act)}" stroke-width="${f(1.4*k)}"/><text x="${f(x)}" y="${f(y+2.8*k)}" text-anchor="middle" font-size="${f(8*k)}" font-weight="700" fill="#fff">${d.n}</text><text x="${f(x)}" y="${f(y+r+9*k)}" text-anchor="middle" font-size="${f(8.5*k)}" font-weight="700" fill="#fff" paint-order="stroke" stroke="#030a14" stroke-width="${f(2.4*k)}">${esc(n.n)} <tspan fill="${ccol(d.act)}">${d.act==null?'':d.act.toFixed(0)+'%'}</tspan></text></g>`;}).join('');
+    return `<g data-md="${esc(d.d)}">${Math.hypot(x-n.x0,y-n.y0)>r?`<line x1="${f(n.x0)}" y1="${f(n.y0)}" x2="${f(x)}" y2="${f(y)}" stroke="#9fefff" stroke-opacity=".6" stroke-width="${f(.8*k)}"/><circle cx="${f(n.x0)}" cy="${f(n.y0)}" r="${f(1.6*k)}" fill="#9fefff"/>`:''}<circle cx="${f(x)}" cy="${f(y)}" r="${f(r)}" fill="#06142a" fill-opacity=".8" stroke="${ccol(d.act)}" stroke-width="${f(1.4*k)}"/><text x="${f(x)}" y="${f(y+2.8*k)}" text-anchor="middle" font-size="${f(8*k)}" font-weight="700" fill="#fff">${d.n}</text><text x="${f(x)}" y="${f(y+r+9*k)}" text-anchor="middle" font-size="${f(8.5*k)}" font-weight="700" fill="#fff" paint-order="stroke" stroke="#030a14" stroke-width="${f(2.4*k)}">${esc(n.n)} <tspan fill="${ccol(d.act)}">${d.act==null?'':d.act.toFixed(0)+'%'}</tspan></text></g>`;}).join('');
   return `<svg class="ccmap" viewBox="${x0.toFixed(1)} ${y0.toFixed(1)} ${vw.toFixed(1)} ${vh.toFixed(1)}" role="img" aria-label="خريطة أقضية محافظة الأنبار">
     <path d="${pth(GEO.outline,true)}" fill="#0e6f8f" fill-opacity=".3"/>${cells}${dl}<path d="${pth(GEO.outline,true)}" fill="none" stroke="#5ff3ff" stroke-width="2" style="filter:drop-shadow(0 0 4px #38e8ff)"/>${pins}${lbl}</svg>`;}
+
+/* الضغط على قضاء في خريطة المركز: يُميَّز ويُعرض موقفه تحت الخريطة (لا انتقال)، وزر لعرض مشاريعه */
+function ccPick(n){const d=(cc.D||[]).find(x=>x.d===n),box=$('ccSel');if(!d||!box)return;
+  document.querySelectorAll('.ccmap .msel').forEach(x=>x.classList.remove('msel'));document.querySelectorAll('.ccmap [data-md]').forEach(x=>{if(x.dataset.md===n)x.classList.add('msel');});
+  const dev=d.act!=null&&d.plan!=null?d.act-d.plan:null;
+  box.innerHTML=`<b style="font-size:16px">قضاء ${esc(d.d)}</b> — ${d.n} مشروع<div class="g2"><div><b style="color:${ccol(d.act)}">${d.act==null?'—':d.act.toFixed(1)+'%'}</b><span>الإنجاز الفعلي</span></div><div><b>${d.plan==null?'—':d.plan.toFixed(1)+'%'}</b><span>المخطط</span></div><div><b style="color:${dev!=null&&dev<0?'#ff4d6a':'#3dffa8'}">${dev==null?'—':(dev>0?'+':'')+dev.toFixed(1)+'%'}</b><span>الانحراف</span></div>
+    <div><b>${d.fin==null?'—':d.fin.toFixed(0)+'%'}</b><span>نسبة الصرف</span></div><div><b style="color:#ff4d6a">${d.stop}</b><span>متوقف</span></div><div><b style="color:#ffc23d">${d.lag}</b><span>متلكئ</span></div></div>
+    <div style="font-size:12.5px;color:#8fb3c9">الكلفة ${compact(d.cost)} — منجز ${d.done}</div><button type="button" data-d="${esc(d.d)}">📋 عرض مشاريع القضاء</button>`;}
 
 /* ---------- الخريطة التفاعلية (Leaflet + خرائط OpenStreetMap، تُحمَّل عند أول فتح) ---------- */
 let LF=null,MP=null;
@@ -278,7 +288,11 @@ async function map(){const L0=P().map(p=>({p,c:coord(p)})),pts=L0.filter(x=>x.c)
   $('main').innerHTML=`<div class="mlg">${KN.map(([k,l])=>`<span><i style="background:${KC[k]}"></i>${l}</span>`).join('')}</div><div id="map"></div><div class="cnt" style="margin-top:6px">${pts.length} مشروع على الخريطة${miss?` — ${miss} بلا إحداثيات`:''}</div>`;
   let Lf;try{Lf=await leaflet();}catch(e){$('map').innerHTML=`<div class="empty">${esc(e.message)}</div>`;return;}if(view!=='map'||!$('map'))return;
   if(MP){try{MP.remove();}catch(_){}}MP=Lf.map('map',{zoomControl:true,attributionControl:true}).setView([33.4,42.3],7);
-  Lf.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(MP);
+  /* خرائط Google (طرق بالعربية، وقمر صناعي مع الأسماء) — مع OpenStreetMap احتياطاً؛ الاختيار يُحفظ في الهاتف */
+  const gl=(l)=>Lf.tileLayer('https://mt{s}.google.com/vt/lyrs='+l+'&hl=ar&gl=IQ&x={x}&y={y}&z={z}',{subdomains:'0123',maxZoom:20,attribution:'خرائط © Google'});
+  const BL={'خريطة Google':gl('m'),'قمر صناعي Google':gl('y'),'OpenStreetMap':Lf.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'})};
+  const cur=BL[LS.get('vw_base')]?LS.get('vw_base'):'خريطة Google';BL[cur].addTo(MP);
+  Lf.control.layers(BL,null,{position:'topleft',collapsed:true}).addTo(MP);MP.on('baselayerchange',e=>LS.set('vw_base',e.name));
   const B=[];pts.forEach(({p,c})=>{const k=stKind(p.status);B.push([c.lat,c.lng]);
     Lf.circleMarker([c.lat,c.lng],{radius:8,weight:2,color:'#fff',fillColor:KC[k],fillOpacity:.95}).addTo(MP)
      .bindPopup(`<b>${esc(p.name)}</b><br>${esc([p.district,p.contractor].filter(Boolean).join(' — '))}<br>${esc(p.status||'')} — الإنجاز ${pc(p.actualPct)}%<button class="pbtn" type="button" data-fn="${esc(p.fileNo)}">البطاقة والطريق</button>`);});
@@ -357,6 +371,7 @@ async function photo(fn,name){const k=fn+'/'+name;if(PHC[k])return PHC[k];const 
 /* ---------- الأحداث ---------- */
 document.addEventListener('click',e=>{const t=e.target;
   const it=t.closest('[data-fn]');if(it&&!t.closest('.sh')){card(it.dataset.fn);return;}
+  const md=t.closest('[data-md]');if(md){ccPick(md.dataset.md);return;}
   const d=t.closest('[data-d]');if(d){F.d=d.dataset.d;F.k='';F.q='';shown=60;view='sit';render();scrollTo(0,0);return;}
   const nb=t.closest('nav button');if(nb){view=nb.dataset.v;render();scrollTo(0,0);return;}
   if(t.dataset&&t.dataset.big){const o=document.createElement('div');o.className='big';o.innerHTML=`<img src="${t.src}">`;o.onclick=()=>o.remove();document.body.appendChild(o);return;}

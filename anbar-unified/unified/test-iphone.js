@@ -13,7 +13,8 @@ const sleep = ms => new Promise(r => setTimeout(r, ms)); const R = []; const ok 
   const pl = { app: 'anbar-planning', version: 1, records: [{ id: 'plan', model: { file: 'خطة.xlsx', projects: [{ key: 'P1', name: 'مشروع خطة تجريبي', plan: 'تنمية الأقاليم', cost: 3e9, spent: 1e9, actPct: 33, comps: ['M1'] }], comps: [{ key: 'M1', name: 'مكوّن الطريق', status: 'قيد التنفيذ', district: 'هيت' }] } }] };
   const FILES = { MAINFILE00001: V.seal(key, Buffer.from(JSON.stringify({ app: 'anbar-viewer', v: 1, at: Date.parse('2026-11-23T12:00:00Z'), reg: JSON.stringify(reg), pl: JSON.stringify(pl), ad: null, ph: { 'x/pabc12345.jpg': { id: 'PHOTO0000001', h: 'a', fn: '501' } } }))), PHOTO0000001: V.seal(key, jpg) };
   const code = 'AV1.MAINFILE00001.' + b64u(key);
-  const html = fs.readFileSync(path.join(__dirname, 'iphone', 'index.html'), 'utf8');
+  require('child_process').execSync('node ' + JSON.stringify(path.join(__dirname, 'tools', 'iphone-pack.js')));   // الملف المحزوم هو الذي يُلصق في Apps Script
+  const html = fs.readFileSync(path.join(__dirname, 'iphone', 'build', 'index.html'), 'utf8');
   let hits = 0;
   const srv = http.createServer((q, s) => { const u = new URL(q.url, 'http://x'); let m;
     if (u.pathname === '/') { s.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }); return s.end(html); }

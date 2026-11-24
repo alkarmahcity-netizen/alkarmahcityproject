@@ -167,4 +167,37 @@
     const clr = () => { const r = document.getElementById('rec'); if (r && isAcc(r.value)) { r.value = ''; try { if (typeof window.render === 'function') window.render(); } catch (_) {} } };
     clr(); setInterval(clr, 800);
   } catch (_) {}
+  /* ---------- 5) تاريخ التوقيع وختم المحضر ----------
+     حقل «تاريخ التوقيع وختم المحضر» في استمارة الشهادات الأربع: يُكتب تحت توقيع كل عضو في اللجنة وفي «وختم المحضر بتاريخ» بدل الفراغ.
+     • الاستلام الأولي والأولي الجزئي: فارغ = تاريخ الاستلام الأولي (يوم دخول المشروع الصيانة).
+     • الاستلام النهائي والنهائي الجزئي: يُكتب يوم ختم المحضر (فارغ = يبقى الفراغ للكتابة باليد).
+     يُحفظ مع الشهادة (يُضاف الى حقولها FIELDS). */
+  try {
+    const fx = typeof FIELDS !== 'undefined' && Array.isArray(FIELDS) ? FIELDS : null;   // eslint-disable-line no-undef
+    const anchor = document.getElementById('prelimDate') || document.getElementById('d7');
+    if (fx && anchor && !document.getElementById('sigDate') && typeof window.render === 'function') {
+      const initial = !!document.getElementById('prelimDate');
+      const box = document.createElement('div'); box.className = 'f';
+      box.innerHTML = `<label>تاريخ التوقيع وختم المحضر</label><input id="sigDate" type="date">`;
+      const host = anchor.closest('.f') || anchor.parentElement; host.after(box);
+      const hint = document.createElement('p'); hint.className = 'hint'; hint.id = 'sigDateHint';
+      hint.textContent = initial ? 'يُكتب تحت تواقيع أعضاء اللجنة وفي «وختم المحضر بتاريخ». فارغ = تاريخ الاستلام الأولي (يوم دخول المشروع الصيانة).'
+        : 'يُكتب تحت تواقيع أعضاء اللجنة وفي «وختم المحضر بتاريخ» (يوم ختم المحضر). فارغ = يبقى الفراغ للكتابة باليد.';
+      box.after(hint);
+      if (!fx.includes('sigDate')) fx.push('sigDate');
+      const inp = document.getElementById('sigDate');
+      const AR = s => String(s).replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+      const fmt = v => { try { if (typeof fmtDate === 'function') return fmtDate(v); } catch (_) {} const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v || ''); return m ? AR(+m[3] + '/' + +m[2] + '/' + m[1]) : ''; };   // eslint-disable-line no-undef
+      const dateOf = () => { const v = (inp.value || '').trim(); if (v) return v; const p = initial ? document.getElementById('prelimDate') : null; return p && p.value ? p.value : ''; };
+      const fill = () => { const v = dateOf(); if (!v) return; const t = fmt(v);
+        document.querySelectorAll('span.dt').forEach(el => { if (el.dataset.sd !== t) { el.dataset.sd = t; el.textContent = t; } });
+        document.querySelectorAll('span.ok').forEach(el => { if (/وختم المحضر بتاريخ/.test(el.textContent) && el.dataset.sd !== t) { el.dataset.sd = t; el.textContent = 'وختم المحضر بتاريخ ' + t; } }); };
+      const r0 = window.render; const r1 = function () { const x = r0.apply(this, arguments); try { fill(); } catch (_) {} return x; }; r1.__sigDate = 1; window.render = r1;
+      inp.addEventListener('input', () => { try { window.render(); } catch (_) {} }); inp.addEventListener('change', () => { try { window.render(); } catch (_) {} });
+      /* الشهادة المفتوحة عند التحميل (قبل إضافة الحقل): يُسترجع تاريخها المحفوظ */
+      try { const sn = (document.getElementById('serial') || {}).value; if (sn && !inp.value) for (const k of Object.values(TYPES)) { const r = recsOf(k)[sn]; if (r && r.sigDate) { inp.value = r.sigDate; break; } } } catch (_) {}
+      try { window.render(); } catch (_) {}
+      new MutationObserver(() => { clearTimeout(fill.t); fill.t = setTimeout(() => { try { fill(); } catch (_) {} }, 50); }).observe(document.body, { childList: true, subtree: true });
+    }
+  } catch (_) {}
 })();

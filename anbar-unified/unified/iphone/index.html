@@ -59,13 +59,21 @@ nav button b{font-size:20px;line-height:1}nav button.on{color:var(--g);font-weig
 .err{color:var(--bad);font-size:13.5px;margin-top:8px}
 .load{text-align:center;color:var(--mut);padding:50px 10px}
 .empty{text-align:center;color:var(--mut);padding:30px 10px}
+#map{height:calc(100vh - 210px - env(safe-area-inset-bottom));border-radius:14px;overflow:hidden;background:#dfe7e2}
+.mlg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;margin:0 2px 8px}.mlg span{display:inline-flex;align-items:center;gap:4px}.mlg i{width:10px;height:10px;border-radius:50%;display:inline-block}
+.leaflet-popup-content{font-family:inherit;direction:rtl;text-align:right;font-size:13.5px;line-height:1.6;margin:10px 12px}.leaflet-popup-content b{font-size:14px}
+.pbtn{display:block;width:100%;margin-top:6px;background:var(--g);color:#fff;border:0;border-radius:9px;padding:8px;font:inherit;font-weight:700}
+.eng{background:var(--card);border-radius:14px;margin-bottom:8px;box-shadow:0 1px 3px rgba(0,0,0,.06);padding:11px 12px}
+.eng summary{list-style:none;cursor:pointer}.eng summary::-webkit-details-marker{display:none}
+.eng .t{display:flex;justify-content:space-between;gap:8px;font-weight:700}.eng .t em{font-style:normal;background:#e7f1ea;color:var(--g);border-radius:20px;padding:0 9px;font-size:12.5px;white-space:nowrap;align-self:flex-start}
+.eng .s{font-size:12.5px;color:var(--mut);margin-top:2px}.eng .ep{font-size:13px;padding:8px 0;border-top:1px solid #eef2ef;cursor:pointer}
 </style>
 </head>
 <body>
 <header><div><h1>موقف المشاريع</h1><small>محافظة الأنبار — قسم الشؤون الهندسية</small></div><span class="sp"></span><button class="hbtn" id="bRef" type="button">🔄 تحديث</button></header>
 <div class="upd" id="upd"></div>
 <main id="main"><div class="load">⏳ جارٍ التحميل…</div></main>
-<nav id="nav" hidden><button class="on" data-v="sit"><b>📊</b>الموقف</button><button data-v="dist"><b>🗺</b>الأقضية</button><button data-v="pl"><b>📐</b>التخطيط</button></nav>
+<nav id="nav" hidden><button class="on" data-v="sit"><b>📊</b>الموقف</button><button data-v="map"><b>📍</b>الخريطة</button><button data-v="eng"><b>👷</b>المشرفون</button><button data-v="dist"><b>🗺</b>الأقضية</button><button data-v="pl"><b>📐</b>التخطيط</button></nav>
 <div class="sheet" id="sheet" hidden><div class="sh" id="sh"></div></div>
 <script>
 /* صفحة الاطلاع (iPhone): تفك ملف نسخة الاطلاع المشفّر داخل الهاتف برمز الربط — عرض فقط */
@@ -137,7 +145,7 @@ function linkScreen(msg){$('nav').hidden=true;status('');$('main').innerHTML=`<d
 const bar=(a,p,col)=>`<div class="bar"><i style="width:${Math.max(0,Math.min(100,num(a)))}%;background:${col}"></i>${has(p)?`<u style="right:${Math.max(0,Math.min(100,num(p)))}%"></u>`:''}</div>`;
 const chip=s=>{const k=stKind(s);return `<span class="chip" style="background:${KC[k]}">${esc(s||'غير مصنّف')}</span>`;};
 function render(){if(!PKG)return;$('nav').hidden=false;[...document.querySelectorAll('nav button')].forEach(b=>b.classList.toggle('on',b.dataset.v===view));
-  if(view==='sit')return sit();if(view==='dist')return dist();return plan();}
+  if(view==='sit')return sit();if(view==='map')return map();if(view==='eng')return eng();if(view==='dist')return dist();return plan();}
 function filtered(){const q=F.q.trim();return P().filter(p=>(!F.d||(p.district||'غير محدد')===F.d)&&(!F.k||stKind(p.status)===F.k)&&(!q||[p.name,p.fileNo,p.contractor,p.contractNo,p.district,p.sub,p.resident].some(v=>String(v||'').includes(q))))
   .sort((a,b)=>F.sort==='act'?num(a.actualPct)-num(b.actualPct):F.sort==='late'?(num(b.planPct)-num(b.actualPct))-(num(a.planPct)-num(a.actualPct)):F.sort==='cost'?num(b.total||b.orig)-num(a.total||a.orig):String(a.name||'').localeCompare(String(b.name||''),'ar'));}
 function kpis(L){const n=L.length,avg=k=>n?L.reduce((s,p)=>s+num(p[k]),0)/n:0,sum=k=>L.reduce((s,p)=>s+num(p[k]),0);
@@ -180,6 +188,39 @@ function plan(){const m=PKG.pl;if(!m||!Array.isArray(m.projects)){$('main').inne
      ${(p.comps||[]).map(k=>CM.get(k)).filter(Boolean).map(c=>`<div class="comp"><b>${esc(c.name)}</b><br><small style="color:#6b7a72">${esc([c.status,c.district,c.contractor].filter(Boolean).join(' — '))}</small></div>`).join('')}</details>`).join('');
   $('pq').oninput=e=>{plQ=e.target.value;clearTimeout(plan.t);plan.t=setTimeout(()=>{plan();const i=$('pq');i.focus();i.setSelectionRange(i.value.length,i.value.length);},350);};}
 
+/* ---------- الخريطة التفاعلية (Leaflet + خرائط OpenStreetMap، تُحمَّل عند أول فتح) ---------- */
+let LF=null,MP=null;
+function leaflet(){if(window.L)return Promise.resolve(window.L);if(LF)return LF;
+  LF=new Promise((res,rej)=>{const c=document.createElement('link');c.rel='stylesheet';c.href='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';document.head.appendChild(c);
+    const j=document.createElement('script');j.src='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';j.onload=()=>res(window.L);j.onerror=()=>{LF=null;rej(new Error('تعذّر تحميل الخريطة — تحقق من الإنترنت'));};document.head.appendChild(j);});return LF;}
+async function map(){const L0=P().map(p=>({p,c:coord(p)})),pts=L0.filter(x=>x.c),miss=L0.length-pts.length;
+  $('main').innerHTML=`<div class="mlg">${KN.map(([k,l])=>`<span><i style="background:${KC[k]}"></i>${l}</span>`).join('')}</div><div id="map"></div><div class="cnt" style="margin-top:6px">${pts.length} مشروع على الخريطة${miss?` — ${miss} بلا إحداثيات`:''}</div>`;
+  let Lf;try{Lf=await leaflet();}catch(e){$('map').innerHTML=`<div class="empty">${esc(e.message)}</div>`;return;}if(view!=='map'||!$('map'))return;
+  if(MP){try{MP.remove();}catch(_){}}MP=Lf.map('map',{zoomControl:true,attributionControl:true}).setView([33.4,42.3],7);
+  Lf.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(MP);
+  const B=[];pts.forEach(({p,c})=>{const k=stKind(p.status);B.push([c.lat,c.lng]);
+    Lf.circleMarker([c.lat,c.lng],{radius:8,weight:2,color:'#fff',fillColor:KC[k],fillOpacity:.95}).addTo(MP)
+     .bindPopup(`<b>${esc(p.name)}</b><br>${esc([p.district,p.contractor].filter(Boolean).join(' — '))}<br>${esc(p.status||'')} — الإنجاز ${pc(p.actualPct)}%<button class="pbtn" type="button" data-fn="${esc(p.fileNo)}">البطاقة والطريق</button>`);});
+  if(B.length)MP.fitBounds(B,{padding:[24,24],maxZoom:13});setTimeout(()=>MP&&MP.invalidateSize(),200);}
+
+/* ---------- المهندسون المشرفون والمقيمون (من قائمة المشرفين في الموقف + كادر كل مشروع + المقيم) ---------- */
+const RN=s=>String(s||'').replace(/[\u064B-\u0652\u0640]/g,'').replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/^(م\.?\s*|مهندس\s+|المهندس\s+)/,'').replace(/\s+/g,' ').trim();
+let engQ='';
+function engData(){const R=(PKG&&PKG.R)||{},M=new Map(),add=e=>{const k=RN(e&&e.name);if(!k)return null;if(!M.has(k))M.set(k,{name:e.name,role:e.role||'',dept:e.dept||'',phone:e.phone||'',projects:[]});const o=M.get(k);
+    if(!o.dept&&e.dept)o.dept=e.dept;if(!o.role&&e.role)o.role=e.role;if(!o.phone&&e.phone)o.phone=e.phone;return o;};
+  (R.engineers||[]).forEach(add);
+  P().forEach(p=>{const seen=new Set();(p.staff||[]).forEach(x=>{const e=add(x);if(e&&!seen.has(RN(x.name))){e.projects.push({p,role:x.role||''});seen.add(RN(x.name));}});
+    if(has(p.supervisor)&&!seen.has(RN(p.supervisor))){const e=add({name:p.supervisor,role:'مهندس مشرف',dept:p.supervisorOffice});if(e){e.projects.push({p,role:'مهندس مشرف'});seen.add(RN(p.supervisor));}}
+    if(has(p.resident)&&!seen.has(RN(p.resident))){const e=add({name:p.resident,role:'مهندس مقيم',dept:p.residentOffice,phone:p.phone});if(e)e.projects.push({p,role:'مهندس مقيم'});}});
+  return [...M.values()].map(e=>Object.assign(e,{done:e.projects.filter(x=>stKind(x.p.status)==='ok'),projects:e.projects.filter(x=>stKind(x.p.status)!=='ok')}));}
+function eng(){const q=engQ.trim(),E=engData().filter(e=>!q||[e.name,e.dept,e.role].some(v=>String(v||'').includes(q))||e.projects.some(x=>String(x.p.name||'').includes(q)))
+   .sort((a,b)=>b.projects.length-a.projects.length||String(a.name).localeCompare(String(b.name),'ar'));
+  $('main').innerHTML=`<div class="flt"><input id="eq" type="search" placeholder="🔍 بحث: اسم المهندس، الدائرة، المشروع" value="${esc(engQ)}"></div><div class="cnt">${E.length} مهندس</div>`
+   +(E.length?E.slice(0,400).map(e=>`<details class="eng"><summary><div class="t"><span>${esc(e.name)}</span><em>${e.projects.length} مشروع</em></div>
+     <div class="s">${esc([e.role,e.dept].filter(Boolean).join(' — '))}${e.done.length?` — منجزة ${e.done.length}`:''}</div>${has(e.phone)?`<div class="s"><a href="tel:${esc(String(e.phone).replace(/[^\d+]/g,''))}">📞 ${esc(e.phone)}</a></div>`:''}</summary>
+     ${e.projects.concat(e.done).map(x=>`<div class="ep" data-fn="${esc(x.p.fileNo)}">${chip(x.p.status)} <b>${esc(x.p.name)}</b><br><small style="color:#6b7a72">${esc([x.role,x.p.district].filter(Boolean).join(' — '))} — الإنجاز ${pc(x.p.actualPct)}%</small></div>`).join('')}</details>`).join(''):'<div class="empty">لا توجد أسماء مهندسين في الموقف</div>');
+  $('eq').oninput=e=>{engQ=e.target.value;clearTimeout(eng.t);eng.t=setTimeout(()=>{eng();const i=$('eq');i.focus();i.setSelectionRange(i.value.length,i.value.length);},350);};}
+
 /* ---------- بطاقة المشروع ---------- */
 const fld=(l,v)=>has(v)?`<div class="f"><span>${l}</span><b>${v}</b></div>`:'';
 function card(fn){const p=P().find(x=>String(x.fileNo)===String(fn));if(!p)return;const M=meta(String(p.fileNo)),c=coord(p);
@@ -196,7 +237,7 @@ function card(fn){const p=P().find(x=>String(x.fileNo)===String(fn));if(!p)retur
    <div class="sec"><h3>الكلفة</h3>${fld('الكلفة الأصلية',fmt(p.orig))}${fld('كلفة أوامر التغيير',has(p.changeCost)?fmt(p.changeCost):'')}${fld('الكلفة الكلية',has(p.total)?fmt(p.total):'')}${fld('الكلفة المصادقة',has(p.approvedCost)?fmt(p.approvedCost):'')}</div>
    <div class="sec"><h3>المدة</h3>${fld('تاريخ المباشرة',esc(dmy(p.start)))}${fld('مدة العقد (يوم)',esc(p.dur))}${fld('المدة الإضافية (يوم)',esc(p.extra))}${fld('المدة الكلية (يوم)',esc(p.totalDays))}${fld('تاريخ الإنجاز المخطط',esc(dmy(p.planEnd)))}${fld('تاريخ الإنجاز الفعلي',esc(dmy(ae)))}</div>
    <div class="sec"><h3>السلف (موقف اللجنة)</h3>${fld('المرفوعة',fmt(p.advRaised))}${fld('المصروفة',fmt(p.advPaid))}${fld('المتبقي للصرف',fmt(num(p.advRaised)-num(p.advPaid)))}</div>
-   ${has(p.resident)||has(p.residentOffice)||has(p.supervisor)?`<div class="sec"><h3>الإشراف</h3>${fld('المهندس المقيم',esc(p.resident))}${fld('دائرة المقيم',esc(p.residentOffice))}${fld('المهندس المشرف',esc(p.supervisor))}${has(p.phone)?fld('الهاتف',`<a href="tel:${esc(String(p.phone).replace(/[^\d+]/g,''))}">${esc(p.phone)}</a>`):''}</div>`:''}
+   ${has(p.resident)||has(p.residentOffice)||has(p.supervisor)||(p.staff||[]).length?`<div class="sec"><h3>الإشراف</h3>${fld('المهندس المقيم',esc(p.resident))}${fld('دائرة المقيم',esc(p.residentOffice))}${fld('المهندس المشرف',esc(p.supervisor))}${(p.staff||[]).filter(x=>x&&has(x.name)&&RN(x.name)!==RN(p.resident)&&RN(x.name)!==RN(p.supervisor)).map(x=>fld(esc(x.role||'مشرف'),esc(x.name))).join('')}${has(p.phone)?fld('الهاتف',`<a href="tel:${esc(String(p.phone).replace(/[^\d+]/g,''))}">${esc(p.phone)}</a>`):''}</div>`:''}
    ${has(p.notes)?`<div class="sec"><h3>الملاحظات</h3><div style="line-height:1.8;font-size:14px">${esc(p.notes)}</div></div>`:''}`;
   $('sheet').hidden=false;$('sh').scrollTop=0;$('shX').onclick=()=>{$('sheet').hidden=true;};
   photos.forEach(n=>photo(String(p.fileNo),n).then(u=>{const el=document.querySelector(`#sh [data-ph="${n}"]`);if(!el)return;if(!u){el.textContent='تعذّر التحميل';return;}const i=new Image();i.src=u;i.dataset.big='1';el.replaceWith(i);}));}

@@ -6,10 +6,10 @@ const sleep = ms => new Promise(r => setTimeout(r, ms)); const R = []; const ok 
   const key = crypto.randomBytes(16), b64u = b => b.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   const jpg = Buffer.from('/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAMCAgICAgMCAgIDAwMDBAYEBAQEBAgGBgUGCQgKCgkICQkKDA8MCgsOCwkJDRENDg8QEBEQCgwSExIQEw8QEBD/yQALCAABAAEBAREA/8wABgAQEAX/2gAIAQEAAD8A0s8g/9k=', 'base64');
   const reg = { projects: [
-    { fileNo: '501', name: 'مشروع الهاتف الأول', contractor: 'شركة أ', status: 'مستمر', orig: 2e9, total: 2.2e9, changeCost: 2e8, actualPct: 40, planPct: 55, district: 'الرمادي', lat: '33.4258', lng: '43.2994', advRaised: 5e8, advPaid: 3e8, start: '2025-03-01', resident: 'مهندس مقيم', phone: '07700000000' },
+    { fileNo: '501', name: 'مشروع الهاتف الأول', contractor: 'شركة أ', status: 'مستمر', orig: 2e9, total: 2.2e9, changeCost: 2e8, actualPct: 40, planPct: 55, district: 'الرمادي', lat: '33.4258', lng: '43.2994', advRaised: 5e8, advPaid: 3e8, start: '2025-03-01', resident: 'مهندس مقيم', phone: '07700000000', supervisor: 'م. سامر المشرف', staff: [{ name: 'علي الكادر', role: 'مهندس متابعة', dept: 'دائرة الطرق' }] },
     { fileNo: '502', name: 'مشروع الهاتف الثاني', contractor: 'شركة ب', status: 'متوقف', orig: 1e9, actualPct: 10, planPct: 60, district: 'هيت', lat: '334145', lng: '424930' },
     { fileNo: '503', name: 'مشروع بلا إحداثيات', contractor: 'شركة ج', status: 'منجز', orig: 5e8, actualPct: 100, planPct: 100, district: 'الرمادي' }],
-    meta: { '501': { photos: 'pabc12345.jpg' } } };
+    meta: { '501': { photos: 'pabc12345.jpg' } }, engineers: [{ name: 'سامر المشرف', role: 'مهندس مشرف', dept: 'قسم الشؤون الهندسية', phone: '07801111111' }, { name: 'بلا مشاريع', role: 'مهندس' }] };
   const pl = { app: 'anbar-planning', version: 1, records: [{ id: 'plan', model: { file: 'خطة.xlsx', projects: [{ key: 'P1', name: 'مشروع خطة تجريبي', plan: 'تنمية الأقاليم', cost: 3e9, spent: 1e9, actPct: 33, comps: ['M1'] }], comps: [{ key: 'M1', name: 'مكوّن الطريق', status: 'قيد التنفيذ', district: 'هيت' }] } }] };
   const FILES = { MAINFILE00001: V.seal(key, Buffer.from(JSON.stringify({ app: 'anbar-viewer', v: 1, at: Date.parse('2026-11-23T12:00:00Z'), reg: JSON.stringify(reg), pl: JSON.stringify(pl), ad: null, ph: { 'x/pabc12345.jpg': { id: 'PHOTO0000001', h: 'a', fn: '501' } } }))), PHOTO0000001: V.seal(key, jpg) };
   const code = 'AV1.MAINFILE00001.' + b64u(key);
@@ -22,6 +22,9 @@ const sleep = ms => new Promise(r => setTimeout(r, ms)); const R = []; const ok 
   await new Promise(r => srv.listen(48660, '127.0.0.1', r)); const B = 'http://127.0.0.1:48660/';
   const br = await chromium.launch(); const ctx = await br.newContext({ ...devices['iPhone 13'], deviceScaleFactor: process.env.UNI_TEST_SHOT ? 2 : 1 });
   await ctx.addInitScript(() => { window.VW_DEV_DL = '/dl/'; });
+  await ctx.route(/cdnjs\.cloudflare\.com\/.*leaflet\.min\.(js|css)$/, r => { const js = /\.js$/.test(r.request().url()); const f = path.join(__dirname, 'shell', 'vendor', js ? 'leaflet.js' : 'leaflet.css');
+    return fs.existsSync(f) ? r.fulfill({ status: 200, contentType: js ? 'application/javascript' : 'text/css', body: fs.readFileSync(f) }) : r.fulfill({ status: 200, contentType: 'text/css', body: '' }); });
+  await ctx.route(/tile\.openstreetmap\.org/, r => r.fulfill({ status: 404, body: '' }));
   const pg = await ctx.newPage(); const errs = []; pg.on('pageerror', e => errs.push(String(e)));
   await pg.goto(B + '#' + code); await sleep(1500);
   ok('opens with the code in the link: projects list + summary', await pg.evaluate(() => document.querySelectorAll('.it[data-fn]').length === 3 && /عدد المشاريع/.test(document.body.textContent) && /آخر تحديث من حاسبة القسم/.test(document.getElementById('upd').textContent)));
@@ -45,6 +48,20 @@ const sleep = ms => new Promise(r => setTimeout(r, ms)); const R = []; const ok 
   ok('districts view with alerts (stopped project)', await pg.evaluate(() => document.querySelectorAll('.dist').length === 2 && /إنذارات/.test(document.body.textContent) && /متوقف 1/.test(document.body.textContent)));
   await pg.click('.dist[data-d="هيت"]'); await sleep(400);
   ok('tapping a district shows its projects', await pg.evaluate(() => document.querySelectorAll('.it[data-fn]').length === 1 && document.getElementById('fd').value === 'هيت'));
+  await pg.click('nav button[data-v="map"]'); await sleep(1500);
+  if (process.env.UNI_TEST_SHOT) await pg.screenshot({ path: path.join(process.env.UNI_TEST_SHOT, 'ip-map.png') });
+  ok('map tab: interactive map with 2 project markers (1 without coordinates noted)', await pg.evaluate(() => document.querySelectorAll('#map .leaflet-interactive').length === 2 && /بلا إحداثيات/.test(document.body.textContent)), await pg.evaluate(() => document.querySelectorAll('#map .leaflet-interactive').length));
+  await pg.evaluate(() => document.querySelector('#map .leaflet-interactive').dispatchEvent(new MouseEvent('click', { bubbles: true }))); await sleep(500);
+  await pg.evaluate(() => { const b = document.querySelector('.leaflet-popup .pbtn'); if (b) b.click(); }); await sleep(800);
+  ok('map marker → popup → project card opens', await pg.evaluate(() => !document.getElementById('sheet').hidden && !!document.getElementById('route')));
+  await pg.click('#shX');
+  await pg.click('nav button[data-v="eng"]'); await sleep(500);
+  if (process.env.UNI_TEST_SHOT) { await pg.evaluate(() => document.querySelector('.eng').open = true); await sleep(200); await pg.screenshot({ path: path.join(process.env.UNI_TEST_SHOT, 'ip-eng.png') }); }
+  ok('supervisors tab: engineers list merged (list + supervisor + staff + resident) with project counts and phone', await pg.evaluate(() => { const t = document.getElementById('main').textContent;
+    const first = document.querySelector('.eng'); return /سامر المشرف/.test(first.textContent) && /1 مشروع/.test(first.textContent) && !!first.querySelector('a[href="tel:07801111111"]') && /علي الكادر/.test(t) && /مهندس مقيم/.test(t) && document.querySelectorAll('.eng').length === 4; }), await pg.evaluate(() => [...document.querySelectorAll('.eng .t')].map(x => x.textContent).join(' | ')));
+  await pg.evaluate(() => { document.querySelector('.eng').open = true; document.querySelector('.eng .ep').click(); }); await sleep(600);
+  ok('engineer → project card, card lists supervisors', await pg.evaluate(() => !document.getElementById('sheet').hidden && /علي الكادر/.test(document.getElementById('sh').textContent) && /م\. سامر المشرف/.test(document.getElementById('sh').textContent)));
+  await pg.click('#shX');
   await pg.click('nav button[data-v="pl"]'); await sleep(400);
   ok('planning view with components', await pg.evaluate(() => /مشروع خطة تجريبي/.test(document.body.textContent) && /مكوّن الطريق/.test(document.body.textContent)));
   if (process.env.UNI_TEST_SHOT) { await pg.click('nav button[data-v="sit"]'); await sleep(300); await pg.evaluate(() => { document.getElementById('fd').value = ''; document.getElementById('fd').dispatchEvent(new Event('change')); }); await sleep(300); await pg.screenshot({ path: path.join(process.env.UNI_TEST_SHOT, 'ip-sit.png') }); }

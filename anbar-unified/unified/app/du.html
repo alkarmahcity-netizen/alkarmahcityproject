@@ -2471,6 +2471,7 @@ table.rs td.d{text-align:center;width:28mm}
 .pd .dproj{text-align:center;font-weight:700;font-size:1em;margin:0 0 2.5mm}
 .pd .dl{margin:1mm 0 2mm;font-size:1em;line-height:calc((1.45 + .45*var(--gap,1))*var(--lh,1));font-weight:700}
 .pd .li{display:flex;gap:2mm;align-items:baseline}
+.pd .dl .lt{flex:1;min-width:0}.pd .dl .lt:focus{outline:1.5px dashed #1f6b45;outline-offset:2px}@media screen{.pd .dl.custom .lt{background:rgba(255,236,150,.18)}}@media print{.pd .dl .lt{outline:none!important;background:none!important}}
 .pd .lno{flex:none;min-width:5mm}
 .pd .clause{font-weight:700;margin:0;font-size:1em;line-height:calc((1.4 + .35*var(--gap,1))*var(--lh,1))}
 .pd .att{margin-top:1mm;font-size:1em;line-height:calc(1.6*var(--lh,1))}
@@ -4534,7 +4535,7 @@ function pageOrder(c){
   <p class="dp">استناداً الى الصلاحيات المخولة لنا و${T.art}، واشارة الى العقد المبرم مع شركة ( <b>${dots(P.contractor,16)}</b> )${P.cNo?' المرقم ( '+ar(esc(P.cNo))+' ) لسنة ( '+ar(esc(P.cYear))+' )':''} ولضرورة انجاز مشروع :</p>
   <div class="dproj">( ${dots(P.name,40)} )</div>
   <p class="dp">واشارة الى ${T.reLetter} ${T.committee}${T.central}، تقرر ما يلي :</p>
-  <div class="dl">${T.items.map((x,i)=>`<div class="li"><span class="lno">${ar(i+1)} -</span><div>${x}</div></div>`).join('')}</div>
+  ${ordList(e,T.items)}
   ${clauses}
   <div class="sigrow"><div class="att">${atts.length?`<b>المرفقات:</b>${atts.map(a=>`<div class="ai"><span>${esc(a)}</span></div>`).join('')}`:''}</div><div class="signer">${esc(L.signerName)}<br>${esc(L.signerTitle)}<br><span dir="ltr">${blankDate()}</span></div></div>
   <div class="bottom"><div class="endrow"><div class="ccb"><b>صورة عنه الى</b><div class="ccw">
@@ -4543,22 +4544,38 @@ function pageOrder(c){
   ${gbar}</div>`;
 }
 /* أمر الإعفاء من الغرامات التأخيرية — بصيغة الأمر الإداري المعتمد في القسم («امر اداري»: بناءً على كتاب م.م … واستناداً الى قرار لجنة المصادقة ومطالعة لجنة المدد وقراري مجلس الوزراء … تقرر ما يلي) */
+function fineItems(c,T){const e=c.cur;
+  const why=e.fineCause?ar(esc(e.fineCause))+confText(e):((e.reasons||[]).filter(r=>r.t).map(r=>ar(esc(r.t))).join('، '));
+  const d=T.fin,per=(c.pFrom||c.pTo)?` للفترة من ${dt(c.pFrom)} ولغاية ${dt(c.pTo)}`:'';
+  return c.needCentral&&d<=0?['عدم إعفاء الشركة من الغرامات التأخيرية لعدم مصادقة لجنة المصادقة.']
+    :[`اعفاء الشركة أعلاه من الغرامات التأخيرية المترتبة على الفترة البالغ مقدارها ( <b>${ar(d)}</b> ) يوم${d?' ( '+daysWords(d)+' )':''}${per}${why?' بسبب '+why:''}، على ان لا تترتب أي التزامات مالية لصالح الشركة.`,
+      'تتحمل دائرة المهندس المقيم المسؤولية القانونية عن صحة الأوراق والوثائق لمدة الإعفاء أعلاه.'];}
+/* بنود القرار في الأمر الإداري (بعد «تقرر ما يلي»): تلقائية، أو معدّلة يدوياً من اللجنة (e.ordItems) — تُعدّل بالضغط عليها في المعاينة */
+const autoOrdItems=c=>{const T=letterText(c);return c.kind==='fine'?fineItems(c,T):T.items;};
+function ordList(e,auto){const cu=Array.isArray(e.ordItems)&&e.ordItems.length,L=cu?e.ordItems.map(cleanRec):auto;
+  return `<div class="dl${cu?' custom':''}" id="ordBox">${L.map((x,i)=>`<div class="li"><span class="lno">${ar(i+1)} -</span><div class="lt" contenteditable="true" spellcheck="false" title="انقر لتعديل بند القرار">${x}</div></div>`).join('')}</div>`;}
+function bindOrd(){const b=document.getElementById('ordBox');if(!b)return;const e=S.exts[S.cur];if(!e)return;
+  const read=()=>[...b.querySelectorAll('.lt')].map(x=>cleanRec(x.innerHTML).replace(/^(<br>)+|(<br>)+$/g,'').trim());
+  b.querySelectorAll('.lt').forEach(x=>{
+    x.oninput=()=>{e.ordItems=read();b.classList.add('custom');save();syncOrdUI()};
+    x.onblur=()=>{if(e.ordItems){e.ordItems=read().filter(t=>t.replace(/<br>|&nbsp;/g,'').trim());if(!e.ordItems.length)delete e.ordItems;}upd();setTimeout(syncOrdUI,200)};
+    x.onkeydown=ev=>{if(ev.key==='Enter'){ev.preventDefault();document.execCommand('insertLineBreak')}};
+    x.onpaste=ev=>{ev.preventDefault();document.execCommand('insertText',false,(ev.clipboardData||window.clipboardData).getData('text/plain'))};});}
+function syncOrdUI(){const e=S.exts[S.cur],h=document.getElementById('ordHint');if(!h||!e)return;
+  h.textContent=e.ordItems&&e.ordItems.length?'بنود القرار في الأمر الإداري معدّلة يدوياً. تغيير الحقول لا يغيّرها؛ اضغط «استرجاع البنود التلقائية» لإعادة توليدها.':'بنود القرار بعد «تقرر ما يلي» تُكتب تلقائياً. اضغط على أي بند في معاينة الأمر الإداري وعدّله مباشرة، أو أضف بنداً.';
+  const r=document.getElementById('ordReset');if(r)r.disabled=!(e.ordItems&&e.ordItems.length);}
 function pageOrderFine(c,T,no,date,atts,blocked){
   const e=c.cur,P=S.p,L=S.L,z=S.z||{};
   const zo=(z.orders||[]).filter(o=>o.no||o.date)[0];
   const zRef=c.needCentral?`ما جاء بقرار لجنة المصادقة المشكلة بموجب الامر الاداري المرقم ( ${ar(esc(zo&&zo.no||'......'))} ) في ${dt(zo&&zo.date)}${e.z.formNo?' ذي العدد ( '+ar(esc(e.z.formNo))+' )':''}${e.z.date?' في '+dt(e.z.date):''} و`:'';
   const comm=`مطالعة لجنة المدد الاضافية${e.formNo?' ذات الاستمارة المرقمة ( '+ar(esc(e.formNo))+' )':''}${e.date?' في '+dt(e.date):''} والمشكلة بموجب الأمر الإداري ذي العدد ( ${ar(dots(S.d.orderNo,6))} ) في ${dt(S.d.orderDate)}`;
-  const why=e.fineCause?ar(esc(e.fineCause))+confText(e):((e.reasons||[]).filter(r=>r.t).map(r=>ar(esc(r.t))).join('، '));
-  const d=T.fin,per=(c.pFrom||c.pTo)?` للفترة من ${dt(c.pFrom)} ولغاية ${dt(c.pTo)}`:'';
-  const items=c.needCentral&&d<=0?['عدم إعفاء الشركة من الغرامات التأخيرية لعدم مصادقة لجنة المصادقة.']
-    :[`اعفاء الشركة أعلاه من الغرامات التأخيرية المترتبة على الفترة البالغ مقدارها ( <b>${ar(d)}</b> ) يوم${d?' ( '+daysWords(d)+' )':''}${per}${why?' بسبب '+why:''}، على ان لا تترتب أي التزامات مالية لصالح الشركة.`,
-      'تتحمل دائرة المهندس المقيم المسؤولية القانونية عن صحة الأوراق والوثائق لمدة الإعفاء أعلاه.'];
+  const items=fineItems(c,T);
   return `<div class="page pd pdf5" data-p="o">${blocked?'<div class="stamp">لا يصدر الأمر</div>':''}${head().replace('class="hd lhd"','class="hd lhd hd5"')}
   <div class="dtop"><div class="dmeta">العدد / <b>${no}</b><br>التاريخ / <b>${date}</b></div>${qrBlock('qrO',e.qr?'رابط القرار':'بيانات الأمر')}</div>
   <div class="dsub fine"><span>امر اداري</span></div>
   <p class="dp">بناءً على ما جاء بكتاب دائرة المهندس المقيم ذي العدد ( ${ar(dots(e.reNo,6))} ) في ${dt(e.reDate)} والمتضمن طلب اعفاء الشركة من الغرامات التأخيرية لمشروع : ( <b>${dots(P.name,40)}</b> ) والمحال بعهدة شركة ( <b>${dots(P.contractor,16)}</b> ).</p>
   <p class="dp">واستناداً الى ${zRef}${comm} واستناداً الى ${T.art}، تقرر ما يلي : -</p>
-  <div class="dl">${items.map((x,i)=>`<div class="li"><span class="lno">${ar(i+1)} -</span><div>${x}</div></div>`).join('')}</div>
+  ${ordList(e,items)}
   <div class="sigrow"><div class="att">${atts.length?`<b>المرفقات:</b>${atts.map(a=>`<div class="ai"><span>${esc(a)}</span></div>`).join('')}`:''}</div><div class="signer">${esc(L.signerName)}<br>${esc(L.signerTitle)}<br><span dir="ltr">${blankDate()}</span></div></div>
   <div class="bottom"><div class="endrow"><div class="ccb"><b>صورة عنه الى</b><div class="ccw">
    ${L.cc.filter(x=>x.to).map(x=>`<div class="ccl"><span class="t">${ccRep(x.to,c)}${x.purpose?' / '+ccRep(x.purpose,c):''}</span>${x.end?`<span class="dots"></span><span class="e">${esc(x.end)}</span>`:''}</div>`).join('')}</div></div>
@@ -4569,6 +4586,15 @@ function drawLetter(){
   const box=$('ordSec');if(!box)return;box.innerHTML='';const e=S.exts[S.cur],L=S.L;if(!e)return;
   const h=document.createElement('p');h.className='hint';h.textContent='عدد وتاريخ الأمر للطلب الحالي (يُتركان فارغين ليُكتبا باليد).';box.append(h);
   box.append(fld('عدد الأمر الإداري',e.ordNo,v=>e.ordNo=v),fld('تاريخه',e.ordDate,v=>e.ordDate=v,'date'));
+  { const w=document.createElement('div');w.className='recbar full';w.style.gridColumn='1/-1';w.innerHTML='<b>قرار الأمر الإداري (بعد «تقرر ما يلي»)</b><p class="hint" id="ordHint"></p>';
+    const cur=()=>e.ordItems&&e.ordItems.length?e.ordItems.slice():autoOrdItems(calc());
+    const mk=(t,f,id,cls)=>{const b=document.createElement('button');b.type='button';b.textContent=t;if(id)b.id=id;if(cls)b.className=cls;b.onmousedown=ev=>{if(t==='غامق')ev.preventDefault()};b.onclick=f;w.append(b);return b};
+    mk('تعديل بنود القرار',()=>{const x=document.querySelector('#ordBox .lt');if(x){x.scrollIntoView({block:'center'});x.focus()}});
+    mk('+ إضافة بند',()=>{e.ordItems=cur().concat(['اكتب البند هنا']);upd();setTimeout(()=>{const L=document.querySelectorAll('#ordBox .lt');const x=L[L.length-1];if(x){x.scrollIntoView({block:'center'});x.focus();document.execCommand('selectAll')}syncOrdUI()},400)});
+    mk('حذف آخر بند',()=>{const L=cur();if(L.length<=1)return;L.pop();e.ordItems=L;upd();setTimeout(syncOrdUI,300)});
+    mk('غامق',()=>{document.execCommand('bold');const x=document.activeElement;if(x&&x.classList.contains('lt'))x.dispatchEvent(new Event('input'))});
+    mk('استرجاع البنود التلقائية',()=>{delete e.ordItems;upd();setTimeout(syncOrdUI,300)},'ordReset','del');
+    box.append(w);setTimeout(syncOrdUI,0); }
   box.append(fld('رقم ملحق العقد',e.axNo,v=>e.axNo=v),fld('تاريخ ملحق العقد',e.axDate,v=>e.axDate=v,'date'));
   box.append(fld('السند (فارغ = حسب نوع القرار والتعليمات)',L.article,v=>L.article=v,'text','full'));
   box.append(fld('اسم الموقّع',L.signerName,v=>L.signerName=v),fld('صفته',L.signerTitle,v=>L.signerTitle=v));
@@ -4692,7 +4718,7 @@ function upd(){
     if(c2.needCentral&&(sel==='all'||sel==='z'))h+=pageCentral(c2);
     if(sel==='all'||sel==='o'||sel==='co')h+=pageOrder(c2);
     if(!h)h=`<div class="page" style="align-items:center;justify-content:center;font-family:var(--ui);color:#555">لا يوجد قرار للجنة المركزية: المدد التراكمية لا تتجاوز 25%.</div>`;
-    $('out').innerHTML=h;qrs(c2);bindRec();bindCross();syncRecUI();fitPages();fit();save();
+    $('out').innerHTML=h;qrs(c2);bindRec();bindCross();syncRecUI();bindOrd();syncOrdUI();fitPages();fit();save();
     try{document.fonts.ready.then(()=>{fitPages();fit()})}catch(e){}
   },120);
 }
@@ -5270,7 +5296,7 @@ function upd(){
       if(v==='all'||v==='o'||v==='co')h+=pageOrder(c2);
       if(v==='x'||(v==='all'&&annexOk(c2)))h+=pageAnnex(c2);
       if(!h)h=`<div class="page" style="align-items:center;justify-content:center;font-family:var(--ui);color:#555">لا يوجد قرار للجنة المركزية: المدد التراكمية لا تتجاوز 25%.</div>`;
-      $('out').innerHTML=h;try{AnbarAnnex.fit($('out'))}catch(e){}qrs(c2);bindRec();bindCross();syncRecUI();
+      $('out').innerHTML=h;try{AnbarAnnex.fit($('out'))}catch(e){}qrs(c2);bindRec();bindCross();syncRecUI();bindOrd();syncOrdUI();
     }else if(t==='case'&&S.cases[S.cc]){const d=S.cases[S.cc];if(v!=='o')h+=pageMemo(d);if(v!=='m')h+=pageOrder2(d);$('out').innerHTML=h;qrs2()}
     else $('out').innerHTML=`<div class="page" style="align-items:center;justify-content:center;font-family:var(--ui);color:#667;font-size:15px;text-align:center;line-height:2">لا يوجد إجراء محدد.<br>أضف «توقف عمل» أو «قرار لجنة المدد» من السجل الزمني.</div>`;
     fitPages();fit();try{memoKashida()}catch(_){}save();

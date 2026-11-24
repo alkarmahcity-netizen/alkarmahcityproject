@@ -43,10 +43,11 @@ const sleep = ms => new Promise(r => setTimeout(r, ms)); const R = []; const ok 
   await pg.click('#shX'); await pg.click('.it[data-fn="503"]'); await sleep(400);
   ok('no route button without coordinates', await pg.evaluate(() => !document.getElementById('route')));
   await pg.click('#shX');
-  await pg.click('nav button[data-v="dist"]'); await sleep(400);
-  if (process.env.UNI_TEST_SHOT) await pg.screenshot({ path: path.join(process.env.UNI_TEST_SHOT, 'ip-dist.png') });
-  ok('districts view with alerts (stopped project)', await pg.evaluate(() => document.querySelectorAll('.dist').length === 2 && /إنذارات/.test(document.body.textContent) && /متوقف 1/.test(document.body.textContent)));
-  await pg.click('.dist[data-d="هيت"]'); await sleep(400);
+  await pg.click('nav button[data-v="cc"]'); await sleep(500);
+  if (process.env.UNI_TEST_SHOT) await pg.screenshot({ path: path.join(process.env.UNI_TEST_SHOT, 'ip-cc.png'), fullPage: true });
+  ok('monitoring center: KPIs, district ranking, alerts (stopped), sectors', await pg.evaluate(() => { const t = document.getElementById('main').textContent;
+    return document.querySelectorAll('.ccr[data-d]').length === 2 && /مركز متابعة/.test(t) && /هيت: 1 مشروع متوقف/.test(t) && /القطاعات/.test(t) && /الانحراف/.test(t); }), await pg.evaluate(() => document.getElementById('main').textContent.slice(0, 300)));
+  await pg.click('.ccr[data-d="هيت"]'); await sleep(400);
   ok('tapping a district shows its projects', await pg.evaluate(() => document.querySelectorAll('.it[data-fn]').length === 1 && document.getElementById('fd').value === 'هيت'));
   await pg.click('nav button[data-v="map"]'); await sleep(1500);
   if (process.env.UNI_TEST_SHOT) await pg.screenshot({ path: path.join(process.env.UNI_TEST_SHOT, 'ip-map.png') });

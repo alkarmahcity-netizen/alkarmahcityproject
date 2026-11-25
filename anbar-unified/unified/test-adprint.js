@@ -1,0 +1,27 @@
+// استمارة السلفة: بيانات أسود غامق، أحجام 10–20 نقطة، ترويسة مختصرة 2 سم ورمز QR يساراً، حقل التوصيات والتواقيع أكبر وقابلة للتحكم
+const { _electron: electron } = require('playwright'); const fs = require('fs'), path = require('path'), os = require('os');
+const sleep = ms => new Promise(r => setTimeout(r, ms)); const R = []; const ok = (n, c, d = '') => R.push([c ? 'PASS' : 'FAIL', n, d]);
+(async () => { const T = fs.mkdtempSync(path.join(os.tmpdir(), 'adp-')); const mk = n => { const d = path.join(T, n); fs.mkdirSync(d); return d; };
+  const DD = mk('d'); fs.writeFileSync(path.join(DD, 'auth.json'), JSON.stringify({ ad: null }));
+  const app = await electron.launch({ executablePath: require('electron'), args: ['--no-sandbox', __dirname], env: { ...process.env, UNI_MULTI: mk('u'), UNI_DATA_DIR: DD, ANBAR_REG_DIR: mk('r'), UNI_AC_PORT: '48561', UNI_NO_JSONSCAN: '1', UNI_NO_LINKREFRESH: '1', UNI_NO_INTRO: '1' } });
+  const pg = await app.firstWindow(); await pg.waitForLoadState('domcontentloaded'); await sleep(1500);
+  await pg.evaluate(() => window.desktop.go('ad')); await sleep(2500);
+  const V = c => app.evaluate(async (_, c) => global.__uni.views.ad.webContents.executeJavaScript(c), c);
+  await V(`document.querySelector('[data-act=demo]').click();1`); await sleep(1800);
+  const m = () => V(`(()=>{const p=document.querySelector('#pages .pg');const cs=e=>e?getComputedStyle(e):{};const pt=px=>Math.round(parseFloat(px)*0.75*10)/10;
+    const kv=p.querySelector('.kv b'),rb=p.querySelector('.dec .rb'),nm=p.querySelector('.sigs .nm'),hd=p.querySelector('.hd2'),q=p.querySelector('.hd2 .q svg'),dec=p.querySelector('.dec'),ln=p.querySelector('.sigs .ln');
+    return JSON.stringify({kvPt:pt(cs(kv).fontSize),kvCol:cs(kv).color,kvW:cs(kv).fontWeight,rbPt:pt(cs(rb).fontSize),sgPt:pt(cs(nm).fontSize),hdMm:hd?Math.round(hd.getBoundingClientRect().height*25.4/96):0,qrLeft:q?q.getBoundingClientRect().left-p.getBoundingClientRect().left:-1,oldQr:!!p.querySelector('.top .qr'),decMm:Math.round(dec.getBoundingClientRect().height*25.4/96),lnMm:Math.round(ln.getBoundingClientRect().height*25.4/96*10)/10,k:+getComputedStyle(p).getPropertyValue('--k')||1,bar:document.getElementById('potb').textContent})})()`).then(JSON.parse);
+  let a = await m();
+  ok('data values are black and bold', a.kvCol === 'rgb(0, 0, 0)' && +a.kvW >= 700, JSON.stringify(a));
+  ok('compact header about 2 cm, QR on its left; QR no longer above the data', a.hdMm >= 19 && a.hdMm <= 21 && a.qrLeft >= 0 && a.qrLeft < 120 && !a.oldQr, JSON.stringify({ hd: a.hdMm, q: a.qrLeft, old: a.oldQr }));
+  ok('toolbar: data / decision / signature font in points (10–20), signature space and recommendations height', /خط البيانات/.test(a.bar) && /12 نقطة/.test(a.bar) && /خط القرار والكتابة/.test(a.bar) && /خط التواقيع/.test(a.bar) && /مساحة التوقيع/.test(a.bar) && /حقل التوصيات/.test(a.bar), a.bar);
+  ok('default sizes (data 12, decision 12, signatures 10 pt — larger than before) fit one page without shrinking; recommendations box ≥ 60 mm', a.k >= 0.97 && a.decMm >= 60 && a.kvPt >= 11.5, JSON.stringify({ k: a.k, dec: a.decMm, kv: a.kvPt, rb: a.rbPt, sg: a.sgPt }));
+  fs.writeFileSync(process.env.SHOT || path.join(T, 'a.png'), Buffer.from(await app.evaluate(async () => (await global.__uni.views.ad.webContents.capturePage()).toPNG().toString('base64')), 'base64'));
+  await V(`(()=>{setPo('dfz',16);setPo('tfz',18);setPo('sgf',16);setPo('sgs',30);return 1})()`); await sleep(1200); const b = await m();
+  ok('sizes change with the controls (data 16, decision 18, signatures 16, space 30 mm); if the page overflows it shrinks with a visible notice', b.kvPt / b.k > a.kvPt / a.k * 1.2 && b.rbPt / b.k > a.rbPt / a.k * 1.3 && b.sgPt / b.k > a.sgPt / a.k * 1.3 && (b.k > 0.99 || /صُغّرت الاستمارة/.test(b.bar)), JSON.stringify({ a: [a.kvPt, a.rbPt, a.sgPt, a.lnMm, a.k], b: [b.kvPt, b.rbPt, b.sgPt, b.lnMm, b.k] }));
+  await V(`(()=>{setPo('hd2',0);return 1})()`); await sleep(1000); const c = await V(`JSON.stringify({old:!!document.querySelector('#pages .pg .hd img.lh'),qr:!!document.querySelector('#pages .pg .top .qr')})`).then(JSON.parse);
+  ok('turning off the compact header restores the previous letterhead and QR place', c.old && c.qr, JSON.stringify(c));
+  const e = await app.evaluate(() => (global.__uniErrors || []).slice()); ok('no JavaScript errors', e.length === 0, e.join(' | ').slice(0, 300));
+  await app.close();
+  R.forEach(x => console.log(x[0], x[1], x[2] ? '— ' + String(x[2]).slice(0, 400) : '')); console.log(`${R.filter(x => x[0] === 'PASS').length}/${R.length}`); process.exit(R.every(x => x[0] === 'PASS') ? 0 : 1);
+})().catch(e => { console.error(e); process.exit(1); });

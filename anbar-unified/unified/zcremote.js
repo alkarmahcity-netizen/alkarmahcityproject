@@ -120,7 +120,7 @@ function createClient(ctx) {
     if (!p || !p.key) return { error: 'بيانات القرار ناقصة' };
     const s = load(); s.dec = Object.assign({}, s.dec, { [p.key]: { rid: p.rid, extId: p.extId, name: p.name || '', z: p.z || {}, zset: p.zset || null, at: Date.now() } }); s.dirty = 1; save(s);
     const r = await push(); return r.ok ? { ok: true } : { ok: true, queued: true, warn: 'حُفظ القرار، وتعذّر رفعه الآن (' + r.error + ') — سيُرفع تلقائياً عند عودة الاتصال' }; }
-  function status() { const s = load(); return { pendLogin: !cur() && !!dec(s.pend), linked: !!cur(), connected: (() => { try { return !!ctx.gd().status().connected; } catch (_) { return false; } })(), pulled: s.pulled || 0, pushed: s.pushed || 0, err: s.err || '', pending: !!s.dirty, decided: Object.keys(s.dec || {}).length }; }
+  function status() { const s = load(), pc = !cur() && dec(s.pend) ? parseCode(dec(s.pend)) : null; return { pendLogin: !!pc, pendV: pc ? (pc.creds ? 2 : 1) : 0, linked: !!cur(), connected: (() => { try { return !!ctx.gd().status().connected; } catch (_) { return false; } })(), pulled: s.pulled || 0, pushed: s.pushed || 0, err: s.err || '', pending: !!s.dirty, decided: Object.keys(s.dec || {}).length }; }
   function unlink() { try { fs.unlinkSync(stFile()); } catch (_) {} return { ok: true }; }
   function start() { if (timer) return; setTimeout(() => pull(), +process.env.UNI_ZC_FIRST_MS || 3000); timer = setInterval(() => pull(), POLL_MS); }
   return { status, link, pull, decide, unlink, start };

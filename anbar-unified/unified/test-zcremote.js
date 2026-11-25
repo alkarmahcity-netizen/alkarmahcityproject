@@ -48,7 +48,7 @@ const GPORT = 48631;
   ok('after the password: only the central committee page, with «الربط بحاسبة القسم» box', /du\.html\?zc=1&remote=1/.test(ui.url) && ui.zc && /اللجنة المركزية للمصادقة/.test(ui.brand) && /الربط بحاسبة القسم/.test(ui.link) && /غير مربوطة/.test(ui.link), JSON.stringify(ui).slice(0, 300));
   const bad = await W(`window.desktop.zcrLink('ZC1.abc')`); ok('a wrong code is refused with a clear message', bad && /رمز الربط غير صحيح/.test(bad.error), JSON.stringify(bad));
   const lk0 = await W(`window.desktop.zcrLink(${JSON.stringify(code)})`); const st0 = await W(`window.desktop.zcrStatus()`); const g0 = await W(`window.desktop.gdStatus()`);
-  ok('committee (no Drive setup at all): pasting the code sets the app ID itself and asks only for the department e-mail login', lk0 && lk0.needLogin && st0.pendLogin && g0.configured && !g0.connected, JSON.stringify([lk0, st0, g0]));
+  ok('committee (no Drive setup at all): pasting the code sets the app ID itself and asks only for the department e-mail login', lk0 && lk0.needLogin && st0.pendLogin && st0.pendV === 2 && g0.configured && !g0.connected, JSON.stringify([lk0, st0, g0]));
   await W(`window.linkBox&&1`); const ui2 = await W(`(async()=>{await new Promise(r=>setTimeout(r,300));document.querySelector('#zcLink details').open=true;return document.getElementById('zcLink').textContent})()`);
   const lg = await W(`window.desktop.gdConnect()`);
   ok('login with the department e-mail uses the department app ID (from the code)', lg && lg.ok && G.authCid === 'x.apps.googleusercontent.com', JSON.stringify(lg));

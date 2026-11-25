@@ -11,8 +11,8 @@ const os = require('os');
 const crypto = require('crypto');
 const dgram = require('dgram');
 
-const JSON_KEYS = { fv: 'records', co: 'records', ad: 'records', du: 'recs', in: 'records', lt: 'records', fu: 'records', dm: 'records', cm: 'records', ar: 'records', wf: 'records', pl: 'records', wfa: 'records' };
-const ALL = ['co', 'du', 'ad', 'in', 'lt', 'fu', 'dm', 'cm', 'fv', 'ar', 'arf', 'reg', 'pph', 'ac', 'wf', 'pl', 'wfa'];   // pph: صور المشاريع (بعد سجل الموقف الذي يذكرها)   // wf: لوحة سير المعاملات
+const JSON_KEYS = { fv: 'records', co: 'records', ad: 'records', du: 'recs', in: 'records', lt: 'records', fu: 'records', dm: 'records', cm: 'records', zc: 'recs', ar: 'records', wf: 'records', pl: 'records', wfa: 'records' };
+const ALL = ['co', 'du', 'ad', 'in', 'lt', 'fu', 'dm', 'cm', 'zc', 'fv', 'ar', 'arf', 'reg', 'pph', 'ac', 'wf', 'pl', 'wfa'];   // pph: صور المشاريع (بعد سجل الموقف الذي يذكرها)   // wf: لوحة سير المعاملات
 const AC_TYPES = { pac: ['pac_records_v1', 'pac_counter_v1'], pap: ['pap_records_v1', 'pap_counter_v1'], fac: ['fac_records_v1', 'fac_counter_v1'], fpa: ['fpa_records_v1', 'fpa_counter_v1'] };
 const DEFAULT_PORT = +process.env.UNI_SYNC_PORT || 47900;   // للاختبار فقط: منفذ بديل إن كان 47900 مشغولاً في بيئة الاختبار
 const DISC_PORT = +process.env.UNI_DISC_PORT || 47901;   // الاكتشاف التلقائي (UDP): حاسبة القسم تجيب من يسأل عنها برمز القسم
@@ -286,9 +286,10 @@ module.exports = function createSync(ctx) {
         { const um = req.method === 'GET' && String(req.url || '').match(/^\/sync\/update\/(info|file)$/);   // التحديث من حاسبة القسم
           if (um) { if (cfg.mode === 'server' && ctx.updater) return ctx.updater.serve(um[1], res); return send(404, { error: 'none' }); } }
         notePeer(req);
-        const m = req.url.match(/^\/sync\/(ping|(co|du|ad|in|lt|fu|dm|cm|fv|ar|arf|reg|pph|ac|wf|pl|wfa)\/(digest|push))$/);
+        const m = req.url.match(/^\/sync\/(ping|gd|(co|du|ad|in|lt|fu|dm|cm|zc|fv|ar|arf|reg|pph|ac|wf|pl|wfa)\/(digest|push))$/);
         if (!m) return send(404, { error: 'nf' });
-        if (m[1] === 'ping') return send(200, { ok: true, time: Date.now(), name: cfg.name || os.hostname(), sets: ALL, ver: String(ctx.version || '') });
+        if (m[1] === 'ping') return send(200, { ok: true, time: Date.now(), name: cfg.name || os.hostname(), sets: ALL, ver: String(ctx.version || ''), gd: !!(ctx.gdOffer && ctx.gdOffer(true)) });
+        if (m[1] === 'gd') { const o = ctx.gdOffer ? await ctx.gdOffer(false) : null; if (!o) return send(404, { error: 'none' }); return send(200, { v: gdSeal(o) }); }
         const ds = m[2], act = m[3];
         const chunks = []; let size = 0;
         for await (const c of req) { size += c.length; if (size > 80 * 1024 * 1024) return send(413, { error: 'big' }); chunks.push(c); }
@@ -334,6 +335,13 @@ module.exports = function createSync(ctx) {
   }
   const isCloud = () => { const u = parseServer(); return !!(u && u.tls); };
   /* تشفير القيم من طرف العميل (AES-256-GCM) قبل رفعها؛ الوسيط السحابي لا يرى المحتوى */
+  /* ربط Google Drive المشترك من حاسبة القسم (إن فعّله مدير القسم): مشفّر بمفتاح مشتق من رمز القسم وكلمة سر التشفير (إن وُجدت) */
+  const gdKey = () => crypto.scryptSync(String(cfg.key || '') + '|' + String(cfg.secret || ''), 'anbar-gd-share-v1', 32);
+  function gdSeal(o) { const iv = crypto.randomBytes(12), c = crypto.createCipheriv('aes-256-gcm', gdKey(), iv); const ct = Buffer.concat([c.update(JSON.stringify(o), 'utf8'), c.final()]); return { iv: iv.toString('base64'), ct: ct.toString('base64'), tag: c.getAuthTag().toString('base64') }; }
+  function gdOpen(v) { const d = crypto.createDecipheriv('aes-256-gcm', gdKey(), Buffer.from(v.iv, 'base64')); d.setAuthTag(Buffer.from(v.tag, 'base64')); return JSON.parse(Buffer.concat([d.update(Buffer.from(v.ct, 'base64')), d.final()]).toString('utf8')); }
+  let gdTried = 0;
+  async function gdPull(ping) { if (!ping || !ping.gd || !ctx.gdWant || !ctx.gdTake || !ctx.gdWant() || Date.now() - gdTried < 10 * 60 * 1000) return; gdTried = Date.now();
+    try { const r = await call('/sync/gd', {}); if (r && r.v) { const ok = await ctx.gdTake(gdOpen(r.v)); if (ok) gdTried = 0; } } catch (e) { ctx.log && ctx.log('gd-share: ' + (e.message || e)); } }
   let encKey = null;
   const keyOf = () => { if (!cfg.secret) return null; if (!encKey || encKey.s !== cfg.secret) encKey = { s: cfg.secret, k: crypto.scryptSync(String(cfg.secret), 'anbar-sync-v1', 32) }; return encKey.k; };
   const enc = v => {
@@ -422,10 +430,11 @@ module.exports = function createSync(ctx) {
       if (!(await ensureFound(false))) throw new Error('لم يُعثر على حاسبة القسم في الشبكة — تأكد أنها مشغّلة وأن رمز القسم نفسه');
       let ping; const t0 = Date.now();
       try { ping = await call('/sync/ping', {}); } catch (e) { if (!isAuto() || /مفتاح/.test(e.message)) throw e; if (!(await ensureFound(true))) throw new Error('لم يُعثر على حاسبة القسم في الشبكة — تأكد أنها مشغّلة وأن رمز القسم نفسه'); ping = await call('/sync/ping', {}); } state.skew = Math.round((ping.time - Date.now() + (Date.now() - t0) / 2) / 1000); state.peers = 1; state.serverVer = String(ping.ver || ''); state.serverName = String(ping.name || '');
+      try { await gdPull(ping); } catch (_) {}
       let dsErr = null;   /* خطأ في مجموعة واحدة لا يوقف مزامنة باقي المجموعات (كان يوقف الجولة كلها) */
       for (const ds of ALL) { try {
         if (ds === 'ac' && !ctx.acAvailable()) continue;
-        if (['in', 'lt', 'fu', 'dm', 'cm', 'fv', 'ar', 'arf', 'pph', 'wf', 'pl', 'wfa'].includes(ds) && !(ping.sets || []).includes(ds)) continue;   // خادم أقدم لا يعرف هذه المجموعة   // خادم أو سحابة بإصدار أقدم لا يعرف «إطلاق التأمينات»
+        if (['in', 'lt', 'fu', 'dm', 'cm', 'zc', 'fv', 'ar', 'arf', 'pph', 'wf', 'pl', 'wfa'].includes(ds) && !(ping.sets || []).includes(ds)) continue;   // خادم أقدم لا يعرف هذه المجموعة   // خادم أو سحابة بإصدار أقدم لا يعرف «إطلاق التأمينات»
         const rv = ping.revs ? (ping.revs[ds] || 0) : undefined;
         // مرفقات الأرشيف: تتكرر الجولة ما دام هناك ما يُنقل (أجزاء ملف كبير أو دفعات متتالية)، حتى 40 جولة
         for (let round = 0; round < (ds === 'arf' || ds === 'pph' ? 40 : 1); round++) {
@@ -440,7 +449,8 @@ module.exports = function createSync(ctx) {
           if (!((r.items && r.items.length) || sent)) break;
         }
         if (rv !== undefined) { lastRev[ds] = rv; lastSig[ds] = JSON.stringify(await API.digest(ds)); }
-      } catch (e) { if (/مفتاح|403|401/.test(String(e && e.message))) throw e; dsErr = dsErr || (ds + ': ' + (e.message || e)); delete lastRev[ds]; } }
+      } catch (e) { if (/مفتاح|403|401/.test(String(e && e.message))) throw e; if (String(e && e.message) === 'nf') { delete lastRev[ds]; continue; }   /* الخادم (إصدار آخر) لا يعرف هذه المجموعة: تُتجاوز ولا توقف حالة المزامنة */
+        dsErr = dsErr || (ds + ': ' + (e.message || e)); delete lastRev[ds]; } }
       if (dsErr) throw new Error(dsErr);
       state.ok = true; state.error = ''; state.last = Date.now(); state.applied += applied;
       try { const u = parseServer(); if (ctx.onSynced && u && !u.tls) ctx.onSynced({ base: `http://${u.hostname}:${u.port}${u.base || ''}`, key: cfg.key, serverVer: state.serverVer || '' }); } catch (_) {}

@@ -13,7 +13,7 @@ contextBridge.exposeInMainWorld('desktop', {
   acRecsSave: d => ipcRenderer.invoke('ac:recs', d),
   /* Google Drive لبريد القسم: إصدار الشهادة ورفع PDF تلقائياً */
   gdStatus: () => ipcRenderer.invoke('gd:status'), gdSetApp: (id, sec) => ipcRenderer.invoke('gd:setApp', id, sec), gdConnect: hint => ipcRenderer.invoke('gd:connect', hint),
-  gdDisconnect: () => ipcRenderer.invoke('gd:disconnect'), gdReserve: name => ipcRenderer.invoke('gd:reserve', name), gdUpload: (id, name) => ipcRenderer.invoke('gd:upload', id, name)
+  gdDisconnect: () => ipcRenderer.invoke('gd:disconnect'), gdExport: () => ipcRenderer.invoke('gd:exportSetup'), gdShareState: () => ipcRenderer.invoke('gd:shareState'), gdShare: (on, pw) => ipcRenderer.invoke('gd:share', on, pw), gdImport: code => ipcRenderer.invoke('gd:importSetup', code), gdReserve: name => ipcRenderer.invoke('gd:reserve', name), gdUpload: (id, name) => ipcRenderer.invoke('gd:upload', id, name)
 });
 
 /* نشاط المستخدم (الفأرة والتمرير واللمس، لا لوحة المفاتيح فقط) يمدّ مهلة القفل التلقائي */

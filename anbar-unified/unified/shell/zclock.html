@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>اللجنة المركزية للمصادقة</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; font-src 'self' anbar-font: data:">
+<style>
+html,body{margin:0;height:100%;font-family:Tahoma,Arial,sans-serif;background:linear-gradient(160deg,#0f3d2b,#1f5c43);color:#1d2b24}
+.box{position:absolute;inset:0;margin:auto;width:min(420px,92vw);height:fit-content;background:#fff;border-radius:16px;padding:26px 26px 20px;box-shadow:0 20px 60px rgba(0,0,0,.35);text-align:center}
+img{width:86px;height:86px;object-fit:contain}h1{font-size:20px;margin:8px 0 2px;color:#7a1f1f}p{margin:4px 0 14px;color:#5b6b63;font-size:13px;line-height:1.7}
+input{width:100%;box-sizing:border-box;padding:11px;border:1px solid #c9d3cd;border-radius:10px;font-size:16px;margin:5px 0;text-align:center}
+button{width:100%;padding:11px;border:0;border-radius:10px;background:#7a1f1f;color:#fff;font-size:15px;font-weight:700;cursor:pointer;margin-top:8px}
+.lnk{background:none;color:#1f5c43;font-weight:400;font-size:13px;text-decoration:underline;width:auto}
+.err{color:#b42318;min-height:20px;font-size:13px;margin-top:6px}[hidden]{display:none!important}
+</style></head><body>
+<div class="box">
+  <img src="logo.png" alt="">
+  <h1>اللجنة المركزية للمصادقة</h1>
+  <p>محافظة الأنبار — قسم الشؤون الهندسية</p>
+  <form id="fUnlock" hidden><input id="pw" type="password" placeholder="كلمة السر" autofocus><button>دخول</button><button type="button" class="lnk" id="toReset">نسيت كلمة السر؟</button></form>
+  <form id="fFirst" hidden><p>التشغيل الأول: عيّن كلمة سر لهذه النسخة (لا تُفتح إلا بها).</p><input id="n1" type="password" placeholder="كلمة السر الجديدة"><input id="n2" type="password" placeholder="أعد كتابتها"><button>حفظ ودخول</button></form>
+  <form id="fReset" hidden><p>يعيدها مدير قسم الشؤون الهندسية بكلمة سر المدير.</p><input id="m" type="password" placeholder="كلمة سر المدير"><input id="r1" type="password" placeholder="كلمة السر الجديدة للنسخة"><button>تعيين ودخول</button><button type="button" class="lnk" id="toUnlock">رجوع</button></form>
+  <div class="err" id="err"></div>
+</div>
+<script>
+const D=window.desktop,$=id=>document.getElementById(id),err=t=>$('err').textContent=t||'';
+const MSG={wrong:'كلمة السر غير صحيحة',wait:'محاولات كثيرة — انتظر قليلاً ثم أعد',short:'كلمة السر قصيرة (4 أحرف على الأقل)',bad:'غير مسموح'};
+const show=id=>{['fUnlock','fFirst','fReset'].forEach(x=>$(x).hidden=x!==id);err('');const i=$(id).querySelector('input');if(i)i.focus();};
+const st=D.zclState()||{};show(st.first?'fFirst':'fUnlock');
+$('fUnlock').onsubmit=async e=>{e.preventDefault();const r=await D.zclUnlock($('pw').value);if(r!==true){err(MSG[r]||MSG.wrong);$('pw').select();}};
+$('fFirst').onsubmit=async e=>{e.preventDefault();if($('n1').value!==$('n2').value)return err('كلمتا السر غير متطابقتين');const r=await D.zclFirst($('n1').value);if(r!=='ok')err(MSG[r]||r);};
+$('fReset').onsubmit=async e=>{e.preventDefault();const r=await D.zclReset($('m').value,$('r1').value);if(r!=='ok')err(MSG[r]||r);};
+$('toReset').onclick=()=>show('fReset');$('toUnlock').onclick=()=>show('fUnlock');
+</script></body></html>

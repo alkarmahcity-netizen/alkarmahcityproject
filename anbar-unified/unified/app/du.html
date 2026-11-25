@@ -2899,6 +2899,7 @@ table.rs td.d{text-align:center;width:28mm}
       <label>تاريخ المباشرة الفعلي<input id="p_actual" type="date"></label>
       <label>المدد الإضافية الممنوحة سابقاً (قبل هذا النظام)<input id="p_prior" type="number" min="0"></label>
       <label>فترات التوقف الممنوحة سابقاً (قبل هذا النظام)<input id="p_priorStop" type="number" min="0"></label>
+      <label class="chk full" id="coInBox"><input type="checkbox" id="p_coIn"> احتساب مدد أوامر التغيير (من برنامج أوامر التغيير) ضمن نسبة 25% <span id="coInHint" class="hint"></span></label>
       <label>المهندس المقيم (ودائرته)<input id="p_re"></label>
       <label>المهندسون المشرفون (ودوائرهم)<input id="p_sup"></label>
       <label>الجهة المستفيدة<input id="p_ben"></label>
@@ -2940,7 +2941,7 @@ table.rs td.d{text-align:center;width:28mm}
       <label class="full">المسافة فوق أسماء الموقعين <span id="m_sigHv"></span><input type="range" id="m_sigH" min="5" max="45" step="1"></label>
     </div></details>
     <details><summary>أوامر التوقف والاستئناف (توقيع النائب الفني)</summary><div class="sec" id="ordSec2"></div></details>
-    <details><summary>اللجنة المركزية للمراجعة والمصادقة</summary><div class="sec">
+    <details class="zcset"><summary>اللجنة المركزية للمراجعة والمصادقة</summary><div class="sec">
       <p class="hint">الأوامر الإدارية لتشكيل اللجنة (تُذكر كلها في نص القرار)</p></div><div class="sec" id="zorders"></div>
       <div class="sec"><button type="button" id="addZOrd" class="full">+ إضافة أمر إداري</button>
       <label class="full">الجهة الصادرة منها الأوامر<input id="z_issuer"></label>
@@ -3957,7 +3958,9 @@ const demo=()=>{const o={
   o.cases=[s,r];o.cc=1;o.sel={t:'ext'};{const keep=S;S=o;try{s.recs=defRecs(s);r.recs=defRecs(r)}finally{S=keep}}return o};
 
 /* ---------- archive: one record per company/project, kept in this browser ---------- */
-const KEY='extraDurationSystem.v1',DBKEY='projectDurationsArchive.v1',APP='project-durations-system',OLD_EXT='extraDurationArchive.v1',OLD_SR='stopResumeArchive.v1';
+/* تبويب «اللجنة المركزية للمصادقة» (?zc=1) يشغّل هذا البرنامج بملف بيانات مستقل: مفاتيح حفظ المتصفح منفصلة أيضاً (لا يقرأ بيانات المدد ولا يكتب فوقها) */
+const ZCM=new URLSearchParams(location.search).get('zc')==='1',ZK=k=>ZCM?'zc.'+k:k;
+const KEY=ZK('extraDurationSystem.v1'),DBKEY=ZK('projectDurationsArchive.v1'),APP='project-durations-system',OLD_EXT=ZK('extraDurationArchive.v1'),OLD_SR=ZK('stopResumeArchive.v1');
 let S,DB;
 function newRid(){return 'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
 /* حفظ نسخة الهاتف/المتصفح: قاعدة المتصفح IndexedDB (سعة كبيرة) + نسخة في localStorage ما دامت صغيرة؛ ويُطلب من المتصفح عدم حذف البيانات تلقائياً */
@@ -4037,11 +4040,25 @@ function reqDays(e){
   const d=diffDays(e.from,e.to);if(d<=0)return 0;
   return e.kind==='partial'?Math.round(d*num(e.pct)/100):d;
 }
+/* مدد أوامر التغيير للمشروع نفسه (من برنامج أوامر التغيير عبر سجل الموقف) تُجمع مع مدد هذا البرنامج في نسبة 25% واحدة؛
+   الأمر الذي أُحيلت مدته الى هنا كطلب (e.coNo) لا يُحسب مرتين. تُطفأ من «بيانات المشروع» إن كانت مدرجة يدوياً في «الممنوحة سابقاً» */
+/* رقم العقد هو المرجع: يُوحَّد (الأرقام العربية والفواصل) ويُقارن بأرقامه فقط («12/2025» = «١٢ / ٢٠٢٥») */
+function cnKey(v){const s=String(v==null?'':v).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d));const m=s.match(/\d+/g);return m?m.map(x=>x.replace(/^0+(?=\d)/,'')).join('/'):'';}
+/* مدد أوامر التغيير لهذا المشروع: برقم العقد (من ملخص أوامر التغيير في الموقف)، وإلا برقم الاضبارة، وإلا باسم المشروع */
+function coLink(){if(!S||!S.p||!window.AnbarReg||!AnbarReg.links)return null;const ck=cnKey(S.p.cNo);
+  if(ck&&AnbarReg.state){const LL=AnbarReg.state().links||{};for(const fn in LL){const c=LL[fn]&&LL[fn].co;if(c&&c.cNo&&cnKey(c.cNo)===ck)return c;}}
+  let fn=String(S.p.fileNo||'').trim();if(!fn&&AnbarReg.matchProject){const m=AnbarReg.matchProject('',S.p.name,S.p.cNo);if(m)fn=String(m.fileNo);}
+  if(!fn)return null;const c=AnbarReg.links(fn).co;if(c&&ck&&c.cNo&&cnKey(c.cNo)!==ck)return null;return c||null;}
+function coInfo(){try{if(S&&S.p&&S.p.zcCo&&typeof S.p.zcCo==='object')return S.p.zcCo;   /* نسخة الإحالة: مدد أوامر التغيير كما احتُسبت في برنامج المدد */
+  if(!S||!S.p||S.p.coIn===false)return {days:0,items:[]};
+  const L=coLink();if(!L||!Array.isArray(L.items))return {days:0,items:[]};
+  const imp=new Set((S.exts||[]).filter(e=>e.coNo).map(e=>String(e.coNo)));const it=L.items.filter(x=>(+x.days||0)>0&&!imp.has(String(x.no)));
+  return {days:it.reduce((a,x)=>a+(+x.days||0),0),items:it};}catch(_){return {days:0,items:[]};}}
 // walk the requests in order: extra durations build the 25% / 30% count; stoppages move the end date only
 function chain(){
   const dur=num(S.p.dur),prior=num(S.p.prior),reg=S.p.regime;
   const lim25=Math.floor(dur*0.25),lim30=Math.floor(dur*0.30);
-  let base=prior,shift=prior+num(S.p.priorStop),fineB=0;const out=[];
+  let base=prior+coInfo().days,shift=prior+num(S.p.priorStop),fineB=0;const out=[];
   /* الإعفاء من الغرامات التأخيرية: لا يغيّر مدة العقد، لكن مدته (مع المدد الإضافية والإعفاءات السابقة) إذا تجاوزت 25% من مدة العقد
      تُحال الى اللجنة المركزية وتُطبع صفحة قرارها (بلا سقف 30% — السقف للمدد الإضافية) */
   S.exts.forEach((e,i)=>{
@@ -4451,7 +4468,7 @@ function pageCentral(c){
   const prop=num(e.requested);
   const basis=c.reg==='2025'?REG['2025']:'تعليمات تنفيذ العقود الحكومية رقم ( ٢ ) لعام ٢٠١٤';
   return `<div class="page pz" data-p="z">${headZ(z)}
-  <div class="ztrow"><div></div><div class="zt">محضر قرار اللجنة المركزية للمراجعة والمصادقة</div>${qrBlock('qrZ',e.qr?'رابط القرار':'بيانات القرار')}</div>
+  <div class="ztrow"><div></div><div class="zt">محضر قرار اللجنة المركزية للمراجعة والمصادقة</div>${qrBlock('qrZ',(e.z&&e.z.qr)||e.qr?'رابط القرار':'بيانات القرار')}</div>
   <div class="zl">بيانات المشروع :-</div>
   <table class="zp">
     <tr><th>اسم المشروع</th><td class="nm">${dots(P.name,30)}</td><th>كلفة العمل حسب العقد</th><td class="c">${fmt(P.value)}</td></tr>
@@ -4640,7 +4657,7 @@ function qrs(c){
   const a=qrSvg(qrText(c,false));
   const set=(id,v)=>{const b=document.getElementById(id);if(b)b.innerHTML=v};
   set('qrC',a);set('qrPanel',a||'<span style="font-size:11px;color:#900">تعذر توليد الرمز</span>');
-  if(c.needCentral)set('qrZ',qrSvg(qrText(c,true)));
+  if(c.needCentral)set('qrZ',qrSvg(c.cur.z&&c.cur.z.qr?String(c.cur.z.qr).trim():qrText(c,true)));   /* قرار المركزية: رابطه الخاص (يصدره مقرر اللجنة) */
   if(document.getElementById('qrO')){const T=letterText(c),e=c.cur;
     set('qrO',qrSvg(e.qr?e.qr.trim():['أمر إداري: '+T.subj,'العدد: '+(e.ordNo||'-'),'المشروع: '+(S.p.name||'-'),'الشركة: '+(S.p.contractor||'-'),'المدة: '+T.fin+' يوم',c.pFrom?'من '+c.pFrom+' لغاية '+(c.pTo||'-'):'','تاريخ الانجاز: '+(T.end||'-'),'الموقع: '+S.L.signerName].filter(Boolean).join('\n')))}
   $('qrMode').textContent=c.cur.qr?'الرمز يفتح رابط Google Drive الذي أدخلته في طلب المدة الحالي.':'لا يوجد رابط: الرمز يحمل بيانات القرار. الصق رابط Google Drive في حقل «رابط Google Drive للـ QR» داخل الطلب ليصبح الرمز رابطاً.';
@@ -5523,6 +5540,176 @@ function mountReg(){const el=$('arSlot');if(!el||!window.AnbarReg)return;
 loadAll();
 syncLinksAll();
 enhanceDates();setTab('ev',true);setView(lsGet('pd.view')||'home');
+</script>
+<script>
+/* ===================== اللجنة المركزية للمصادقة =====================
+   • برنامج المدد: كل طلب يتجاوز 25% (مع مدد أوامر التغيير) يُحال تلقائياً الى تبويب «اللجنة المركزية للمصادقة»، ويُحدَّث إن تغيّر،
+     ويُسحب إن لم يعد يتجاوز. قرار المركزية لا يُعدَّل هنا — يُدخله مقرر اللجنة المركزية في تبويبها ويعود الى هنا لإصدار الأمر الإداري.
+   • أوامر التغيير: «📤 إحالة المدة الى برنامج المدد» تضيف طلب مدة إضافية بأمر التغيير الى ملف المشروع هنا (__duFromCo).
+   • التبويب «اللجنة المركزية» (?zc=1): هذا البرنامج نفسه بملف بيانات مستقل؛ كل إحالة نسخة من ملف المشروع، يُعرض منها قرار المركزية فقط. */
+(function(){
+const ZC=new URLSearchParams(location.search).get('zc')==='1';window.__ZC=ZC;
+const D=window.desktop||{};
+const zFilled=z=>!!(z&&(String(z.formNo||'').trim()||String(z.text||'').trim()||z.fromZc));   /* التاريخ يُملأ تلقائياً (اليوم) فلا يُعدّ قراراً */
+const now=()=>Date.now();
+const clone=o=>JSON.parse(JSON.stringify(o));
+const say=(m,bad)=>{try{toast(m,bad)}catch(_){}};
+
+/* ---------- مدد أوامر التغيير في بيانات المشروع ---------- */
+function coUi(){const b=document.getElementById('p_coIn'),h=document.getElementById('coInHint');if(!b||!S||!S.p)return;b.checked=S.p.coIn!==false;
+  let all=0;try{const L=coLink();all=L&&Array.isArray(L.items)?L.items.reduce((a,x)=>a+(+x.days||0),0):0;}catch(_){}
+  const c=coInfo();h.textContent=all?`— أوامر التغيير: ${all} يوم${c.days!==all?` (المحتسب ${S.p.coIn===false?0:c.days} — ${all-c.days} منها أُحيلت هنا كطلبات)`:''}. أطفئه إن كانت مدرجة في «المدد الممنوحة سابقاً».`:'— لا توجد مدد في أوامر التغيير لهذا المشروع.';if(!cnKey(S.p.cNo))h.textContent+=' ⚠ اكتب «رقم العقد» — به يُربط ملف المدد بأوامر التغيير واللجنة المركزية.';}
+document.addEventListener('change',e=>{if(e.target&&e.target.id==='p_coIn'&&S&&S.p){S.p.coIn=e.target.checked;upd();coUi();}});
+
+if(!ZC){
+  /* ---------- الإحالة من برنامج المدد ---------- */
+  const listOf=rec=>{const keep=S;let out=[];try{S=rec.data;const ch=chain();
+    (S.exts||[]).forEach((e,i)=>{const r=ch.out[i];if(!r)return;const key=rec.id+'|'+e.id,need=!!r.need&&e.active!==false;
+      if(!need){out.push({key,need:false});return;}
+      const snap=clone(S);snap.cur=i;snap.sel={t:'ext'};snap.p.zcCo=coInfo();
+      out.push({key,need:true,rid:rec.id,extId:e.id,src:e.coNo?'co':'du',coNo:e.coNo||'',fileNo:String(S.p.fileNo||''),cNo:String(S.p.cNo||''),name:S.p.name||'',contractor:S.p.contractor||'',kind:r.kind,days:r.g,pct:Math.round(r.pct*100)/100,reqDate:e.date||'',data:JSON.stringify(snap)});});}catch(_){}finally{S=keep;}return out;};
+  const sent={};const hash=s=>{let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return h;};
+  async function refer(recs){if(!D.zcRefer)return;const L=[];recs.filter(r=>r&&!r.demo&&r.data).forEach(r=>listOf(r).forEach(x=>{const h=hash(JSON.stringify(x));if(sent[x.key]===h)return;sent[x.key]=h;L.push(x);}));
+    if(L.length)try{await D.zcRefer(L);}catch(_){}}
+  window.__zcRefer=refer;
+  window.__zcReferAll=async()=>{Object.keys(sent).forEach(k=>delete sent[k]);const L=DB.recs.filter(r=>!r.demo);await refer(L);return {ok:true};};
+  let qT=0;const w0=writeDB;window.writeDB=writeDB=function(){const r=w0.apply(this,arguments);clearTimeout(qT);qT=setTimeout(()=>{const rec=DB.recs.find(x=>x.id===S.rid);if(rec)refer([rec]);},700);return r;};
+  /* أول تشغيل: كل الملفات (ومنها قرارات المركزية المسجلة سابقاً هنا — تُنقل الى تبويب المركزية كسجل) */
+  setTimeout(()=>{const L=DB.recs.filter(r=>!r.demo);L.forEach(r=>listOf(r).forEach(x=>{if(!x.need)sent[x.key]=hash(JSON.stringify(x));}));refer(L);},2500);
+
+  /* قرار المركزية للقراءة فقط هنا */
+  const dc0=drawCentral;window.drawCentral=drawCentral=function(){dc0.apply(this,arguments);const box=document.getElementById('centralSec');if(!box)return;const e=S.exts[S.cur]||S.exts[0];if(!e)return;
+    box.querySelectorAll('input,select,textarea,button').forEach(x=>{x.disabled=true;});
+    const n=document.createElement('div');n.className='zcnote';const dec=e.z&&e.z.fromZc;
+    n.innerHTML=`<b>${dec?'✔ صدر قرار اللجنة المركزية':'⏳ بانتظار قرار اللجنة المركزية'}</b><br>قرار اللجنة المركزية يُدخله مقررها في تبويب «اللجنة المركزية للمصادقة»، ويعود الى هنا تلقائياً لإصدار الأمر الإداري.`;
+    const b=document.createElement('button');b.type='button';b.textContent='فتح في اللجنة المركزية';b.onclick=()=>{if(D.zcOpen)D.zcOpen(S.rid+'|'+e.id);};n.append(document.createElement('br'),b);box.prepend(n);};
+  const lockZset=()=>{const m=document.getElementById('zmems');const d=m&&m.closest('details');if(!d)return;d.querySelectorAll('input,select,textarea,button').forEach(x=>{x.disabled=true;});
+    if(!d.querySelector('.zcnote')){const n=document.createElement('p');n.className='hint zcnote';n.textContent='أعضاء اللجنة المركزية وأوامر تشكيلها تُضبط في تبويب «اللجنة المركزية للمصادقة»، وتصل مع قرارها.';d.querySelector('.sec').prepend(n);}};
+  new MutationObserver(()=>{clearTimeout(lockZset.t);lockZset.t=setTimeout(lockZset,80);}).observe(document.body,{childList:true,subtree:true});
+
+  /* قرار المركزية العائد: يُكتب في الطلب، ومعه أعضاء المركزية وأوامر تشكيلها كما في قرارها */
+  window.__zcApply=function(p){const rec=DB.recs.find(r=>r.id===p.rid);if(!rec)return {error:'لم يُعثر على ملف المشروع في برنامج المدد'};
+    const e=(rec.data.exts||[]).find(x=>x.id===p.extId);if(!e)return {error:'لم يُعثر على الطلب في ملف المشروع'};
+    e.z=Object.assign({},e.z||{},p.z||{},{fromZc:1,zcAt:now()});if(p.zset)rec.data.z=Object.assign({},rec.data.z||{},clone(p.zset));
+    rec.updated=now();if(rec.data===S){try{drawCentral();upd();}catch(_){}}writeDB();return {ok:true};};
+
+  /* أوامر التغيير ← المدد: طلب مدة إضافية بأمر التغيير (لا يتكرر للأمر نفسه) */
+  window.__duFromCo=function(p){p=p||{};const fn=String(p.fileNo||'').trim(),days=Math.max(0,Math.round(+p.days||0));if(!days)return {error:'لا توجد مدة إضافية في أمر التغيير'};
+    if(!cnKey(p.contractNo)&&!fn)return {error:'اكتب رقم العقد في ملف أمر التغيير (به يُعرف ملف المشروع في برنامج المدد)'};
+    const ck=cnKey(p.contractNo),NM=x=>String(x||'').replace(/[إأآ]/g,'ا').replace(/ة/g,'ه').replace(/[^\u0621-\u064a0-9]/g,'');
+    const live=DB.recs.filter(r=>!r.demo&&r.data&&r.data.p).sort((a,b)=>(b.updated||0)-(a.updated||0));
+    /* رقم العقد هو المرجع؛ وإلا رقم الاضبارة؛ وإلا اسم المشروع */
+    let rec=(ck&&live.find(r=>cnKey(r.data.p.cNo)===ck))||(fn&&live.find(r=>String(r.data.p.fileNo||'').trim()===fn&&(!ck||!cnKey(r.data.p.cNo))))||(!ck&&!fn&&NM(p.name).length>5&&live.find(r=>NM(r.data.p.name)===NM(p.name)))||null,created=false;
+    if(!rec){const d=blank();Object.assign(d.p,{fileNo:fn,name:p.name||'',contractor:p.contractor||'',cNo:p.contractNo||'',value:p.value?String(p.value):'',start:p.start||'',dur:p.dur?String(p.dur):''});
+      d.rid=newRid();rec={id:d.rid,created:now(),updated:now(),data:d};DB.recs.push(rec);created=true;}
+    const d=rec.data;if(!Array.isArray(d.exts))d.exts=[];
+    let e=d.exts.find(x=>String(x.coNo||'')===String(p.coNo));
+    if(!e){e=newExt(Math.max(0,...d.exts.map(x=>num(x.no)))+1);e.kind='ext';e.coNo=String(p.coNo);d.exts.push(e);}
+    if(p.decNo)e.coDecNo=String(p.decNo);if(p.decDate)e.coDecDate=String(p.decDate);
+    const why=`لتنفيذ أمر التغيير رقم ( ${p.coNo} )${e.coDecNo?' ذي العدد ( '+e.coDecNo+' )':''}${e.coDecDate?' في '+e.coDecDate.split('-').reverse().join('/'):''}`;
+    e.granted=String(days);e.requested=String(days);e.reasons=[{t:why,d:String(days)}];if(p.reNo)e.reNo=String(p.reNo);if(p.reDate)e.reDate=p.reDate;
+    d.cur=d.exts.indexOf(e);rec.updated=now();
+    let need=false,pct=0;{const keep=S;try{S=d;const c=chain().out[d.exts.indexOf(e)]||{};need=!!c.need;pct=Math.round((c.pct||0)*100)/100;}catch(_){}finally{S=keep;}}
+    if(d===S){try{drawExts();drawCentral();upd();}catch(_){}}writeDB();refer([rec]);
+    return {ok:true,created,rid:rec.id,extId:e.id,name:d.p.name||'',need,pct};};
+  setTimeout(coUi,600);const u0=upd;window.upd=upd=function(){const r=u0.apply(this,arguments);try{coUi();}catch(_){}return r;};
+  return;
+}
+
+/* ===================== تبويب «اللجنة المركزية للمصادقة» ===================== */
+document.body.classList.add('zcmode');
+const REMOTE=new URLSearchParams(location.search).get('remote')==='1';if(REMOTE)document.body.classList.add('zcremote');
+const css=document.createElement('style');css.textContent=`
+body.zcmode #bNew,body.zcmode #bImp,body.zcmode #bExp,body.zcmode #bStopImp,body.zcmode #bStopTpl,body.zcmode #bMemoP,body.zcmode #bMemos,body.zcmode #bDemo,body.zcmode #bArc,body.zcmode nav.views,body.zcmode .tladd,body.zcmode #arcBox,body.zcmode #expBox,body.zcmode #impBox{display:none!important}
+body.zcmode .tabs [data-tab="pr"],body.zcmode [data-pane="pr"],body.zcmode #extWrap>details:not(#centralBox),body.zcmode .prsel,body.zcmode #next{display:none!important}
+body.zcmode [data-pane="cm"]>details:not(.zcset),body.zcmode [data-pane="cm"]>.comdef{display:none!important}
+#zcPanel{border:2px solid #7a1f1f;border-radius:12px;padding:10px 12px;margin:0 0 10px;background:#fff8f6}#zcPanel h3{margin:0 0 6px;color:#7a1f1f;font-size:16px}
+#zcPanel .zr{display:grid;grid-template-columns:1fr auto;gap:2px 8px;border:1px solid #e8d3cf;border-radius:9px;padding:7px 9px;margin:6px 0;cursor:pointer;background:#fff}#zcPanel .zr.on{outline:2px solid #7a1f1f}
+#zcPanel .zr small{color:#6b5a55}#zcPanel .chip{border-radius:20px;padding:1px 8px;font-size:12px;font-weight:700;color:#fff;align-self:start}
+.zcnote{background:#fff7e0;border:1px solid #e6c766;border-radius:8px;padding:8px 10px;margin:0 0 8px;line-height:1.7}
+#zcLink details.zclk{border:1px solid #e8d3cf;border-radius:10px;padding:6px 9px;margin:0 0 8px;background:#fff}#zcLink summary{cursor:pointer;font-weight:700}#zcLink input{width:100%;box-sizing:border-box;margin:3px 0;padding:6px}#zcLink button{margin:3px 4px 3px 0}#zcLink .lkx{color:#b42318}
+body.zcremote #bMemoP{display:none!important}
+#zcGo{display:block;width:100%;margin:0 0 10px;padding:12px;font-size:15px;font-weight:800;border-radius:10px;border:0;background:#7a1f1f;color:#fff;cursor:pointer}`;
+document.head.appendChild(css);
+try{const h=document.querySelector('header.top .brand b');if(h)h.textContent='اللجنة المركزية للمصادقة';const sm=document.querySelector('header.top .brand small');if(sm)sm.textContent='إحالات لجنة المدد وأوامر التغيير التي تتجاوز 25% — قرار المركزية يعود الى برنامج المدد';}catch(_){}
+/* لا تكتب هذه النسخ في سجل الموقف (روابط برنامج المدد) */
+window.syncLink=syncLink=function(){};window.syncLinksAll=syncLinksAll=function(){};
+const zrec=()=>DB.recs.find(r=>r.id===S.rid);
+const refs=()=>DB.recs.filter(r=>!r.demo&&r.zc);
+const ST={pending:['بانتظار القرار','#a15c00'],decided:['صدر القرار','#1f6b45'],withdrawn:['سُحبت (لم تعد تتجاوز)','#8a968f']};
+const stOf=r=>r.zc.withdrawn&&r.zc.status!=='decided'?'withdrawn':r.zc.status||'pending';
+/* إعدادات المركزية (الأعضاء وأوامر التشكيل والجهة) واحدة لكل الإحالات */
+function zsetIn(){if(!DB.zset&&S&&S.z)DB.zset=clone(S.z);if(DB.zset&&S)S.z=clone(DB.zset);}
+const w0=writeDB;window.writeDB=writeDB=function(){try{if(S&&S.z&&zrec())DB.zset=clone(S.z);}catch(_){}const r=w0.apply(this,arguments);try{panel();}catch(_){}return r;};
+const showProj=()=>{try{$('home').hidden=true;$('proj').hidden=false;fit();setTimeout(fit,50);}catch(_){}};   /* بلا لوحة المشاريع (ولا يُحفظ اختيار العرض فوق اختيار برنامج المدد) */
+function open(key){const r=DB.recs.find(x=>x.id===key);if(!r)return false;openRecord(r.data);showProj();zsetIn();const i=(S.exts||[]).findIndex(e=>e.id===r.zc.extId);if(i>=0)selExt(i);
+  const ps=document.getElementById('printSel');if(ps){ps.value='z';upd();}try{document.getElementById('centralBox').open=true;}catch(_){}panel();return true;}
+window.__zcOpen=key=>({ok:open(key)});
+function panel(){let p=document.getElementById('zcPanel');if(!p){p=document.createElement('div');p.id='zcPanel';const inp=document.getElementById('inp');inp.insertBefore(p,inp.firstChild);}
+  const L=refs().sort((a,b)=>({pending:0,decided:1,withdrawn:2}[stOf(a)]-{pending:0,decided:1,withdrawn:2}[stOf(b)])||(b.updated-a.updated));
+  p.innerHTML=`<div id="zcLink"></div><h3>📥 الإحالات الى اللجنة المركزية (${L.filter(r=>stOf(r)==='pending').length} بانتظار القرار)</h3>`+(L.length?L.map(r=>{const [t,c]=ST[stOf(r)];const z=r.zc;
+    return `<div class="zr${r.id===S.rid?' on':''}" data-zk="${esc(r.id)}"><div><b>${esc(r.data.p&&r.data.p.name||'—')}</b><br><small>${esc(r.data.p&&r.data.p.contractor||'')} — ${z.src==='co'?'أمر تغيير رقم ( '+esc(z.coNo)+' )':({ext:'مدة إضافية',fine:'إعفاء من الغرامات',custom:'قرار خاص'}[z.kind]||'مدة')} ${esc(z.days)} يوم — التراكمي ${esc(z.pct)}%${z.migrated?' — منقولة من برنامج المدد':''}</small></div><span class="chip" style="background:${c}">${t}</span></div>`;}).join(''):'<p class="hint">لا توجد إحالات بعد. تصل تلقائياً من برنامج المدد عند تجاوز 25% من مدة العقد (مع مدد أوامر التغيير).</p>');linkBox();}
+/* الربط عبر Google Drive (بريد القسم): في البرنامج الكامل — رمز ربط نسخة اللجنة على حاسبة أخرى؛ في نسخة اللجنة — إدخال الرمز وتسجيل الدخول */
+const tm=t=>t?new Date(t).toLocaleString('en-GB',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
+let lbOpen=REMOTE?null:false,lbCode='';
+async function linkBox(){const el=document.getElementById('zcLink');if(!el||!D.zcrStatus)return;let st,g;try{st=await D.zcrStatus(!!lbCode);g=D.gdStatus?await D.gdStatus():null;}catch(_){return;}if(!st)return;
+  if(lbOpen===null)lbOpen=!st.linked;const open=lbOpen?' open':'';g=g||{};
+  if(REMOTE){el.innerHTML=`<details class="zclk"${open}><summary>🔗 الربط بحاسبة القسم (Google Drive) — ${st.linked?(st.err?'<b style="color:#b42318">خطأ في آخر اتصال</b>':'<b style="color:#1f6b45">مربوطة</b>'):'<b style="color:#a15c00">غير مربوطة</b>'}</summary>
+    ${st.linked?`<p class="hint">آخر استلام للإحالات: ${tm(st.pulled)} — آخر إرسال للقرارات: ${tm(st.pushed)}${st.pending?' — <b>قرار بانتظار الإرسال</b>':''}${st.err?'<br><b style="color:#b42318">'+esc(st.err)+'</b>':''}</p><button type="button" data-lk="sync">↻ تحديث الآن</button>`:''}
+    ${!st.linked&&!st.pendLogin?`<p class="hint">١) الصق رمز الربط (من تبويب اللجنة المركزية في حاسبة القسم ← «نسخ الرمز»):</p><input id="lkCode" placeholder="ZC2.…" dir="ltr"><button type="button" data-lk="link">ربط</button>`:''}
+    ${!st.linked&&(st.pendLogin||(g.configured&&!g.connected))?`<p class="hint">${st.pendLogin?'✔ استُلم الرمز. ':''}٢) سجّل الدخول ببريد القسم (يفتح المتصفح مرة واحدة — اختر بريد القسم):</p><button type="button" data-lk="login">تسجيل الدخول ببريد القسم</button>`:''}
+    ${g.connected?`<p class="hint">بريد القسم: <b dir="ltr">${esc(g.email||'')}</b></p>`:''}
+    ${!st.linked?`<details><summary>إدخال معرّف التطبيق يدوياً (لرمز قديم يبدأ بـ ZC1)</summary><input id="lkCid" placeholder="Client ID" dir="ltr"><input id="lkCs" placeholder="Client secret" dir="ltr" type="password"><button type="button" data-lk="app">حفظ</button></details>`:''}
+    <details><summary>تغيير كلمة سر هذه النسخة</summary><input id="lkO" type="password" placeholder="كلمة السر الحالية"><input id="lkN" type="password" placeholder="الجديدة"><button type="button" data-lk="pw">تغيير</button></details>
+    ${st.linked?'<button type="button" data-lk="unlink" class="lkx">فك الربط (لإدخال رمز جديد)</button>':''}</details>`;return;}
+  el.innerHTML=`<details class="zclk"${open}><summary>🏛 نسخة اللجنة المركزية على حاسبة أخرى (عبر Google Drive) — ${st.on?(st.err?'<b style="color:#b42318">خطأ في آخر اتصال</b>':'<b style="color:#1f6b45">مفعّلة</b>'):'غير مفعّلة'}</summary>
+    <p class="hint">لحاسبة مقرر اللجنة المركزية (ولو على شبكة أخرى): تصلها الإحالات ويعود قرارها الى برنامج المدد عبر Drive بريد القسم (ملفان خاصان مشفّران، بلا رابط عام).</p>
+    ${!st.connected?'<p class="hint"><b>البرنامج غير مربوط ببريد القسم في Google Drive</b> — اربطه أولاً من «إعدادات Google Drive».</p>':''}
+    ${st.on?`<p class="hint">آخر إرسال للإحالات: ${tm(st.pushed)} — آخر استلام للقرارات: ${tm(st.pulled)} — إحالات قائمة: ${st.n} — قرارات وصلت: ${st.applied}${st.err?'<br><b style="color:#b42318">'+esc(st.err)+'</b>':''}</p>
+      ${lbCode&&st.code?`<p class="hint">رمز الربط (يُدخل مرة واحدة في نسخة اللجنة — لا تنشره):</p><input readonly dir="ltr" value="${esc(st.code)}" onclick="this.select()"><button type="button" data-lk="copy">نسخ الرمز</button>`:'<button type="button" data-lk="show">عرض رمز الربط</button>'}
+      <button type="button" data-lk="sync">↻ مزامنة الآن</button><button type="button" data-lk="stop" class="lkx">إيقاف الربط وحذف الملفين</button>`
+    :`<button type="button" data-lk="link"${st.connected?'':' disabled'}>تفعيل وإنشاء رمز الربط</button>`}</details>`;}
+document.addEventListener('toggle',e=>{if(e.target&&e.target.classList&&e.target.classList.contains('zclk'))lbOpen=e.target.open;},true);
+document.addEventListener('click',async e=>{const b=e.target.closest&&e.target.closest('[data-lk]');if(!b)return;const a=b.dataset.lk,v=id=>(document.getElementById(id)||{}).value||'';b.disabled=true;let r;
+  try{if(a==='app')r=await D.gdSetApp(v('lkCid').trim(),v('lkCs').trim());
+    else if(a==='login'){r=await D.gdConnect();if(r&&r.ok){const x=await D.zcrStatus();if(x&&x.pendLogin){r=await D.zcrLink('');if(r&&r.ok)say('رُبطت النسخة بحاسبة القسم'+(r.n?' — وصلت '+r.n+' إحالة':''));}}}
+    else if(a==='link'){r=await D.zcrLink(REMOTE?v('lkCode'):undefined);if(r&&r.needLogin&&!r.error)r=null;if(r&&r.ok&&!REMOTE)lbCode='1';if(r&&r.ok)say(REMOTE?'رُبطت النسخة بحاسبة القسم'+(r.n?' — وصلت '+r.n+' إحالة':''):'فُعّل الربط — أعطِ رمز الربط لمقرر اللجنة المركزية');}
+    else if(a==='show'){lbCode='1';}
+    else if(a==='copy'){const t=document.querySelector('#zcLink input[readonly]');if(t){t.select();try{await navigator.clipboard.writeText(t.value);}catch(_){document.execCommand('copy');}say('نُسخ رمز الربط');}}
+    else if(a==='sync'){r=await D.zcrSync();if(r&&!r.error)say('تمت المزامنة');}
+    else if(a==='stop'){if(!confirm('إيقاف ربط نسخة اللجنة المركزية وحذف ملفي التبادل من Drive؟ (تتوقف النسخة عن الاستلام حتى رمز جديد)'))return;r=await D.zcrStop();lbCode='';}
+    else if(a==='unlink'){if(!confirm('فك ربط هذه النسخة؟ (تبقى الإحالات والقرارات المحفوظة فيها)'))return;r=await D.zcrStop();}
+    else if(a==='pw'){const x=await D.zcrPw(v('lkO'),v('lkN'));r=x==='ok'?{ok:1}:{error:{wrong:'كلمة السر الحالية غير صحيحة',short:'الجديدة قصيرة (4 أحرف على الأقل)',wait:'انتظر قليلاً'}[x]||x};if(x==='ok')say('غُيّرت كلمة السر');}
+    if(r&&r.error)say(r.error,true);}catch(err){say(String(err&&err.message||err),true);}finally{b.disabled=false;linkBox();}});
+setInterval(()=>{try{if(!document.querySelector('#zcLink :focus'))linkBox();}catch(_){}},30000);
+document.addEventListener('click',e=>{const z=e.target.closest&&e.target.closest('[data-zk]');if(z)open(z.dataset.zk);});
+/* زر إصدار القرار وإعادته */
+const dc0=drawCentral;window.drawCentral=drawCentral=function(){dc0.apply(this,arguments);const box=document.getElementById('centralSec'),r=zrec();if(!box||!r)return;
+  const b=document.createElement('button');b.type='button';b.id='zcGo';b.textContent=stOf(r)==='decided'?'↻ إعادة إصدار القرار الى برنامج المدد (بعد تعديله)':'✔ إصدار قرار اللجنة المركزية وإعادته الى برنامج المدد';
+  b.onclick=async()=>{const e=(S.exts||[]).find(x=>x.id===r.zc.extId);if(!e)return;const z=e.z||{};
+    if(!String(z.formNo||'').trim()||!String(z.date||'').trim()){if(!confirm('لم يُكتب عدد قرار اللجنة المركزية أو تاريخه. إصداره هكذا؟'))return;}
+    b.disabled=true;
+    /* رمز QR بنفس صيغة المدد وأوامر التغيير: يُصدر PDF القرار ويُرفع الى Drive بريد القسم، ويصبح الرمز رابطه (إن كان البرنامج مربوطاً ببريد القسم) */
+    try{const g=D.gdStatus?await D.gdStatus():null;if(g&&g.connected&&window.GdIssue&&GdIssue.ready()){b.textContent='⏳ إصدار PDF القرار ورفعه الى Drive…';await GdIssue.issue();}}catch(_){}
+    const z2=((S.exts||[]).find(x=>x.id===r.zc.extId)||{}).z||z;b.textContent='⏳ جارٍ الإعادة الى برنامج المدد…';save();
+    const res=D.zcDecide?await D.zcDecide({key:r.id,rid:r.zc.rid,extId:r.zc.extId,name:S.p.name||'',z:clone(z2),zset:clone(S.z)}):{error:'غير متاح'};
+    if(res&&res.ok){r.zc.status='decided';r.zc.decidedAt=now();r.zc.withdrawn=false;r.updated=now();writeDB();say(res.warn||(REMOTE?'صدر قرار اللجنة المركزية وأُرسل الى حاسبة القسم (برنامج المدد) عبر Google Drive لإصدار الأمر الإداري':'صدر قرار اللجنة المركزية وأُعيد الى برنامج المدد لإصدار الأمر الإداري'),!!res.warn);try{linkBox();}catch(_){}}
+    else say('تعذّرت الإعادة: '+((res&&res.error)||''),true);drawCentral();};
+  const q=document.createElement('p');q.className='hint';{const e=(S.exts||[]).find(x=>x.id===r.zc.extId),u=e&&e.z&&e.z.qr;q.innerHTML=u?'رمز QR في القرار: <b>رابط PDF القرار في Google Drive</b> ✔':'رمز QR في القرار: بيانات القرار — يصبح رابط PDF القرار في Drive عند «إصدار» إن كان البرنامج مربوطاً ببريد القسم (أو «☁ إصدار ورفع إلى Drive»).';}
+  box.prepend(q);box.prepend(b);};
+/* إحالات واردة من برنامج المدد */
+window.__zcIn=function(list){let n=0;(Array.isArray(list)?list:[list]).forEach(p=>{if(!p||!p.key)return;let r=DB.recs.find(x=>x.id===p.key);
+    if(!p.need){if(r&&r.zc&&r.zc.status!=='decided'&&!r.zc.withdrawn){r.zc.withdrawn=true;r.updated=now();n++;}return;}
+    let data;try{data=JSON.parse(p.data);}catch(_){return;}const i=(data.exts||[]).findIndex(e=>e.id===p.extId);if(i<0)return;data.rid=p.key;data.cur=i;
+    if(r){const old=(r.data.exts||[]).find(e=>e.id===p.extId);if(old&&old.z&&(r.zc.status==='decided'||zFilled(old.z)))data.exts[i].z=old.z;
+      if(DB.zset)data.z=clone(DB.zset);const same=JSON.stringify(data)===JSON.stringify(r.data);if(!same||r.zc.withdrawn){r.data=data;Object.assign(r.zc,{withdrawn:false,days:p.days,pct:p.pct,kind:p.kind,src:p.src,coNo:p.coNo});r.updated=now();n++;if(S&&S.rid===p.key){S=r.data;try{loadAll();}catch(_){}}}}
+    else{const dec=zFilled(data.exts[i].z);if(DB.zset)data.z=clone(DB.zset);else DB.zset=clone(data.z);
+      DB.recs.push({id:p.key,created:now(),updated:now(),data,zc:{rid:p.rid,extId:p.extId,status:dec?'decided':'pending',migrated:dec,src:p.src,coNo:p.coNo,kind:p.kind,days:p.days,pct:p.pct}});n++;}});
+  if(n){writeDB();panel();}return {ok:true,n};};
+/* أول فتح: الإحالات المحفوظة في صندوق الوارد (وصلت والتبويب مغلق)، ثم آخر إحالة بانتظار القرار */
+setTimeout(async()=>{try{const q=D.zcInbox?await D.zcInbox():[];if(q&&q.length)window.__zcIn(q);}catch(_){}
+  if(D.zcPull)D.zcPull().catch(()=>{});showProj();panel();const L=refs();const f=L.find(r=>stOf(r)==='pending')||L[0];if(f)open(f.id);},300);
+})();
 </script>
 </body>
 </html>

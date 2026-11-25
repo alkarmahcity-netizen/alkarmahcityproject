@@ -9,6 +9,8 @@ contextBridge.exposeInMainWorld('desktop', {
   fontsCollect: wanted => ipcRenderer.invoke('fonts:collect', wanted),
   fontsImport: () => ipcRenderer.invoke('fonts:import'),
   load: () => ipcRenderer.sendSync('data:load', APP),
+  /* اللجنة المركزية للمصادقة: إحالات المدد ← المركزية ← المدد، وطلب مدة من أوامر التغيير */
+  zcRefer: list => ipcRenderer.invoke('zc:refer', list), zcInbox: () => ipcRenderer.invoke('zc:inbox'), zcrStatus: withCode => ipcRenderer.invoke('zcr:status', !!withCode), zcrLink: code => ipcRenderer.invoke('zcr:link', code), zcrSync: () => ipcRenderer.invoke('zcr:sync'), zcrStop: () => ipcRenderer.invoke('zcr:stop'), zcrPw: (o, n) => ipcRenderer.invoke('zcr:pw', o, n), zclState: () => ipcRenderer.sendSync('zcl:state'), zclUnlock: pw => ipcRenderer.invoke('zcl:unlock', pw), zclFirst: pw => ipcRenderer.invoke('zcl:first', pw), zclReset: (m, pw) => ipcRenderer.invoke('zcl:reset', m, pw), zcPull: () => ipcRenderer.invoke('zc:pull'), zcDecide: p => ipcRenderer.invoke('zc:decide', p), zcOpen: key => ipcRenderer.invoke('zc:open', key), duFromCo: p => ipcRenderer.invoke('du:fromCo', p),
   dataPath: () => ipcRenderer.sendSync('data:path', APP),
   save: text => ipcRenderer.invoke('data:save', APP, text),
   saveSync: text => ipcRenderer.sendSync('data:saveSync', APP, text),
@@ -36,7 +38,7 @@ contextBridge.exposeInMainWorld('desktop', {
   numUnlock: pw => ipcRenderer.invoke('mgr:numUnlock', pw),
   /* Google Drive لبريد القسم: إصدار المستند ورفع PDF تلقائياً (رمز QR يفتحه عند الجميع) */
   gdStatus: () => ipcRenderer.invoke('gd:status'), gdSetApp: (id, sec) => ipcRenderer.invoke('gd:setApp', id, sec), gdConnect: hint => ipcRenderer.invoke('gd:connect', hint),
-  gdDisconnect: () => ipcRenderer.invoke('gd:disconnect'), gdReserve: name => ipcRenderer.invoke('gd:reserve', name), gdUpload: (id, name) => ipcRenderer.invoke('gd:upload', id, name), gdOwns: id => ipcRenderer.invoke('gd:owns', id),
+  gdDisconnect: () => ipcRenderer.invoke('gd:disconnect'), gdExport: () => ipcRenderer.invoke('gd:exportSetup'), gdShareState: () => ipcRenderer.invoke('gd:shareState'), gdShare: (on, pw) => ipcRenderer.invoke('gd:share', on, pw), gdImport: code => ipcRenderer.invoke('gd:importSetup', code), gdReserve: name => ipcRenderer.invoke('gd:reserve', name), gdUpload: (id, name) => ipcRenderer.invoke('gd:upload', id, name), gdOwns: id => ipcRenderer.invoke('gd:owns', id),
   flowGet: key => ipcRenderer.invoke('wf:get', key),
   flowSet: (key, patch) => ipcRenderer.invoke('wf:set', key, patch),
   onFlow: cb => ipcRenderer.on('wf:changed', () => cb()),

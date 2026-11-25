@@ -38,7 +38,7 @@ module.exports = function createDrive(ctx) {
       const r = ctx.net.request({ method, url, redirect: 'follow', useSessionCookies: false });
       Object.entries(h).forEach(([k, v]) => { if (!/^content-length$/i.test(k)) r.setHeader(k, String(v)); });
       const t = setTimeout(() => { try { r.abort(); } catch (_) {} fin(rej, new Error('انتهت مهلة الاتصال بـ Google')); }, 90000);
-      r.on('response', x => { const ch = []; x.on('data', c => ch.push(c)); x.on('end', () => { const tx = Buffer.concat(ch).toString('utf8'); let j = null; try { j = JSON.parse(tx); } catch (_) {} fin(res, { status: x.statusCode, json: j, text: tx }); }); x.on('error', e => fin(rej, e)); });
+      r.on('response', x => { const ch = []; x.on('data', c => ch.push(c)); x.on('end', () => { const raw = Buffer.concat(ch), tx = raw.toString('utf8'); let j = null; try { j = JSON.parse(tx); } catch (_) {} fin(res, { status: x.statusCode, json: j, text: tx, raw }); }); x.on('error', e => fin(rej, e)); });
       r.on('error', e => fin(rej, e));
       if (b) r.write(b); r.end();
     });
@@ -48,7 +48,7 @@ module.exports = function createDrive(ctx) {
       const u = new URL(url), mod = u.protocol === 'http:' ? http : https;
       const b = body == null ? null : Buffer.isBuffer(body) ? body : Buffer.from(typeof body === 'string' ? body : JSON.stringify(body));
       const h = { ...headers }; if (b) h['Content-Length'] = b.length; if (b && !h['Content-Type']) h['Content-Type'] = 'application/json; charset=utf-8';
-      const r = mod.request(u, { method, headers: h, timeout: 60000 }, x => { const ch = []; x.on('data', c => ch.push(c)); x.on('end', () => { const t = Buffer.concat(ch).toString('utf8'); let j = null; try { j = JSON.parse(t); } catch (_) {} res({ status: x.statusCode, json: j, text: t }); }); });
+      const r = mod.request(u, { method, headers: h, timeout: 60000 }, x => { const ch = []; x.on('data', c => ch.push(c)); x.on('end', () => { const raw = Buffer.concat(ch), t = raw.toString('utf8'); let j = null; try { j = JSON.parse(t); } catch (_) {} res({ raw, status: x.statusCode, json: j, text: t }); }); });
       r.on('timeout', () => r.destroy(new Error('انتهت مهلة الاتصال بـ Google'))); r.on('error', rej); if (b) r.write(b); r.end();
     });
   }
@@ -61,6 +61,29 @@ module.exports = function createDrive(ctx) {
     if (clientSecret.length < 10) return { error: 'سرّ التطبيق (Client secret) غير صحيح' };
     const c = load(); if (dec(c.cid) !== clientId) { delete c.rt; delete c.email; delete c.folder; } c.cid = enc(clientId); c.cs = enc(clientSecret); save(c); access = null; return { ok: true };
   }
+  /* لنسخة اللجنة المركزية فقط (zcremote.js): معرّف التطبيق وسرّه يُنقلان مشفّرين داخل رمز الربط — لا يُعرضان */
+  function appCreds() { const c = load(); const cid = dec(c.cid), cs = dec(c.cs); return cid && cs ? { cid, cs } : null; }
+  /* «رمز إعداد Drive»: ينقل معرّف التطبيق وسرّه الصحيحين من حاسبة مربوطة إلى حاسبة أخرى (مشفّرين) — بدل نسخ السرّ يدوياً من Google Cloud.
+     لا يُصدَر إلا بعد التأكد من أن السرّ يعمل فعلاً (تجديد التفويض الآن) */
+  const b64u = b => Buffer.from(b).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''), ub64 = s => Buffer.from(String(s).replace(/-/g, '+').replace(/_/g, '/'), 'base64');
+  async function exportSetup() {
+    const cr = appCreds(); if (!cr || !load().rt) return { error: 'هذه الحاسبة غير مربوطة ببريد القسم — أصدر الرمز من حاسبة مربوطة (يعمل فيها «☁ إصدار ورفع إلى Drive»)' };
+    access = null; try { await token(); } catch (e) { return { error: 'الربط في هذه الحاسبة لا يعمل الآن: ' + String(e.message || e) }; }
+    const key = crypto.randomBytes(16), iv = crypto.randomBytes(12), c = crypto.createCipheriv('aes-128-gcm', key, iv);
+    const ct = Buffer.concat([c.update(Buffer.from(JSON.stringify(cr))), c.final()]);
+    return { ok: true, code: 'GD1.' + b64u(key) + '.' + b64u(Buffer.concat([iv, c.getAuthTag(), ct])) };
+  }
+  function importSetup(code) {
+    const m = /^GD1\.([A-Za-z0-9_-]{22})\.([A-Za-z0-9_-]{40,})$/.exec(String(code || '').replace(/\s+/g, '')); if (!m) return { error: 'رمز إعداد Drive غير صحيح — يبدأ بـ GD1. ويُنسخ كاملاً من الحاسبة المربوطة' };
+    let cr; try { const key = ub64(m[1]), b = ub64(m[2]), d = crypto.createDecipheriv('aes-128-gcm', key, b.slice(0, 12)); d.setAuthTag(b.slice(12, 28)); cr = JSON.parse(Buffer.concat([d.update(b.slice(28)), d.final()]).toString('utf8')); }
+    catch (_) { return { error: 'رمز إعداد Drive تالف أو ناقص — انسخه كاملاً من جديد' }; }
+    const c = load(); if (dec(c.cid) === cr.cid && dec(c.cs) !== cr.cs) { delete c.rt; save(c); }   // السرّ القديم الخاطئ: يُعاد تسجيل الدخول
+    return setApp(cr.cid, cr.cs);
+  }
+  /* مشاركة الربط كاملاً عبر مزامنة القسم (يفعّلها مدير القسم): المعرّف والسرّ ورمز التحديث — يُتحقق أنه يعمل قبل الإرسال */
+  async function shareOut() { const cr = appCreds(), c = load(), rt = dec(c.rt); if (!cr || !rt) return null; try { await token(); } catch (_) { return null; } return { cid: cr.cid, cs: cr.cs, rt, email: c.email || '' }; }
+  function shareIn(o) { if (!o || !o.cid || !o.cs || !o.rt) return false; if (load().rt) return false;   // حاسبة مربوطة: لا يُستبدل ربطها
+    const r = setApp(o.cid, o.cs); if (r && r.error) return false; const c = load(); c.rt = enc(o.rt); c.email = o.email || ''; c.shared = Date.now(); save(c); access = null; return true; }
   function disconnect() { const c = load(); delete c.rt; delete c.email; delete c.folder; delete c.folders; save(c); access = null; return { ok: true }; }
   /* تسجيل الدخول: المتصفح ← Google ← يعود إلى عنوان محلي مؤقت في هذه الحاسبة برمز التفويض */
   function connect(hint) {
@@ -81,7 +104,7 @@ module.exports = function createDrive(ctx) {
           const c2 = load(); c2.rt = enc(r.json.refresh_token); c2.email = email; delete c2.folder; delete c2.folders; save(c2);
           access = { token: r.json.access_token, until: Date.now() + (r.json.expires_in || 3000) * 1000 - 60000 };
           page(true, 'رُبط البرنامج بـ ' + (email || 'حساب Google')); fin({ ok: true, email }, srv);
-        } catch (e) { page(false, 'تعذّر إكمال الربط'); fin({ error: String(e.message || e) }, srv); }
+        } catch (e) { const m = String(e.message || e); page(false, 'تعذّر إكمال الربط<br><small style="color:#8b1a1a">' + m.replace(/[&<>"]/g, x => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[x])) + (/invalid_client|Unauthorized|client_secret/i.test(m) ? '<br>سرّ التطبيق (Client secret) لا يطابق معرّفه — انسخهما من حاسبة القسم (رمز الربط ZC2 يحملهما)' : '') + '</small>'); fin({ error: m }, srv); }
       });
       srv.listen(0, '127.0.0.1', () => {
         const redirect = `http://127.0.0.1:${srv.address().port}/`;
@@ -127,11 +150,12 @@ module.exports = function createDrive(ctx) {
     return { ok: true, id, url: `https://drive.google.com/file/d/${id}/view` };
   }
   /* نسخة الاطلاع (viewer.js): ملفات ثنائية مشفّرة في مجلدها، تُشارَك «لمن لديه الرابط ← عارض»، وتُحذف عند إيقاف النسخة */
-  async function reserveBin(name, folderName) {
+  async function reserveBin(name, folderName, priv) {
     const parent = await folder(folderName);
     const r = await req('POST', API + '/drive/v3/files?fields=id', { headers: await auth(), body: { name: String(name || 'ملف.bin').slice(0, 150), mimeType: 'application/octet-stream', parents: [parent] } });
     if (r.status !== 200 || !r.json || !r.json.id) throw gerr(r, 'تعذّر إنشاء ملف في Drive');
     const id = r.json.id; { const c = load(); c.ids = [String(id)].concat((c.ids || []).filter(x => x !== String(id))).slice(0, 20000); save(c); }
+    if (priv) return { id, shared: false };   // خاص ببريد القسم (لا مشاركة): ملفات تبادل اللجنة المركزية
     const p = await req('POST', API + `/drive/v3/files/${id}/permissions?fields=id`, { headers: await auth(), body: { role: 'reader', type: 'anyone' } });
     return { id, shared: p.status === 200 };
   }
@@ -142,11 +166,19 @@ module.exports = function createDrive(ctx) {
     if (r.status !== 200) throw gerr(r, 'تعذّر رفع ملف نسخة الاطلاع');
     return { ok: true, id };
   }
+  /* قراءة ملف أنشأه البرنامج بحساب بريد القسم (ملفات اللجنة المركزية الخاصة — بلا رابط عام) */
+  async function getBin(id) {
+    if (!/^[A-Za-z0-9_-]{10,}$/.test(String(id))) throw new Error('معرّف ملف Drive غير صحيح');
+    const r = await req('GET', API + `/drive/v3/files/${id}?alt=media`, { headers: await auth() });
+    if (r.status === 404) throw new Error('ملف التبادل غير موجود في Drive (أُوقف الربط من حاسبة القسم؟)');
+    if (r.status !== 200) throw gerr(r, 'تعذّر قراءة الملف من Drive');
+    return r.raw || Buffer.from(r.text || '', 'utf8');
+  }
   async function trash(id) {
     if (!/^[A-Za-z0-9_-]{10,}$/.test(String(id))) return false;
     const r = await req('DELETE', API + `/drive/v3/files/${id}`, { headers: await auth() });
     if (r.status !== 204 && r.status !== 200 && r.status !== 404) throw gerr(r, 'تعذّر حذف الملف من Drive');
     return true;
   }
-  return { status, setApp, connect, disconnect, reserve, upload, owns, reserveBin, uploadBin, trash };
+  return { status, setApp, appCreds, exportSetup, importSetup, shareOut, shareIn, connect, disconnect, reserve, upload, owns, reserveBin, uploadBin, getBin, trash };
 };

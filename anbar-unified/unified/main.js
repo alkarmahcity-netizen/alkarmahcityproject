@@ -21,6 +21,9 @@ const FOOT = 28;                      // ارتفاع التذييل («إعدا
 /* نسخة الاطلاع (viewer.js): ملف تشغيل مستقل («anbarViewer» في package.json عند البناء) — الموقف المركز والموقف العام ومشاريع التخطيط وصور المشاريع للعرض فقط.
    لا أنظمة فيها ولا كلمات سر تفتحها، وكل قنوات الحفظ والاستيراد والنسخ والمزامنة تُرفض فيها. البرنامج الكامل لا يتأثر (VIEWER = false) */
 const VIEWER = !!process.env.UNI_VIEWER || (() => { try { return !!require('./package.json').anbarViewer; } catch (_) { return false; } })();
+/* نسخة اللجنة المركزية للمصادقة (zcremote.js): ملف تشغيل مستقل («anbarZc» في package.json عند البناء) — نافذة واحدة فيها تبويب اللجنة المركزية فقط،
+   بكلمة سر خاصة بها، تتبادل الإحالات والقرارات مع حاسبة القسم عبر Google Drive ببريد القسم. البرنامج الكامل لا يتأثر (ZCAPP = false) */
+const ZCAPP = !VIEWER && (!!process.env.UNI_ZCAPP || (() => { try { return !!require('./package.json').anbarZc; } catch (_) { return false; } })());
 if (VIEWER) {
   const VWB = /^(reg:save|data:(save|saveSync|tomb|load|peek|openFolder)|report:data|pph:(save|del)|pl:(import|cmpOpen|cmpSave|clean|export)|pp:save|fin:unlock|finx:(use|choose|link|search)|xl:merge|comtpl:(choose|reset|save)|eng:rate|file:save|mapkey:set|earth:(write|pro|save)|jsonimp:|ad:(purgeLegacy|accessImport)|co:accessImport|auth:(change|reset|master)|mgr:numUnlock|bk:|xb:(set|run|pick)|upd:(fetch|apply)|sync:(set|now|discover|mode)|arch:|wf:(move|add|remove|unlock|annPublish|annHide|set|web)|gd:|mail:|guide:(add|docx|del)|audit:openDir|ac:)/;
   const h0 = ipcMain.handle.bind(ipcMain), o0 = ipcMain.on.bind(ipcMain);
@@ -41,6 +44,9 @@ const APPS = {
   ar: { title: 'الأرشيف والتوزيع', file: 'app/ar.html', data: 'Archive-Data.json' },
   /* تقرير زيارة مشاريع التنفيذ أمانة (برنامج FieldVisitReport مدمجاً): التقارير تُحفظ وتُزامن، مع لوحة معلومات */
   fv: { title: 'تقرير زيارة مشاريع التنفيذ أمانة', file: 'app/fv.html', data: 'FieldVisit-Data.json' },
+  /* اللجنة المركزية للمصادقة: برنامج المدد نفسه بوضع «المركزية» (?zc=1) بملف بيانات وكلمة سر مستقلين — تصله إحالات المدد (تجاوز 25%)
+     ومقررها يصدر قرار المركزية ويعيده الى برنامج المدد لإصدار الأمر الإداري */
+  zc: { title: 'اللجنة المركزية للمصادقة', file: 'app/du.html', query: { zc: '1' }, data: 'CentralCommittee-Data.json' },
   /* مطالعات اللجنة داخل المدد وداخل أوامر التغيير: محرر مطالعة المخاطبات نفسه (app/lt.html بوضع اللجنة) بملف بيانات مستقل،
      ويُفتح بكلمة سر اللجنة الأم (parent) لا بكلمة سر مستقلة */
   dm: { title: 'مطالعات لجنة المدد', file: 'app/lt.html', query: { ltm: 'dm' }, data: 'DurationsMemos-Data.json', parent: 'du' },
@@ -83,7 +89,7 @@ function writable(dir) {
   try { fs.mkdirSync(dir, { recursive: true }); const t = path.join(dir, '.w' + process.pid); fs.writeFileSync(t, '1'); fs.unlinkSync(t); return true; }
   catch (_) { return false; }
 }
-const DATA_NAME = VIEWER ? 'بيانات-نسخة-الاطلاع' : 'بيانات-النظام-الموحد';
+const DATA_NAME = VIEWER ? 'بيانات-نسخة-الاطلاع' : ZCAPP ? 'بيانات-اللجنة-المركزية' : 'بيانات-النظام-الموحد';
 function resolveDataDir() {
   const cands = [];
   if (process.env.UNI_DATA_DIR) cands.push(process.env.UNI_DATA_DIR);
@@ -165,7 +171,7 @@ function authTable() {
   try { const j = JSON.parse(fs.readFileSync(authFile(), 'utf8')); for (const k of Object.keys(j)) { if (k === 'master') continue; if (j[k] === null) delete o[k]; else if (typeof j[k] === 'string') o[k] = j[k]; } } catch (_) {}
   return (authCache = o);
 }
-const needsAuth = id => !!authTable()[AUTHID(id)];
+const needsAuth = id => AUTHID(id) === 'zc' || !!authTable()[AUTHID(id)];   // zc: محمي دائماً (كلمة سر المدير حتى تُعيَّن له كلمة خاصة)
 const isOpen = id => !needsAuth(id) || unlocked.has(AUTHID(id));
 function saveAuthOverride(id, hash) {
   let j = {}; try { j = JSON.parse(fs.readFileSync(authFile(), 'utf8')); } catch (_) {}
@@ -176,6 +182,7 @@ function checkPw(id, pw) {
   if (!needsAuth(id)) return true;
   const f = failed[id] || { n: 0, until: 0 };
   if (Date.now() < f.until) return 'wait';
+  if (id === 'zc' && !authTable().zc) { const m = checkMaster(pw); if (m === true) { unlocked.add(id); return true; } return m; }
   const ok = hashPw(id, String(pw == null ? '' : pw)) === authTable()[id];
   if (ok) { failed[id] = { n: 0, until: 0 }; unlocked.add(id); return true; }
   f.n++; if (f.n >= 5) { f.until = Date.now() + 30000; f.n = 0; } failed[id] = f; return false;
@@ -282,7 +289,7 @@ setInterval(async () => {
 }, +process.env.UNI_AC_POLL_MS || 4000);
 
 /* ---------------- IPC ---------------- */
-const okId = id => ['co', 'du', 'ad', 'in', 'lt', 'fu', 'ar', 'dm', 'cm', 'fv'].includes(id);
+const okId = id => ['co', 'du', 'ad', 'in', 'lt', 'fu', 'ar', 'dm', 'cm', 'fv', 'zc'].includes(id);
 ipcMain.on('data:load', (e, id) => { e.returnValue = okId(id) ? readData(id) : null; });
 ipcMain.on('data:path', (e, id) => { e.returnValue = okId(id) ? dataFile(id) : ''; });
 ipcMain.on('data:dir', e => { e.returnValue = dataDir; });
@@ -979,12 +986,14 @@ function ensureView(id) {
   /* كاتب Excel المشترك لأوامر التغيير («⬇ حفظ المراجعة (Excel)») */
   if (id === 'co') v.webContents.on('did-finish-load', () => { try { v.webContents.executeJavaScript(fs.readFileSync(path.join(__dirname, 'shell', 'xlwriter.js'), 'utf8') + ';1').catch(e => logError('xlw-co', String(e && e.message || e))); } catch (_) {} });
   /* «☁ إصدار ورفع إلى Drive» في المخاطبات والمطالعات والسلف والمدد وتقارير الزيارة (gdissue.js) */
-  if (['lt', 'dm', 'cm', 'co', 'ad', 'du', 'fv'].includes(id)) v.webContents.on('did-finish-load', () => { try { const js = fs.readFileSync(path.join(__dirname, 'gdissue.js'), 'utf8').replace("'__SYS__'", JSON.stringify(id)); v.webContents.executeJavaScript(js).catch(e => logError('gdissue-' + id, String(e && e.message || e))); } catch (_) {} });
+  if (['lt', 'dm', 'cm', 'co', 'ad', 'du', 'fv', 'zc'].includes(id)) v.webContents.on('did-finish-load', () => { try { const js = fs.readFileSync(path.join(__dirname, 'gdissue.js'), 'utf8').replace("'__SYS__'", JSON.stringify(id)); v.webContents.executeJavaScript(js).catch(e => logError('gdissue-' + id, String(e && e.message || e))); } catch (_) {} });
   /* نظام الاستلام: لقطة الشهادات للوحة + تنبيه رمز QR عند الإصدار (acaddon.js) — يُحقن في كل صفحة من صفحاته */
   if (id === 'ac') v.webContents.on('did-finish-load', () => { try { const js = fs.readFileSync(path.join(__dirname, 'acaddon.js'), 'utf8'); v.webContents.executeJavaScript(js).catch(e => logError('acaddon', String(e && e.message || e))); } catch (_) {} });
   v.webContents.on('before-input-event', touchActivity);
-  v.webContents.on('render-process-gone', () => {
+  v.webContents.on('render-process-gone', (_e, d) => {
     if (v.__unloading) return;
+    /* توقفت وهي في الخلفية (المستخدم في تبويب آخر): تُعاد بصمت بلا رسالة — السبب يُكتب في errors.log */
+    if (current !== id) { logError(id, 'background view reloaded after render-process-gone: ' + (d && d.reason || '')); setTimeout(() => { try { if (!v.webContents.isDestroyed()) v.webContents.reload(); } catch (_) {} }, 1500); return; }
     dialog.showMessageBox(win, { type: 'error', title: 'خطأ', message: 'توقفت واجهة «' + a.title + '» بشكل غير متوقع. بياناتك محفوظة في ملف البيانات، وسيُعاد تحميلها الآن.' }).then(() => v.webContents.reload());
   });
   if (a.file) v.webContents.loadFile(path.join(__dirname, a.file), a.query ? { query: a.query } : undefined);
@@ -1030,7 +1039,7 @@ async function go(id, fileNo) {
    ويُعاد تحميله من ملف بياناته عند الرجوع إليه (أقل من ثانية). لا يشمل النظام المعروض، ولا الاستلام، ولا نظاماً يكتب الآن.
    الحفظ قبل التفريغ بالمسار نفسه الذي يحفظ به كل نظام عند إغلاق البرنامج (beforeunload ← حفظ متزامن). */
 const UNLOAD_MS = +process.env.UNI_UNLOAD_MS || 15 * 60 * 1000;
-const UNLOADABLE = new Set(['co', 'du', 'ad', 'in', 'lt', 'fu', 'ar', 'dm', 'cm', 'fv']);
+const UNLOADABLE = new Set(['co', 'du', 'ad', 'in', 'lt', 'fu', 'ar', 'dm', 'cm', 'fv', 'zc']);
 const viewLeft = {};
 const unloadOn = () => !prefs().unloadOff;
 /* ---------------- ملخص الموقف من السلف وأوامر التغيير ----------------
@@ -1090,7 +1099,7 @@ async function acEval(code) {
 }
 function appliedHook(ds) {
   try {
-    if (['co', 'du', 'ad', 'in', 'lt', 'fu', 'ar', 'dm', 'cm', 'fv'].includes(ds) && views[ds]) views[ds].webContents.executeJavaScript('window.__syncReload&&window.__syncReload()').catch(() => {});
+    if (['co', 'du', 'ad', 'in', 'lt', 'fu', 'ar', 'dm', 'cm', 'fv', 'zc'].includes(ds) && views[ds]) views[ds].webContents.executeJavaScript('window.__syncReload&&window.__syncReload()').catch(() => {});
     if (LINK_SYS.includes(ds) && !views[ds]) refreshLinksSoon(ds);   /* بيانات وصلت والنظام غير محمّل: يُحدَّث ملخص الموقف في الخلفية */
     if (ds === 'ac' && views.ac && current !== 'ac') views.ac.webContents.reload();
     if (ds === 'arf' && views.ar) views.ar.webContents.executeJavaScript('window.__filesArrived&&window.__filesArrived()').catch(() => {});
@@ -1249,6 +1258,73 @@ ipcMain.handle('ac:flowSnap', async (e, snap) => { try {
   flowSoon('ac'); return true; } catch (err) { logError('ac:flowSnap', String(err && err.message || err)); return false; } });
 /* Google Drive لبريد القسم: إصدار شهادة الاستلام مع رفع PDF تلقائياً، ورمز QR يفتح الملف نفسه عند الجميع (gdrive.js) */
 let gd = null; const gdEnsure = () => (gd = gd || require('./gdrive')({ file: () => path.join(dataDir, 'gdrive-config.json'), safeStorage, net: process.env.UNI_GD_NODE ? null : require('electron').net, openExternal: u => { if (process.env.UNI_GD_AUTH && /^http:\/\/127\.0\.0\.1:/.test(u)) require('http').get(u, r => r.resume()).on('error', () => {}); /* اختبار: خادم Google وهمي محلي */ else shell.openExternal(u); }, log: m => logError('gdrive', m) }));
+/* ---------------- اللجنة المركزية للمصادقة: الإحالات بين الأنظمة ----------------
+   تُنفَّذ داخل واجهة النظام الهدف (تُحمَّل في الخلفية إن لم تكن مفتوحة) فيحفظ بطريقته المعتادة ولا يُكتب ملفه من خارجه */
+async function viewCall(id, fn, payload) {
+  if (VIEWER || !APPS[id]) return { error: 'غير متاح' };
+  const v = ensureView(id); await loaded(v);
+  for (let i = 0; i < 20; i++) { const ok = await v.webContents.executeJavaScript(`typeof window.${fn}==='function'`).catch(() => false); if (ok) break; await new Promise(r => setTimeout(r, 250)); }
+  return v.webContents.executeJavaScript(`Promise.resolve(typeof window.${fn}==='function'?window.${fn}(${JSON.stringify(payload)}):{error:'nofn'})`).catch(e => ({ error: String(e && e.message || e) }));
+}
+const fromView = (e, id) => !!(views[id] && e.sender === views[id].webContents);
+/* واجهة اللجنة المركزية: التبويب في البرنامج الكامل، أو نافذة نسخة اللجنة (بعد كلمة سرها) */
+const fromZc = e => (ZCAPP ? !!(win && e.sender === win.webContents && unlocked.has('zc')) : fromView(e, 'zc') && isOpen('zc'));
+let zcD = null, zcC = null;
+const zcDept = () => (zcD = zcD || require('./zcremote').createDept({ file: () => path.join(dataDir, 'zc-remote.json'), gd: gdEnsure, safeStorage, log: m => logError('zc-remote', m),
+  apply: p => viewCall('du', '__zcApply', p).then(r => { if (r && r.ok) audit.note('du', 'central', `قرار اللجنة المركزية (نسخة اللجنة عبر Drive) للمشروع ${p && p.name || ''}: ${p && p.z && p.z.decision === 'reject' ? 'عدم المصادقة' : (p && p.z && p.z.days) || ''}`).catch(() => {}); return r; }),
+  referAll: () => viewCall('du', '__zcReferAll', null) }));
+async function zcCall(fn, payload) { if (!win || win.isDestroyed()) return { error: 'غير متاح' }; const wc = win.webContents;
+  for (let i = 0; i < 40; i++) { const ok = await wc.executeJavaScript(`typeof window.${fn}==='function'`).catch(() => false); if (ok) break; await new Promise(r => setTimeout(r, 250)); }
+  return wc.executeJavaScript(`Promise.resolve(typeof window.${fn}==='function'?window.${fn}(${JSON.stringify(payload)}):{error:'nofn'})`).catch(e => ({ error: String(e && e.message || e) })); }
+const zcClient = () => (zcC = zcC || require('./zcremote').createClient({ dir: () => dataDir, gd: gdEnsure, safeStorage, log: m => logError('zc-client', m), deliver: list => (unlocked.has('zc') ? zcCall('__zcIn', list) : null) }));
+/* المدد ← المركزية (إحالة/تحديث/سحب): إن لم يكن تبويب المركزية مفتوحاً تُحفظ في صندوق وارد (zc-inbox.json) يقرؤه عند فتحه — لا تُشغَّل صفحته في الخلفية */
+const zcInbox = () => path.join(dataDir, 'zc-inbox.json');
+const zcInboxRead = () => { try { const o = JSON.parse(fs.readFileSync(zcInbox(), 'utf8')); return o && typeof o === 'object' && !Array.isArray(o) ? o : {}; } catch (_) { return {}; } };
+ipcMain.handle('zc:refer', (e, list) => { if (!fromView(e, 'du')) return { error: 'غير مسموح' };
+  try { zcDept().queue(list); } catch (err) { logError('zc-remote', String(err && err.message || err)); }   // نسخة اللجنة على حاسبة أخرى (إن رُبطت)
+  if (views.zc) return viewCall('zc', '__zcIn', list);
+  const q = zcInboxRead(); (Array.isArray(list) ? list : []).forEach(x => { if (x && x.key) q[x.key] = x; }); atomicWrite(zcInbox(), JSON.stringify(q)); return { ok: true, queued: true }; });
+/* فتح تبويب المركزية: يطلب من برنامج المدد (على هذه الحاسبة، ومنه ما وصل بالمزامنة) إعادة إرسال كل ما يتجاوز 25% — فلا تفوت إحالة أُرسلت من حاسبة أخرى */
+ipcMain.handle('zc:pull', async e => { if (!fromZc(e)) return { error: 'غير مسموح' }; if (ZCAPP) return zcClient().pull(); return viewCall('du', '__zcReferAll', null); });
+/* الربط بين حاسبة القسم ونسخة اللجنة المركزية (عبر Drive). في البرنامج الكامل: إنشاء الرمز وإيقافه. في نسخة اللجنة: إدخال الرمز */
+ipcMain.handle('zcr:status', (e, withCode) => (!fromZc(e) ? null : ZCAPP ? zcClient().status() : zcDept().status(!!withCode)));
+ipcMain.handle('zcr:link', async (e, code) => { if (!fromZc(e)) return { error: 'غير مسموح' };
+  const r = ZCAPP ? await zcClient().link(code) : await zcDept().link(); if (r && r.ok) audit.note(ZCAPP ? '' : 'du', 'central', ZCAPP ? 'ربط نسخة اللجنة المركزية بحاسبة القسم' : 'إنشاء رمز ربط نسخة اللجنة المركزية (عبر Google Drive)').catch(() => {}); return r; });
+ipcMain.handle('zcr:sync', async e => { if (!fromZc(e)) return { error: 'غير مسموح' }; if (ZCAPP) return zcClient().pull(); const a = await zcDept().push(true); const b = await zcDept().pull(); return a && a.error ? a : b; });
+ipcMain.handle('zcr:stop', async e => { if (!fromZc(e)) return { error: 'غير مسموح' }; if (ZCAPP) return zcClient().unlink(); const r = await zcDept().stop(); audit.note('du', 'central', 'إيقاف ربط نسخة اللجنة المركزية وحذف ملفي التبادل من Drive').catch(() => {}); return r; });
+ipcMain.handle('zcr:pw', (e, oldPw, newPw) => { if (!ZCAPP || !fromZc(e)) return 'bad'; if (!newPw || String(newPw).length < 4) return 'short'; const r = checkPw('zc', oldPw); if (r !== true) return r === 'wait' ? 'wait' : 'wrong'; saveAuthOverride('zc', hashPw('zc', String(newPw))); return 'ok'; });
+/* نافذة القفل في نسخة اللجنة */
+ipcMain.on('zcl:state', e => { e.returnValue = ZCAPP ? { first: !authTable().zc } : null; });
+ipcMain.handle('zcl:unlock', (e, pw) => { if (!ZCAPP || !win || e.sender !== win.webContents) return false; const r = checkPw('zc', pw); if (r === true) zcOpenMain(); return r; });
+ipcMain.handle('zcl:first', (e, pw) => { if (!ZCAPP || !win || e.sender !== win.webContents || authTable().zc) return 'bad'; if (!pw || String(pw).length < 4) return 'short'; saveAuthOverride('zc', hashPw('zc', String(pw))); unlocked.add('zc'); zcOpenMain(); return 'ok'; });
+ipcMain.handle('zcl:reset', (e, masterPw, pw) => { if (!ZCAPP || !win || e.sender !== win.webContents) return 'bad'; const r = checkMaster(masterPw); if (r !== true) return r === 'wait' ? 'wait' : 'wrong'; if (!pw || String(pw).length < 4) return 'short'; saveAuthOverride('zc', hashPw('zc', String(pw))); unlocked.add('zc'); zcOpenMain(); return 'ok'; });
+function zcOpenMain() { if (!win || win.isDestroyed()) return; touchActivity(); win.loadFile(path.join(__dirname, 'app', 'du.html'), { query: { zc: '1', remote: '1' } }); }
+function zcLockScreen() { if (!win || win.isDestroyed()) return; win.loadFile(path.join(__dirname, 'shell', 'zclock.html')); }
+function zcAppStart() {
+  Menu.setApplicationMenu(Menu.buildFromTemplate([
+    { label: 'ملف', submenu: [ { label: 'طباعة', accelerator: 'CmdOrCtrl+P', click: () => win && win.webContents.executeJavaScript("document.querySelector('[data-act=print]')?document.querySelector('[data-act=print]').click():window.print()").catch(() => {}) },
+      { label: 'قفل', accelerator: 'CmdOrCtrl+L', click: () => { unlocked.delete('zc'); zcLockScreen(); } }, { label: 'فتح مجلد البيانات', click: () => shell.openPath(dataDir) }, { type: 'separator' }, { label: 'خروج', role: 'quit' } ] },
+    { label: 'تحرير', submenu: [ { label: 'تراجع', role: 'undo' }, { label: 'إعادة', role: 'redo' }, { type: 'separator' }, { label: 'قص', role: 'cut' }, { label: 'نسخ', role: 'copy' }, { label: 'لصق', role: 'paste' }, { label: 'تحديد الكل', role: 'selectAll' } ] },
+    { label: 'عرض', submenu: [ { label: 'تكبير', accelerator: 'CmdOrCtrl+=', click: () => win && win.webContents.setZoomLevel(win.webContents.getZoomLevel() + 0.5) }, { label: 'تصغير', accelerator: 'CmdOrCtrl+-', click: () => win && win.webContents.setZoomLevel(win.webContents.getZoomLevel() - 0.5) }, { label: 'الحجم الطبيعي', accelerator: 'CmdOrCtrl+0', click: () => win && win.webContents.setZoomLevel(0) } ] } ]));
+  win = new BrowserWindow({ width: 1440, height: 920, minWidth: 980, minHeight: 640, show: false, title: 'اللجنة المركزية للمصادقة — محافظة الأنبار', icon: path.join(__dirname, 'build', 'icon.png'), backgroundColor: '#eef2ee',
+    webPreferences: { preload: path.join(__dirname, 'preload.js'), additionalArguments: ['--app-id=zc'], contextIsolation: true, nodeIntegration: false, sandbox: false, spellcheck: false } });
+  win.webContents.on('dom-ready', () => { win.webContents.__glassKey = null; applyGlass(win.webContents); win.webContents.executeJavaScript("if(window.desktop&&window.desktop.print){window.print=function(){return window.desktop.print();};}").catch(() => {}); });
+  external(win.webContents); watch(win.webContents, 'zc'); win.webContents.on('before-input-event', touchActivity);
+  /* «☁ إصدار ورفع إلى Drive» لقرار اللجنة (رمز QR = رابط القرار نفسه، كما في المدد وأوامر التغيير) */
+  win.webContents.on('did-finish-load', () => { if (!/du\.html/.test(win.webContents.getURL())) return; try { const js = fs.readFileSync(path.join(__dirname, 'gdissue.js'), 'utf8').replace("'__SYS__'", JSON.stringify('zc')); win.webContents.executeJavaScript(js).catch(e => logError('gdissue-zc', String(e && e.message || e))); } catch (_) {} });
+  win.once('ready-to-show', () => { win.maximize(); win.show(); });
+  zcLockScreen();
+  setInterval(() => { if (!unlocked.has('zc') && win && !win.isDestroyed() && /du\.html/.test(win.webContents.getURL())) zcLockScreen(); }, 3000);   // القفل التلقائي بعد عدم النشاط
+  zcClient().start();
+  global.__uni = { ZCAPP, get win() { return win; }, zcClient, unlocked };
+}
+ipcMain.handle('zc:inbox', e => { if (ZCAPP || !fromView(e, 'zc')) return []; const q = zcInboxRead(); try { fs.unlinkSync(zcInbox()); } catch (_) {} return Object.values(q); });
+ipcMain.handle('zc:decide', async (e, p) => { if (!fromZc(e)) return { error: 'غير مسموح' };
+  if (ZCAPP) return zcClient().decide(p);                                  // المركزية ← المدد (قرار المركزية)
+  const r = await viewCall('du', '__zcApply', p); if (r && r.ok) audit.note('du', 'central', `قرار اللجنة المركزية للمشروع ${p && p.name || ''}: ${p && p.z && p.z.decision === 'reject' ? 'عدم المصادقة' : (p && p.z && p.z.days) || ''}`).catch(() => {}); return r; });
+ipcMain.handle('du:fromCo', (e, p) => (fromView(e, 'co') ? viewCall('du', '__duFromCo', p) : { error: 'غير مسموح' }));          // أوامر التغيير ← المدد (طلب مدة)
+ipcMain.handle('zc:open', async (e, key) => { if (!fromView(e, 'du')) return false; await go('zc'); if (isOpen('zc')) viewCall('zc', '__zcOpen', key); return true; });
+
 /* ---------------- نسخة الاطلاع (viewer.js) ---------------- */
 /* حاسبة القسم: نشر ملف الاطلاع المشفّر على Drive القسم وتحديثه تلقائياً (كل 10 دقائق إن تغيّر الموقف أو التخطيط أو الصور) */
 function adIndexNow() { try { const o = JSON.parse(readData('ad') || '{}'), recs = [];
@@ -1293,13 +1369,20 @@ function viewerStart() {
 
 /* الأنظمة التي تُصدر مستنداتها مع رفع PDF إلى Drive (مجلد لكل نظام) */
 const GD_SYS = { ac: 'شهادات الاستلام — قسم الشؤون الهندسية', lt: 'المخاطبات والمطالعات — قسم الشؤون الهندسية', dm: 'مطالعات لجنة المدد — قسم الشؤون الهندسية', cm: 'مطالعات لجنة أوامر التغيير — قسم الشؤون الهندسية',
-  co: 'لجنة أوامر التغيير — قسم الشؤون الهندسية', du: 'المدد والتوقف — قسم الشؤون الهندسية', ad: 'لجنة تدقيق السلف — قسم الشؤون الهندسية', fv: 'تقارير زيارة مشاريع التنفيذ أمانة — قسم الشؤون الهندسية' };
-const gdSys = e => Object.keys(GD_SYS).find(id => views[id] && e.sender === views[id].webContents && isOpen(id)) || '';
-const gdFrom = e => !!gdSys(e) || (win && e.sender === win.webContents);
+  co: 'لجنة أوامر التغيير — قسم الشؤون الهندسية', du: 'المدد والتوقف — قسم الشؤون الهندسية', ad: 'لجنة تدقيق السلف — قسم الشؤون الهندسية', fv: 'تقارير زيارة مشاريع التنفيذ أمانة — قسم الشؤون الهندسية', zc: 'قرارات اللجنة المركزية للمصادقة — قسم الشؤون الهندسية' };
+const gdSys = e => (ZCAPP ? (win && e.sender === win.webContents && unlocked.has('zc') ? 'zc' : '') : Object.keys(GD_SYS).find(id => views[id] && e.sender === views[id].webContents && isOpen(id)) || '');
+const gdFrom = e => !!gdSys(e) || (win && e.sender === win.webContents && (!ZCAPP || unlocked.has('zc'))) || (!ZCAPP && !!views.zc && e.sender === views.zc.webContents && isOpen('zc'));
 ipcMain.handle('gd:status', e => (gdFrom(e) ? gdEnsure().status() : null));
 ipcMain.handle('gd:setApp', (e, id, sec) => (gdFrom(e) ? gdEnsure().setApp(id, sec) : { error: 'غير مسموح' }));
 ipcMain.handle('gd:connect', async (e, hint) => { if (!gdFrom(e)) return { error: 'غير مسموح' }; const r = await gdEnsure().connect(hint); if (r.ok) audit.note('ac', 'gdrive', 'ربط البرنامج بـ Google Drive: ' + (r.email || '')).catch(() => {}); return r; });
 ipcMain.handle('gd:disconnect', e => (gdFrom(e) ? gdEnsure().disconnect() : { error: 'غير مسموح' }));
+ipcMain.handle('gd:shareState', e => (gdFrom(e) ? { on: !!prefs().gdShare, server: !!(sync && sync.state && sync.state().mode === 'server') } : null));
+ipcMain.handle('gd:share', (e, on, masterPw) => { if (!gdFrom(e)) return { error: 'غير مسموح' }; const r = checkMaster(masterPw); if (r !== true) return { error: r === 'wait' ? 'محاولات كثيرة — انتظر دقيقة' : 'كلمة سر المدير غير صحيحة' };
+  if (on && !(sync && sync.state && sync.state().mode === 'server')) return { error: 'المشاركة تُفعَّل من حاسبة القسم (خادم المزامنة) فقط' };
+  if (on && !gdEnsure().status().connected) return { error: 'هذه الحاسبة غير مربوطة ببريد القسم' };
+  const p = prefs(); p.gdShare = !!on; atomicWrite(prefsFile(), JSON.stringify(p)); audit.note('', 'gdrive', on ? 'تفعيل مشاركة ربط Google Drive مع حاسبات اللجان عبر المزامنة' : 'إيقاف مشاركة ربط Google Drive مع حاسبات اللجان').catch(() => {}); return { ok: true, on: !!on }; });
+ipcMain.handle('gd:exportSetup', e => (gdFrom(e) ? gdEnsure().exportSetup() : { error: 'غير مسموح' }));
+ipcMain.handle('gd:importSetup', (e, code) => (gdFrom(e) ? gdEnsure().importSetup(code) : { error: 'غير مسموح' }));
 ipcMain.handle('gd:reserve', async (e, name) => { const sys = gdSys(e); if (!sys) return { error: 'غير مسموح' }; try { return await gdEnsure().reserve(name, GD_SYS[sys]); } catch (err) { return { error: String(err.message || err) }; } });
 ipcMain.handle('gd:owns', (e, id) => (gdSys(e) ? gdEnsure().owns(id) : false));
 ipcMain.handle('gd:upload', async (e, id, name) => { const sys = gdSys(e); if (!sys) return { error: 'غير مسموح' };
@@ -1341,7 +1424,12 @@ function startSync() {
     writeReg: t => { fs.mkdirSync(path.dirname(regFile()), { recursive: true }); atomicWrite(regFile(), t); regVer++; },
     acEval, acAvailable, applied: appliedHook, archDir: () => archDir(),
     archCred: () => { try { const s = (JSON.parse(readData('ar') || '{}').settings || {}).dev; return s && s.box ? { box: String(s.box), tok: String(s.tok || '') } : null; } catch (_) { return null; } },
-    onState: st => { if (win && !win.isDestroyed()) win.webContents.send('sync:state', st); }
+    onState: st => { if (win && !win.isDestroyed()) win.webContents.send('sync:state', st); },
+    /* ربط Drive المشترك: حاسبة القسم تعرضه (إن فعّله المدير)، وحاسبة اللجنة غير المربوطة تأخذه */
+    gdOffer: quick => { if (!prefs().gdShare) return quick ? false : null; try { if (!gdEnsure().status().connected) return quick ? false : null; } catch (_) { return quick ? false : null; } return quick ? true : gdEnsure().shareOut(); },
+    gdWant: () => { try { return !gdEnsure().status().connected; } catch (_) { return false; } },
+    gdTake: o => { const ok = gdEnsure().shareIn(o); if (ok) audit.note('', 'gdrive', 'ربط Google Drive وصل من حاسبة القسم عبر المزامنة: ' + (o.email || '')).catch(() => {}); return ok; },
+    log: m => logError('sync', m)
   });
   sync.init();
 }
@@ -1367,7 +1455,7 @@ const uiTheme = () => { const t = prefs().uiTheme; return t === 'classic' ? 'cla
 ipcMain.on('ui:theme', e => { e.returnValue = uiTheme(); });
 function setUiTheme(t) { try { const p = prefs(); p.uiTheme = t; atomicWrite(prefsFile(), JSON.stringify(p)); } catch (_) {} try { if (win && !win.isDestroyed()) win.webContents.executeJavaScript(`window.SoftUi&&SoftUi.set(${JSON.stringify(t)})`).catch(() => {}); } catch (_) {} }
 /* المظهر الزجاجي الخفيف (shell/glass.css) بدل الخلفية الصفراء: للواجهة والأنظمة ذات الخلفية الصفراء فقط (لا الاستلام ولا الأرشيف) */
-const GLASS_IDS = new Set(['co', 'du', 'ad', 'in', 'lt', 'fu', 'dm', 'cm']);
+const GLASS_IDS = new Set(['co', 'du', 'ad', 'in', 'lt', 'fu', 'dm', 'cm', 'zc']);
 let GLASS_CSS = null; const glassOn = () => !prefs().glassOff;
 function applyGlass(wc, force) { try { if (!wc || wc.isDestroyed()) return;
   if (GLASS_CSS == null) { try { GLASS_CSS = fs.readFileSync(path.join(__dirname, 'shell', 'glass.css'), 'utf8'); } catch (_) { GLASS_CSS = ''; } }
@@ -1420,6 +1508,7 @@ else {
     nativeTheme.themeSource = 'light';   // الواجهة بخلفية برتقالية مصفرّة ثابتة (لا تتبدل بوضع الويندوز الداكن)
     dataDir = resolveDataDir();
     if (VIEWER) { viewerStart(); return; }
+    if (ZCAPP) { try { dailyBackup(); } catch (_) {} zcAppStart(); return; }
     dailyBackup();
     try { xbEnsure().start(); } catch (_) {}
     acStarting = startAcceptance();
@@ -1465,7 +1554,8 @@ else {
     try { flow.init(); } catch (e) { logError('flow', String(e && e.message || e)); }
     if (prefs().wfWeb) flowWebStart();
     try { vwPub().start(); } catch (e) { logError('viewer', String(e && e.message || e)); }
-    global.__uni = { fontCss, manualWin: () => manualWin, openManual, manualPath, sync: () => sync, go, views, flow, unloadView, refreshLinks, linksAt, get viewLeft() { return viewLeft; }, get flowWin() { return flowWin; }, get win() { return win; }, APPS, layout, get current() { return current; } };
+    try { zcDept().start(); } catch (e) { logError('zc-remote', String(e && e.message || e)); }
+    global.__uni = { fontCss, ensureView, zcDept, unlocked, manualWin: () => manualWin, openManual, manualPath, sync: () => sync, go, views, flow, unloadView, refreshLinks, linksAt, get viewLeft() { return viewLeft; }, get flowWin() { return flowWin; }, get win() { return win; }, APPS, layout, get current() { return current; } };
   });
   app.on('before-quit', () => { try { if (sync) sync.stop(); } catch (_) {} flowWebStop(); stopAcceptance(); });
   app.on('window-all-closed', () => app.quit());

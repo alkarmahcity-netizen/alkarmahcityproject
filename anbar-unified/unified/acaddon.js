@@ -119,6 +119,8 @@
     ov.innerHTML = `<div style="background:#fff;border-radius:12px;padding:18px 20px;width:min(620px,94vw);max-height:90vh;overflow:auto;line-height:1.8">
       <h3 style="margin:0 0 8px;color:#1f3a5f">☁ ربط الإصدار ببريد القسم (Google Drive)</h3>
       <div id="gdSt" style="padding:6px 10px;border-radius:8px;background:${st.connected ? '#e8f5e9;color:#1b5e20' : '#fff4e5;color:#8a4b00'}">${st.connected ? '✔ مربوط بـ <b dir="ltr">' + escH(st.email || 'حساب Google') + '</b> — «☁ إصدار ورفع إلى Drive» جاهز' : st.configured ? 'أُدخل معرّف التطبيق — بقي «تسجيل الدخول ببريد القسم»' : 'غير مربوط بعد'}</div>
+      <div style="margin:8px 0;padding:8px 10px;border:1px dashed #9db3c9;border-radius:8px;background:#f5f9ff"><b>الأسهل:</b> الصق <b>«رمز إعداد Drive»</b> من حاسبة مربوطة (حاسبة القسم ← هذه النافذة ← «📋 رمز إعداد Drive») — بدل الخطوة ١:
+        <input id="gdImp" dir="ltr" style="width:100%;font:inherit;padding:5px;margin-top:4px" placeholder="GD1.…"><button id="gdImpGo" type="button" style="margin-top:4px">تطبيق الرمز</button></div>
       <details ${st.configured ? '' : 'open'} style="margin:8px 0"><summary style="cursor:pointer;font-weight:700">١) معرّف التطبيق من Google Cloud (مرة واحدة)</summary>
         <ol style="margin:6px 0;padding-inline-start:22px;font-size:13px;color:#334">
           <li>ادخل <b dir="ltr">console.cloud.google.com</b> ببريد القسم ← أنشئ مشروعاً (مثلاً: شهادات الاستلام).</li>
@@ -131,13 +133,16 @@
       <div style="margin:8px 0"><b>٢)</b> <button id="gdGo" ${st.configured ? '' : 'disabled'} style="background:#1f3a5f;color:#fff;border:0;border-radius:8px;padding:6px 14px">تسجيل الدخول ببريد القسم</button>
         <small style="color:#667">يفتح المتصفح: اختر بريد القسم ووافق — البرنامج يرى ملفات الشهادات التي يرفعها هو فقط.</small></div>
       <div id="gdMsg" style="color:#8b1a1a;min-height:1.4em"></div>
-      <div style="display:flex;gap:8px;justify-content:flex-start;margin-top:6px">${st.connected ? '<button id="gdOff" style="color:#b42318">فصل البريد</button>' : ''}<span style="flex:1"></span><button id="gdX">إغلاق</button></div></div>`;
+      <div style="display:flex;gap:8px;justify-content:flex-start;margin-top:6px">${st.connected ? '<button id="gdExp" type="button">📋 رمز إعداد Drive لحاسبة أخرى</button>' : ''}${st.connected ? '<button id="gdOff" style="color:#b42318">فصل البريد</button>' : ''}<span style="flex:1"></span><button id="gdX">إغلاق</button></div></div>`;
     document.body.appendChild(ov);
     const msg = t => { $('gdMsg').textContent = t || ''; };
     ov.addEventListener('click', async e => { const t = e.target;
       if (t === ov || t.id === 'gdX') { ov.remove(); return; }
       if (t.id === 'gdSave') { const r = await D.gdSetApp($('gdId').value, $('gdSec').value); if (r && r.error) msg(r.error); else gdDlg(); return; }
       if (t.id === 'gdGo') { t.disabled = true; t.textContent = '⏳ أكمل تسجيل الدخول في المتصفح…'; const r = await D.gdConnect('eng@anbar.iq'); if (r && r.error) { msg(r.error); t.disabled = false; t.textContent = 'تسجيل الدخول ببريد القسم'; } else gdDlg(); return; }
+      if (t.id === 'gdImpGo') { const r = await D.gdImport($('gdImp').value); if (r && r.error) msg(r.error); else { await gdDlg(); const m2 = document.getElementById('gdMsg'); if (m2) { m2.style.color = '#1b5e20'; m2.textContent = '✔ طُبّق معرّف التطبيق الصحيح — اضغط «تسجيل الدخول ببريد القسم»'; } } return; }
+      if (t.id === 'gdExp') { t.disabled = true; const r = await D.gdExport(); t.disabled = false; if (!r || r.error) { msg((r && r.error) || 'تعذّر'); return; }
+        msg(''); const box = document.createElement('div'); box.style.cssText = 'margin-top:6px'; box.innerHTML = '<small>انسخه وألصقه في الحاسبة الأخرى (لا تنشره — يحمل معرّف تطبيق القسم وسرّه مشفّرين):</small><input readonly dir="ltr" style="width:100%;font:inherit;padding:5px">'; box.querySelector('input').value = r.code; t.after(box); box.querySelector('input').select(); try { await navigator.clipboard.writeText(r.code); } catch (_) {} return; }
       if (t.id === 'gdOff') { if (confirm('فصل بريد القسم عن هذه الحاسبة؟ (الملفات المرفوعة تبقى في Drive)')) { await D.gdDisconnect(); gdDlg(); } }
     });
   }

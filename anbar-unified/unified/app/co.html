@@ -14371,6 +14371,7 @@ function updateLive(){const r=R(),c=calc(r);
     (x.exceeds?`<div class="warn">لا يُسمح بإصدار هذا الأمر: ${x.issues.join('؛ ')}.</div>`:`<div class="ok">${c.works?'وفق تعليمات 2014: لا توجد حدود الـ 30%.':'حدود الـ 30% تخص عقود الأشغال.'}</div>`)}
     <div><span>المدد الإضافية التراكمية (حد ${r.capDays}% من مدة العقد)</span><b>${x.days} يوم${c.dur?' / '+pctf(x.pctDays):''}</b></div>
     ${!c.dur?'<div class="warn">أدخل مدة العقد الأصلية لاحتساب حد المدد الإضافية (25%).</div>':x.exDays?`<div class="warn" style="color:#b45309">${esc(x.daysNote)}.</div>`:`<div class="ok">المدد ضمن الحد. المتبقي: ${Math.max(0,Math.floor(x.capDaysN-x.days))} يوم</div>`}
+    ${(+o.extraDays||0)>0&&window.desktop&&window.desktop.duFromCo?`<div><button type="button" class="coToDu" data-i="${i}" title="يضيف طلب مدة إضافية بأمر التغيير هذا الى ملف المشروع في برنامج المدد (برقم العقد)؛ تُحتسب نسبة 25% هناك مع مدد لجنة المدد، وإن تجاوزتها يُحال تلقائياً الى اللجنة المركزية للمصادقة">📤 إحالة الى المدد واللجنة المركزية (${+o.extraDays} يوم)</button></div>`:''}
     <div><span>صافي الزيادة على العقد (صلاحية جهة التعاقد ${c.auth}%)</span><b>${pctf(x.netPct)}</b></div>
     ${!c.V?'':x.exAuth?`<div class="warn">صافي الزيادة يتجاوز صلاحية جهة التعاقد (${c.auth}%) بمبلغ ${fmt(x.authDiff)} دينار (يُثبت في محضر اللجنة).</div>`:`<div class="ok">ضمن صلاحية جهة التعاقد. المتبقي: ${fmt(-x.authDiff)} دينار</div>`}
     ${!c.approved?'<div class="warn" style="background:transparent;color:var(--muted);padding:4px 0">أدخل المبلغ المصادق عليه للتحقق من سقف الكلفة.</div>':`<div><span>الحد الأعلى = المصادق عليه − الإشراف (${supTxt(c)})</span><b>${fmt(c.limit)}</b></div>
@@ -14587,7 +14588,7 @@ window.addEventListener('resize',fitPreview);
 function regFill(r,p){const P=r.project;P.fileNo=String(p.fileNo);try{const m=AnbarReg.getMeta(P.fileNo),d=defParty();for(const k in m)if(k in d&&(r.party[k]===''||r.party[k]===d[k]))r.party[k]=m[k];}catch(_){}if(p.name)P.name=p.name;if(p.contractor)P.contractor=p.contractor;
   if(p.contractNo!==''&&p.contractNo!=null)P.contractNo=String(p.contractNo);if(p.orig)P.value=p.orig;if(p.dur)P.duration=p.dur;if(p.start)P.startDate=p.start;
   P.prevDays=p.extra||0;if(p.sector)P.beneficiary=p.sector;if(p.fund)P.fund=p.fund;const loc=[p.district,p.sub].filter(Boolean).join(' / ');if(loc)P.location=loc;try{const sp=AnbarReg.supText(p.fileNo);if(sp)P.supervisor=sp;}catch(_){}}
-function regLive(r){const c=calc(r),x=c.last;return {orders:r.orders.length,changeCost:x.cumNet,extraDays:x.days,newValue:x.newValue,exceeds:c.rows.some(y=>y.exceeds),status:r.status||''};}
+function regLive(r){const c=calc(r),x=c.last;return {cNo:String(r.project&&r.project.contractNo||''),orders:r.orders.length,changeCost:x.cumNet,extraDays:x.days,newValue:x.newValue,exceeds:c.rows.some(y=>y.exceeds),status:r.status||''};}
 /* ربط أوامر التغيير بالموقف العام — لمشاريع الموقف فقط (بالاضبارة، وإلا باسم المشروع ورقم العقد)، مع تفاصيل كل أمر */
 function syncLinks(){if(!window.AnbarReg||!AnbarReg.setLinks)return;const list=[],seen={},metas=[];
   DB.records.forEach(r=>{const P=r.project;if(!P)return;const m=AnbarReg.matchProject(P.fileNo,P.name,P.contractNo);if(!m)return;if(String(P.fileNo||'')!==String(m.fileNo))P.fileNo=String(m.fileNo);
@@ -14876,6 +14877,13 @@ load();if(DESK){const lb=document.getElementById('localBadge');if(lb)lb.textCont
 /* عند التشغيل: ربط الملفات (ومنها الأرشيف القديم) بمشاريع الموقف؛ ويُحفظ الملف إن كُتبت فيه اضبارة جديدة */
 setTimeout(()=>{try{const fn0=DB.records.map(r=>r.project&&r.project.fileNo).join('|');syncLinks();if(DB.records.map(r=>r.project&&r.project.fileNo).join('|')!==fn0)persist();}catch(_){}},300);
 loadSavedFonts().then(n=>{if(n&&view==='edit'&&R()){renderForm();renderPreview(true);}});
+
+/* أوامر التغيير ← برنامج المدد: طلب مدة إضافية بأمر التغيير (نسبة 25% تُحتسب في المدد مع مدد لجنة المدد، ومنها الى اللجنة المركزية للمصادقة) */
+document.addEventListener('click',async ev=>{const b=ev.target.closest&&ev.target.closest('.coToDu');if(!b)return;const r=R();if(!r)return;const i=+b.dataset.i,o=r.orders[i];if(!o)return;const P=r.project||{};
+  if(!String(P.contractNo||'').trim()){flash('اكتب «رقم العقد» في بيانات المشروع أولاً — رقم العقد هو المرجع لربط أمر التغيير بملف المشروع في برنامج المدد',true);return;}
+  b.disabled=true;let res;try{res=await window.desktop.duFromCo({fileNo:String(P.fileNo||'').trim(),name:P.name||'',contractor:P.contractor||'',contractNo:P.contractNo||'',value:P.value||'',start:P.startDate||'',dur:P.duration||'',coNo:i+1,days:+o.extraDays||0,decNo:o.decNo||'',decDate:o.decDate||o.date||''});}catch(e){res={error:String(e&&e.message||e)};}
+  b.disabled=false;if(res&&res.ok)flash(`أُحيلت المدة (${+o.extraDays} يوم) الى برنامج المدد${res.created?' (ملف جديد للمشروع)':''}${res.need?` — والمدد التراكمية ${res.pct}% تتجاوز 25% فأُحيلت الى اللجنة المركزية للمصادقة`:` — المدد التراكمية ${res.pct}% ضمن 25% (لا حاجة للجنة المركزية)`}.`);
+  else flash('تعذّرت الإحالة: '+((res&&res.error)||''),true);});
 </script>
 </body>
 </html>

@@ -1,0 +1,35 @@
+// تقارير دوائر المهندس المقيم الشهرية: عرض «حسب المشروع» — تقرير كل شهر بجانب تقرير الشهر الذي قبله
+const { _electron: electron } = require('playwright'); const fs = require('fs'), path = require('path'), os = require('os');
+const sleep = ms => new Promise(r => setTimeout(r, ms)); const R = []; const ok = (n, c, d = '') => R.push([c ? 'PASS' : 'FAIL', n, d]);
+(async () => { const T = fs.mkdtempSync(path.join(os.tmpdir(), 'mrg-')); const mk = n => { const d = path.join(T, n); fs.mkdirSync(d); return d; };
+  const DD = mk('d'), RG = mk('r');
+  fs.writeFileSync(path.join(RG, 'registry.json'), JSON.stringify({ app: 'anbar-projects-shared', version: 1, projects: [{ fileNo: '900', name: 'انشاء مدرسة نموذجية في الرمادي (مثال)', contractor: 'شركة مثال أ', contractNo: '91', year: '2024', district: 'الرمادي' }, { fileNo: '901', name: 'تأهيل شارع في هيت (مثال)', contractor: 'شركة مثال ب', contractNo: '15', year: '2025', district: 'هيت' }], links: {}, meta: {} }));
+  const rec = (id, pj, co, cno, m, a, p, s) => ({ id, projectKey: 'c:' + cno, project: pj, company: co, district: '', contractNo: cno, resident: 'مقيم (مثال)', month: m, actualPct: a, plannedPct: p, safeStatus: s, pdfId: 'PDF' + id, updated: 1 });
+  const recs = [rec('a1', 'انشاء مدرسة نموذجية في الرمادي', 'شركة مثال أ', '91/2024', '2026-09', 40, 45, 'ملتزمة'), rec('a2', 'انشاء مدرسة نموذجية في الرمادي', 'شركة مثال أ', '91/2024', '2026-10', 48, 55, 'ملتزمة'), rec('a3', 'انشاء مدرسة نموذجية في الرمادي', 'شركة مثال أ', '91/2024', '2026-11', 55, 80, 'ملتزمة جزئياً'),
+    rec('b1', 'تأهيل شارع في هيت', 'شركة مثال ب', '15/2025', '2026-10', 20, 25, 'ملتزمة'), rec('b2', 'تأهيل شارع في هيت', 'شركة مثال ب', '15/2025', '2026-11', 20, 35, 'غير ملتزمة'), rec('c1', 'مشروع غير موجود في الموقف', 'شركة مثال ج', '', '2026-11', 10, 10, 'ملتزمة')];
+  fs.writeFileSync(path.join(DD, 'MonthlyReports-Data.json'), JSON.stringify({ app: 'anbar-monthly-reports', version: 1, records: recs }));
+  const app = await electron.launch({ executablePath: require('electron'), args: ['--no-sandbox', __dirname], env: { ...process.env, UNI_MULTI: mk('u'), UNI_DATA_DIR: DD, ANBAR_REG_DIR: RG, UNI_AC_PORT: '48581', UNI_NO_JSONSCAN: '1', UNI_NO_LINKREFRESH: '1', UNI_NO_INTRO: '1' } });
+  const pg = await app.firstWindow(); await sleep(1500);
+  const tab = await pg.evaluate(() => (document.querySelector('[data-go="mr"]') || {}).textContent || '');
+  ok('tab named «تقارير دوائر المهندس المقيم الشهرية»', tab.trim() === 'تقارير دوائر المهندس المقيم الشهرية', tab);
+  await pg.evaluate(() => window.desktop.go('mr')); await sleep(2500);
+  const V = c => app.evaluate(async (_, c) => global.__uni.views.mr.webContents.executeJavaScript(c), c);
+  const g = await V(`JSON.stringify({mode:!document.getElementById('grid').hidden,heads:[...document.querySelectorAll('#grid thead th')].map(t=>t.textContent),rows:[...document.querySelectorAll('#grid tbody tr')].map(tr=>[...tr.children].map(td=>td.textContent.replace(/\\s+/g,' ').trim())),title:document.title})`).then(JSON.parse);
+  ok('default view: by project — months as columns, oldest first then each new month beside it', g.mode && g.heads.join('|') === 'المشروع|أيلول ٢٠٢٦|تشرين الأول ٢٠٢٦|تشرين الثاني ٢٠٢٦', g.heads.join('|'));
+  const school = g.rows.find(r => /مدرسة/.test(r[0])) || [];
+  ok('one row per project with its three monthly reports side by side (linked to the file number)', /اضبارة ٩٠٠/.test(school[0]) && /٤٠%/.test(school[1]) && /٤٨%/.test(school[2]) && /٥٥%/.test(school[3]), school.join(' ‖ '));
+  ok('each month shows progress vs the previous month', /أول تقرير/.test(school[1]) && /▲ ٨% عن الشهر السابق/.test(school[2]) && /▲ ٧%/.test(school[3]), school.slice(1).join(' ‖ '));
+  const st = g.rows.find(r => /شارع/.test(r[0])) || [];
+  ok('a month without a report is marked; no progress is flagged; safety status shown', /لم يصل تقرير/.test(st[1]) && /بلا تقدم/.test(st[3]) && /غير ملتزمة/.test(st[3]), st.join(' ‖ '));
+  ok('each report cell has the report form (PDF) button', /فتح التقرير|تنزيل وفتح/.test(school[3]));
+  const un = g.rows.find(r => /غير موجود/.test(r[0])) || [];
+  ok('unlinked project flagged', /غير مربوط/.test(un[0] || ''), un[0]);
+  await V(`document.getElementById('vL').click();1`); await sleep(500);
+  const l = await V(`JSON.stringify({grid:document.getElementById('grid').hidden,list:!document.getElementById('list').hidden,rows:document.querySelectorAll('#rows tr').length})`).then(JSON.parse);
+  ok('«قائمة التقارير» still available (the original list with linking)', l.grid && l.list && l.rows >= 1, JSON.stringify(l));
+  await V(`document.getElementById('vP').click();1`); await sleep(500);
+  fs.writeFileSync(process.env.SHOT || path.join(T, 's.png'), Buffer.from(await app.evaluate(async () => (await global.__uni.views.mr.webContents.capturePage()).toPNG().toString('base64')), 'base64'));
+  const e = await app.evaluate(() => (global.__uniErrors || []).slice()); ok('no JavaScript errors', e.length === 0, e.join(' | ').slice(0, 300));
+  await app.close();
+  R.forEach(x => console.log(x[0], x[1], x[2] ? '— ' + String(x[2]).slice(0, 300) : '')); console.log(`${R.filter(x => x[0] === 'PASS').length}/${R.length}`); process.exit(R.every(x => x[0] === 'PASS') ? 0 : 1);
+})().catch(e => { console.error(e); process.exit(1); });

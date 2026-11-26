@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>التقارير الشهرية لدوائر المقيم</title>
+<title>تقارير دوائر المهندس المقيم الشهرية</title>
 <style>
 *{box-sizing:border-box}
 html,body{margin:0}
@@ -46,12 +46,18 @@ td.w{white-space:nowrap}
 #msg{min-height:20px;font-size:13px;margin:6px 0}
 #msg.err{color:#b42318}
 details summary{cursor:pointer;font-weight:700;color:#0e5a70}
+/* عرض «حسب المشروع»: تقرير كل شهر بجانب تقرير الشهر الذي قبله */
+.mg{min-width:0}.mg table{min-width:0;width:auto}.mg th.mo{min-width:132px;text-align:center}.mg td.pj{min-width:250px;max-width:330px;position:sticky;right:0;background:#fff;z-index:1;box-shadow:-2px 0 0 #e3e8ed}.mg th.pj{position:sticky;right:0;z-index:3}
+.mc{border:1px solid #d3dae1;border-radius:6px;padding:4px 6px;text-align:center;background:#f8fafb;min-width:120px}.mc.bad{background:#fdf0ee;border-color:#f0b8b0}.mc .p{font-weight:700;font-size:15px;color:#1b2433}.mc .p small{font-weight:400;color:#5a6676;font-size:11px}
+.mc .tr{display:block;height:5px;background:#e3e8ed;border-radius:3px;margin:3px 0;overflow:hidden;direction:ltr}.mc .tr i{display:block;height:100%;background:#0e7490}.mc .d{font-size:11px}.mc .up{color:#1f7a3d}.mc .dn{color:#b42318}
+.mc .pill{font-size:10.5px;padding:0 6px}.mc button{margin-top:3px}.mc.none{background:transparent;border-style:dashed;color:#9aa5b1;font-size:12px;padding:14px 6px}
+.vsw{display:inline-flex;border:1px solid #0e7490;border-radius:6px;overflow:hidden}.vsw button{border:0;border-radius:0;padding:4px 12px}.vsw button.on{background:#0e7490;color:#fff}
 .cfg{display:grid;grid-template-columns:130px 1fr;gap:8px;align-items:center;margin-top:10px;max-width:760px}
 </style>
 </head>
 <body>
 <div id="bar">
-  <b>التقارير الشهرية لدوائر المقيم</b>
+  <b>تقارير دوائر المهندس المقيم الشهرية</b>
   <button id="bPull" class="pull">⬇ جلب التقارير الجديدة</button>
   <span class="st" id="st"></span>
 </div>
@@ -74,9 +80,11 @@ details summary{cursor:pointer;font-weight:700;color:#0e5a70}
       <input id="q" type="search" placeholder="بحث: المشروع، الشركة، المقيم، الاضبارة، رقم العقد" style="flex:1;min-width:220px">
       <select id="fm" aria-label="الشهر"></select>
       <select id="fd" aria-label="القضاء"></select>
+      <span class="vsw" role="tablist" aria-label="طريقة العرض"><button type="button" id="vP" class="on" title="صف لكل مشروع، وتقرير كل شهر بجانب تقرير الشهر الذي قبله">حسب المشروع (الأشهر جنباً الى جنب)</button><button type="button" id="vL" title="قائمة التقارير شهراً شهراً">قائمة التقارير</button></span>
       <select id="fl" aria-label="الربط"><option value="">كل المشاريع</option><option value="u">غير المربوطة بالاضبارة</option><option value="l">المربوطة</option></select>
     </div>
-    <div class="tw"><table>
+    <div class="tw mg" id="grid"></div>
+    <div class="tw" id="list" hidden><table>
       <thead><tr><th>ت</th><th>اسم المشروع</th><th>الشركة المنفذة</th><th>القضاء</th><th>المقيم</th><th>الشهر</th><th>الإنجاز</th><th>السلامة المهنية</th><th>الاضبارة</th><th>الملف</th></tr></thead>
       <tbody id="rows"></tbody>
     </table></div>
@@ -163,7 +171,7 @@ function fillFilters(){
   if (ms.includes(pm)) $('fm').value = pm; else if (ms.length && !pm) $('fm').value = ms[0];
   if (ds.includes(pd)) $('fd').value = pd;
 }
-function draw(){
+let draw = function(){
   const v = view(), keys = new Set(v.map(x => x.fn ? 'f:' + x.fn : pkey(x.r)));
   const unl = new Set(v.filter(x => !x.fn).map(x => pkey(x.r))).size, late = v.filter(x => dev(x.r) > 20).length, saf = v.filter(x => x.r.safeStatus && x.r.safeStatus !== 'ملتزمة').length;
   $('kpis').innerHTML =
@@ -190,8 +198,38 @@ function draw(){
       '<td class="w">' + (r.pdfId ? '<button class="sm pri" data-open="' + esc(r.id) + '">' + (FILES[r.id] ? 'فتح' : 'تنزيل وفتح') + '</button> ' + (FILES[r.id] ? '<button class="sm" data-show="' + esc(r.id) + '">المجلد</button>' : '') : '') + '</td></tr>';
   }).join('') : '<tr><td colspan="10" class="empty">' + (DB.records.length ? 'لا تقارير مطابقة' : 'لم تُجلب تقارير بعد — اضبط الربط ثم اضغط «جلب التقارير الجديدة»') + '</td></tr>';
   const st = $('st'); st.textContent = DB.lastPull ? 'آخر جلب: ' + new Date(DB.lastPull).toLocaleString('ar-IQ') : '';
-}
+};
 async function refreshLocal(){ try { if (D && D.mrLocal) FILES = (await D.mrLocal(DB.records.filter(r => r.pdfId).map(r => ({ id: r.id, project: r.project, month: r.month, resident: r.resident })))) || {}; } catch (_) {} }
+/* ---------- حسب المشروع: الأشهر جنباً الى جنب (الأقدم يميناً، والجديد يُضاف بجانبه) ---------- */
+let MODE = 'p'; try { MODE = localStorage.getItem('mr_mode') || 'p'; } catch (_) {}
+const num = v => { const n = parseFloat(lat(v)); return isNaN(n) ? null : n; };
+function grid(){
+  const q = $('q').value.trim(), d = $('fd').value, f = $('fl').value;
+  const all = DB.records.map(r => { const mm = matchProject(r, REG), fn = (mm.p && mm.p.fileNo) || r.fileNo || ''; return { r, p: mm.p, fn, name: (mm.p && mm.p.name) || r.project, co: (mm.p && mm.p.contractor) || r.company, dist: (mm.p && mm.p.district) || r.district }; })
+    .filter(x => (!d || x.dist === d) && (!f || (f === 'l' ? !!x.fn : !x.fn)) && (!q || [x.name, x.co, x.r.resident, x.fn, x.r.contractNo].join(' ').includes(q)));
+  const months = [...new Set(all.map(x => x.r.month).filter(Boolean))].sort();   // تصاعدياً: الأقدم أولاً (يمين الصفحة)
+  const P = {}; all.forEach(x => { const k = x.fn ? 'f:' + x.fn : pkey(x.r); const g = P[k] = P[k] || { k, fn: x.fn, name: x.name, co: x.co, dist: x.dist, res: x.r.resident, cno: x.r.contractNo, by: {} };
+    const o = g.by[x.r.month]; if (!o || (x.r.updated || 0) > (o.updated || 0)) g.by[x.r.month] = x.r; if (x.r.resident) g.res = x.r.resident; });
+  const G = Object.values(P).sort((a, b) => (a.dist || '').localeCompare(b.dist || '', 'ar') || (a.name || '').localeCompare(b.name || '', 'ar'));
+  if (!G.length) { $('grid').innerHTML = '<div class="empty">' + (DB.records.length ? 'لا مشاريع مطابقة' : 'لم تُجلب تقارير بعد — اضبط الربط ثم اضغط «جلب التقارير الجديدة»') + '</div>'; return; }
+  const cell = (g, m, i) => { const r = g.by[m]; if (!r) return '<td><div class="mc none">لم يصل تقرير</div></td>';
+    const a = num(r.actualPct), p = num(r.plannedPct), bad = dev(r) > 20;
+    let prevA = null; for (let j = i - 1; j >= 0; j--) { const pr = g.by[months[j]]; if (pr && num(pr.actualPct) != null) { prevA = num(pr.actualPct); break; } }
+    const ch = a != null && prevA != null ? Math.round((a - prevA) * 10) / 10 : null;
+    return '<td><div class="mc' + (bad ? ' bad' : '') + '"><div class="p">' + (a != null ? ar(a) + '%' : '—') + ' <small>/ مخطط ' + (p != null ? ar(p) + '%' : '—') + '</small></div>' +
+      '<span class="tr"><i style="width:' + Math.max(0, Math.min(100, a || 0)) + '%"></i></span>' +
+      '<div class="d">' + (ch == null ? '<span class="sub">أول تقرير</span>' : ch > 0 ? '<span class="up">▲ ' + ar(ch) + '% عن الشهر السابق</span>' : ch < 0 ? '<span class="dn">▼ ' + ar(-ch) + '%</span>' : '<span class="sub">بلا تقدم عن الشهر السابق</span>') + '</div>' +
+      (r.safeStatus ? '<span class="pill" style="background:' + (SAFE[r.safeStatus] || '#5a6676') + '">' + esc(r.safeStatus) + '</span>' : '') +
+      (r.pdfId ? '<div><button class="sm pri" data-open="' + esc(r.id) + '" title="نموذج التقرير كما أرسله المقيم">📄 ' + (FILES[r.id] ? 'فتح التقرير' : 'تنزيل وفتح') + '</button></div>' : '') + '</div></td>'; };
+  $('grid').innerHTML = '<table><thead><tr><th class="pj">المشروع</th>' + months.map(m => '<th class="mo">' + esc(mLabel(m)) + '</th>').join('') + '</tr></thead><tbody>' +
+    G.map(g => '<tr><td class="pj"><b>' + esc(g.name) + '</b><div class="sub">' + esc(g.co || '') + (g.dist ? ' — ' + esc(g.dist) : '') + '</div>' +
+      '<div class="sub">المقيم: ' + esc(g.res || '—') + ' · ' + (g.fn ? '<span class="ok">اضبارة ' + esc(ar(g.fn)) + '</span>' : '<span class="bad">غير مربوط (اربطه من «قائمة التقارير»)</span>') + '</div></td>' +
+      months.map((m, i) => cell(g, m, i)).join('') + '</tr>').join('') + '</tbody></table>';
+  setTimeout(() => { const t = $('grid'); t.scrollLeft = -t.scrollWidth; }, 0);   // يظهر أحدث شهر أولاً
+}
+function setMode(m){ MODE = m; try { localStorage.setItem('mr_mode', m); } catch (_) {} $('vP').classList.toggle('on', m === 'p'); $('vL').classList.toggle('on', m === 'l');
+  $('grid').hidden = m !== 'p'; $('list').hidden = m === 'p'; $('fm').hidden = m === 'p'; draw(); }
+const draw0 = draw; draw = function(){ draw0(); if (MODE === 'p') grid(); };
 function redraw(){ fillFilters(); draw(); }
 
 /* ---------- الأحداث ---------- */
@@ -219,14 +257,15 @@ document.addEventListener('click', async e => {
     if (!p) { msg('جارٍ تنزيل الملف…'); const x = await D.mrPdf({ id: r.id, project: r.project, month: r.month, resident: r.resident, pdfId: r.pdfId }); if (!x || x.error) throw new Error((x && x.error) || 'تعذر التنزيل'); p = FILES[r.id] = x.path; msg(''); draw(); }
     if (b.dataset.show) D.showFile(p); else D.openFile(p); } catch (err) { msg(err.message, true); }
 });
-['q', 'fm', 'fd', 'fl'].forEach(i => $(i).addEventListener('input', draw));
+['q', 'fm', 'fd', 'fl'].forEach(i => $(i).addEventListener('input', () => draw()));
+$('vP').onclick = () => setMode('p'); $('vL').onclick = () => setMode('l');
 window.__syncReload = function(){ loadDB(); loadReg(); refreshLocal().then(redraw); };
 
 /* ---------- الإقلاع ---------- */
 (async function(){
   loadDB(); loadReg();
   try { const c = D && D.mrCfg ? await D.mrCfg() : null; if (c) { $('cUrl').value = c.url || ''; $('cCode').placeholder = c.hasCode ? '•••• محفوظ' : ''; if (!c.url || !c.hasCode) $('cfg').open = true; } else { $('cfgCard').hidden = true; $('bPull').hidden = true; } } catch (_) {}
-  await refreshLocal(); redraw();
+  await refreshLocal(); setMode(MODE === 'l' ? 'l' : 'p'); redraw();
   window.MR = { contractKey, normName, regKeys, matchProject, mergeRecords };
 })();
 })();

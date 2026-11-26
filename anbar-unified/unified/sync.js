@@ -11,8 +11,8 @@ const os = require('os');
 const crypto = require('crypto');
 const dgram = require('dgram');
 
-const JSON_KEYS = { fv: 'records', co: 'records', ad: 'records', du: 'recs', in: 'records', lt: 'records', fu: 'records', dm: 'records', cm: 'records', zc: 'recs', ar: 'records', wf: 'records', pl: 'records', wfa: 'records' };
-const ALL = ['co', 'du', 'ad', 'in', 'lt', 'fu', 'dm', 'cm', 'zc', 'fv', 'ar', 'arf', 'reg', 'pph', 'ac', 'wf', 'pl', 'wfa'];   // pph: صور المشاريع (بعد سجل الموقف الذي يذكرها)   // wf: لوحة سير المعاملات
+const JSON_KEYS = { fv: 'records', mr: 'records', co: 'records', ad: 'records', du: 'recs', in: 'records', lt: 'records', fu: 'records', dm: 'records', cm: 'records', zc: 'recs', ar: 'records', wf: 'records', pl: 'records', wfa: 'records' };
+const ALL = ['co', 'du', 'ad', 'in', 'lt', 'fu', 'dm', 'cm', 'zc', 'fv', 'mr', 'ar', 'arf', 'reg', 'pph', 'ac', 'wf', 'pl', 'wfa'];   // pph: صور المشاريع (بعد سجل الموقف الذي يذكرها)   // wf: لوحة سير المعاملات
 const AC_TYPES = { pac: ['pac_records_v1', 'pac_counter_v1'], pap: ['pap_records_v1', 'pap_counter_v1'], fac: ['fac_records_v1', 'fac_counter_v1'], fpa: ['fpa_records_v1', 'fpa_counter_v1'] };
 const DEFAULT_PORT = +process.env.UNI_SYNC_PORT || 47900;   // للاختبار فقط: منفذ بديل إن كان 47900 مشغولاً في بيئة الاختبار
 const DISC_PORT = +process.env.UNI_DISC_PORT || 47901;   // الاكتشاف التلقائي (UDP): حاسبة القسم تجيب من يسأل عنها برمز القسم
@@ -286,7 +286,7 @@ module.exports = function createSync(ctx) {
         { const um = req.method === 'GET' && String(req.url || '').match(/^\/sync\/update\/(info|file)$/);   // التحديث من حاسبة القسم
           if (um) { if (cfg.mode === 'server' && ctx.updater) return ctx.updater.serve(um[1], res); return send(404, { error: 'none' }); } }
         notePeer(req);
-        const m = req.url.match(/^\/sync\/(ping|gd|(co|du|ad|in|lt|fu|dm|cm|zc|fv|ar|arf|reg|pph|ac|wf|pl|wfa)\/(digest|push))$/);
+        const m = req.url.match(/^\/sync\/(ping|gd|(co|du|ad|in|lt|fu|dm|cm|zc|fv|mr|ar|arf|reg|pph|ac|wf|pl|wfa)\/(digest|push))$/);
         if (!m) return send(404, { error: 'nf' });
         if (m[1] === 'ping') return send(200, { ok: true, time: Date.now(), name: cfg.name || os.hostname(), sets: ALL, ver: String(ctx.version || ''), gd: !!(ctx.gdOffer && ctx.gdOffer(true)) });
         if (m[1] === 'gd') { const o = ctx.gdOffer ? await ctx.gdOffer(false) : null; if (!o) return send(404, { error: 'none' }); return send(200, { v: gdSeal(o) }); }
@@ -434,7 +434,7 @@ module.exports = function createSync(ctx) {
       let dsErr = null;   /* خطأ في مجموعة واحدة لا يوقف مزامنة باقي المجموعات (كان يوقف الجولة كلها) */
       for (const ds of ALL) { try {
         if (ds === 'ac' && !ctx.acAvailable()) continue;
-        if (['in', 'lt', 'fu', 'dm', 'cm', 'zc', 'fv', 'ar', 'arf', 'pph', 'wf', 'pl', 'wfa'].includes(ds) && !(ping.sets || []).includes(ds)) continue;   // خادم أقدم لا يعرف هذه المجموعة   // خادم أو سحابة بإصدار أقدم لا يعرف «إطلاق التأمينات»
+        if (['in', 'lt', 'fu', 'dm', 'cm', 'zc', 'fv', 'mr', 'ar', 'arf', 'pph', 'wf', 'pl', 'wfa'].includes(ds) && !(ping.sets || []).includes(ds)) continue;   // خادم أقدم لا يعرف هذه المجموعة   // خادم أو سحابة بإصدار أقدم لا يعرف «إطلاق التأمينات»
         const rv = ping.revs ? (ping.revs[ds] || 0) : undefined;
         // مرفقات الأرشيف: تتكرر الجولة ما دام هناك ما يُنقل (أجزاء ملف كبير أو دفعات متتالية)، حتى 40 جولة
         for (let round = 0; round < (ds === 'arf' || ds === 'pph' ? 40 : 1); round++) {

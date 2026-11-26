@@ -50,7 +50,9 @@ contextBridge.exposeInMainWorld('desktop', {
   deviceName: () => ipcRenderer.sendSync('device:name'),
   syncMode: () => ipcRenderer.sendSync('sync:mode'),
   archExportFn: (title, items) => ipcRenderer.invoke('arch:exportFn', title, items),
-  archPurge: keep => ipcRenderer.invoke('arch:purge', keep)
+  archPurge: keep => ipcRenderer.invoke('arch:purge', keep),
+  /* التقارير الشهرية لدوائر المقيم */
+  mrCfg: set => ipcRenderer.invoke('mr:cfg', set), mrPull: () => ipcRenderer.invoke('mr:pull'), mrPdf: rec => ipcRenderer.invoke('mr:pdf', rec), mrLocal: list => ipcRenderer.invoke('mr:local', list)
 });
 
 /* نشاط المستخدم (الفأرة والتمرير واللمس، لا لوحة المفاتيح فقط) يمدّ مهلة القفل التلقائي */

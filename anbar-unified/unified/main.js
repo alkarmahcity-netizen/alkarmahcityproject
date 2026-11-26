@@ -25,7 +25,7 @@ const VIEWER = !!process.env.UNI_VIEWER || (() => { try { return !!require('./pa
    بكلمة سر خاصة بها، تتبادل الإحالات والقرارات مع حاسبة القسم عبر Google Drive ببريد القسم. البرنامج الكامل لا يتأثر (ZCAPP = false) */
 const ZCAPP = !VIEWER && (!!process.env.UNI_ZCAPP || (() => { try { return !!require('./package.json').anbarZc; } catch (_) { return false; } })());
 if (VIEWER) {
-  const VWB = /^(reg:save|data:(save|saveSync|tomb|load|peek|openFolder)|report:data|pph:(save|del)|pl:(import|cmpOpen|cmpSave|clean|export)|pp:save|fin:unlock|finx:(use|choose|link|search)|xl:merge|comtpl:(choose|reset|save)|eng:rate|file:save|mapkey:set|earth:(write|pro|save)|jsonimp:|ad:(purgeLegacy|accessImport)|co:accessImport|auth:(change|reset|master)|mgr:numUnlock|bk:|xb:(set|run|pick)|upd:(fetch|apply)|sync:(set|now|discover|mode)|arch:|wf:(move|add|remove|unlock|annPublish|annHide|set|web)|gd:|mail:|guide:(add|docx|del)|audit:openDir|ac:)/;
+  const VWB = /^(reg:save|data:(save|saveSync|tomb|load|peek|openFolder)|report:data|pph:(save|del)|pl:(import|cmpOpen|cmpSave|clean|export)|pp:save|fin:unlock|finx:(use|choose|link|search)|xl:merge|comtpl:(choose|reset|save)|eng:rate|file:save|mapkey:set|earth:(write|pro|save)|jsonimp:|ad:(purgeLegacy|accessImport)|co:accessImport|auth:(change|reset|master)|mgr:numUnlock|bk:|xb:(set|run|pick)|upd:(fetch|apply)|sync:(set|now|discover|mode)|mr:|arch:|wf:(move|add|remove|unlock|annPublish|annHide|set|web)|gd:|mail:|guide:(add|docx|del)|audit:openDir|ac:)/;
   const h0 = ipcMain.handle.bind(ipcMain), o0 = ipcMain.on.bind(ipcMain);
   ipcMain.handle = (ch, fn) => h0(ch, VWB.test(ch) ? () => null : fn);
   ipcMain.on = (ch, fn) => o0(ch, VWB.test(ch) ? (e => { e.returnValue = null; }) : fn);
@@ -44,6 +44,9 @@ const APPS = {
   ar: { title: 'الأرشيف والتوزيع', file: 'app/ar.html', data: 'Archive-Data.json' },
   /* تقرير زيارة مشاريع التنفيذ أمانة (برنامج FieldVisitReport مدمجاً): التقارير تُحفظ وتُزامن، مع لوحة معلومات */
   fv: { title: 'تقرير زيارة مشاريع التنفيذ أمانة', file: 'app/fv.html', data: 'FieldVisit-Data.json' },
+  /* التقارير الشهرية لدوائر المقيم: يملؤها المقيمون على هواتفهم (تطبيق Google Apps Script) ويصل منها اسم المشروع والشركة والقضاء وملف PDF؛
+     تُجلب الى هنا وتُربط برقم الاضبارة من الموقف العام (رقم العقد ثم اسم المشروع). تُحفظ وتُزامن مع لوحة معلومات */
+  mr: { title: 'التقارير الشهرية لدوائر المقيم', file: 'app/mr.html', data: 'MonthlyReports-Data.json' },
   /* اللجنة المركزية للمصادقة: برنامج المدد نفسه بوضع «المركزية» (?zc=1) بملف بيانات وكلمة سر مستقلين — تصله إحالات المدد (تجاوز 25%)
      ومقررها يصدر قرار المركزية ويعيده الى برنامج المدد لإصدار الأمر الإداري */
   zc: { title: 'اللجنة المركزية للمصادقة', file: 'app/du.html', query: { zc: '1' }, data: 'CentralCommittee-Data.json' },
@@ -289,7 +292,7 @@ setInterval(async () => {
 }, +process.env.UNI_AC_POLL_MS || 4000);
 
 /* ---------------- IPC ---------------- */
-const okId = id => ['co', 'du', 'ad', 'in', 'lt', 'fu', 'ar', 'dm', 'cm', 'fv', 'zc'].includes(id);
+const okId = id => ['co', 'du', 'ad', 'in', 'lt', 'fu', 'ar', 'dm', 'cm', 'fv', 'mr', 'zc'].includes(id);
 ipcMain.on('data:load', (e, id) => { e.returnValue = okId(id) ? readData(id) : null; });
 ipcMain.on('data:path', (e, id) => { e.returnValue = okId(id) ? dataFile(id) : ''; });
 ipcMain.on('data:dir', e => { e.returnValue = dataDir; });
@@ -784,6 +787,49 @@ ipcMain.handle('arch:exportFn', async (_e, title, items) => {
 });
 ipcMain.handle('file:open', async (_e, p) => { const err = await shell.openPath(String(p || '')); return err ? { ok: false, msg: err } : { ok: true }; });
 ipcMain.handle('file:show', (_e, p) => { shell.showItemInFolder(String(p || '')); return true; });
+
+/* ---------------- التقارير الشهرية لدوائر المقيم (mr) ----------------
+   تُجلب من تطبيق Google Apps Script (رابط .../exec + رمز لوحة القسم) بطلب POST. الطلب يمر عبر السكربت لا عبر صلاحية البرنامج في Drive (drive.file)،
+   فيرى تقارير ملفاتها أنشأها السكربت. ملفات PDF تُنزَّل الى «تقارير-المقيمين» في مجلد البيانات فتُفتح دون إنترنت. */
+const mrFromView = e => !!views.mr && e.sender === views.mr.webContents;
+const mrSafe = s => String(s || '').replace(/[\\/:*?"<>|\r\n]+/g, ' ').trim().slice(0, 60) || 'بلا-اسم';
+const mrPath = r => path.join(dataDir, 'تقارير-المقيمين', mrSafe(r.project), mrSafe(r.month) + '-' + mrSafe(r.resident) + '.pdf');
+function mrCall(body) {
+  return new Promise((resolve, reject) => {
+    const p = prefs(), url = String(p.mrUrl || '').trim(), code = String(p.mrCode || '');
+    if (!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(url)) return reject(new Error('أدخل رابط تطبيق Apps Script الصحيح (ينتهي بـ /exec)'));
+    if (!code) return reject(new Error('أدخل رمز لوحة القسم'));
+    const req = require('electron').net.request({ method: 'POST', url, redirect: 'follow' });
+    req.setHeader('Content-Type', 'text/plain;charset=utf-8');
+    const timer = setTimeout(() => { try { req.abort(); } catch (_) {} reject(new Error('انتهت مهلة الاتصال')); }, 90000);
+    req.on('response', res => {
+      const chunks = []; res.on('data', c => chunks.push(c));
+      res.on('end', () => { clearTimeout(timer);
+        try { const j = JSON.parse(Buffer.concat(chunks).toString('utf8')); j && j.ok ? resolve(j) : reject(new Error((j && j.error) || 'رفض الخادم الطلب')); }
+        catch (_) { reject(new Error('ردّ غير مفهوم من الخادم: تأكد من نشر السكربت بالوصول Anyone ومن آخر إصدار منه')); } });
+    });
+    req.on('error', err => { clearTimeout(timer); reject(new Error('تعذر الاتصال: ' + (err && err.message || err))); });
+    req.write(JSON.stringify(Object.assign({ code }, body))); req.end();
+  });
+}
+async function mrFetchPdf(r) {
+  const f = mrPath(r); if (fs.existsSync(f)) return f;
+  const j = await mrCall({ action: 'pdf', id: r.pdfId });
+  fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, Buffer.from(String(j.b64 || ''), 'base64')); return f;
+}
+ipcMain.handle('mr:cfg', (e, set) => { if (!mrFromView(e)) return null; const p = prefs();
+  if (set && typeof set === 'object') { if (typeof set.url === 'string') p.mrUrl = set.url.trim(); if (typeof set.code === 'string' && set.code) p.mrCode = set.code; atomicWrite(prefsFile(), JSON.stringify(p)); }
+  return { url: p.mrUrl || '', hasCode: !!p.mrCode }; });
+ipcMain.handle('mr:pull', async e => { if (!mrFromView(e)) return { error: 'غير مسموح' };
+  try { const j = await mrCall({ action: 'list' }), records = Array.isArray(j.records) ? j.records : [], files = {}; let got = 0, failed = 0;
+    for (const r of records) { if (!r || !r.id || !r.pdfId) continue; const f = mrPath(r); if (fs.existsSync(f)) { files[r.id] = f; continue; }
+      if (got >= 40) continue; try { files[r.id] = await mrFetchPdf(r); got++; } catch (_) { failed++; } }   // أول جلب كبير يُنزَّل على دفعات (40 ملفاً)
+    return { ok: true, records, saved: j.saved || '', files, downloaded: got, failed }; }
+  catch (err) { return { error: err.message }; } });
+ipcMain.handle('mr:pdf', async (e, r) => { if (!mrFromView(e) || !r || !r.pdfId) return { error: 'غير مسموح' };
+  try { return { ok: true, path: await mrFetchPdf(r) }; } catch (err) { return { error: err.message }; } });
+ipcMain.handle('mr:local', (e, list) => { if (!mrFromView(e) || !Array.isArray(list)) return {}; const o = {};
+  list.forEach(r => { try { if (r && r.id && fs.existsSync(mrPath(r))) o[r.id] = mrPath(r); } catch (_) {} }); return o; });
 ipcMain.on('spell:langs', e => { try { e.returnValue = session.defaultSession.getSpellCheckerLanguages(); } catch (_) { e.returnValue = []; } });
 let printN = 0;
 // الطباعة: نافذة الطباعة لا تظهر بثبات من داخل تبويبات البرنامج (BrowserView)، لذلك تُنسخ الصفحة الجاهزة للطباعة
@@ -1039,7 +1085,7 @@ async function go(id, fileNo) {
    ويُعاد تحميله من ملف بياناته عند الرجوع إليه (أقل من ثانية). لا يشمل النظام المعروض، ولا الاستلام، ولا نظاماً يكتب الآن.
    الحفظ قبل التفريغ بالمسار نفسه الذي يحفظ به كل نظام عند إغلاق البرنامج (beforeunload ← حفظ متزامن). */
 const UNLOAD_MS = +process.env.UNI_UNLOAD_MS || 15 * 60 * 1000;
-const UNLOADABLE = new Set(['co', 'du', 'ad', 'in', 'lt', 'fu', 'ar', 'dm', 'cm', 'fv', 'zc']);
+const UNLOADABLE = new Set(['co', 'du', 'ad', 'in', 'lt', 'fu', 'ar', 'dm', 'cm', 'fv', 'mr', 'zc']);
 const viewLeft = {};
 const unloadOn = () => !prefs().unloadOff;
 /* ---------------- ملخص الموقف من السلف وأوامر التغيير ----------------
@@ -1099,7 +1145,7 @@ async function acEval(code) {
 }
 function appliedHook(ds) {
   try {
-    if (['co', 'du', 'ad', 'in', 'lt', 'fu', 'ar', 'dm', 'cm', 'fv', 'zc'].includes(ds) && views[ds]) views[ds].webContents.executeJavaScript('window.__syncReload&&window.__syncReload()').catch(() => {});
+    if (['co', 'du', 'ad', 'in', 'lt', 'fu', 'ar', 'dm', 'cm', 'fv', 'mr', 'zc'].includes(ds) && views[ds]) views[ds].webContents.executeJavaScript('window.__syncReload&&window.__syncReload()').catch(() => {});
     if (LINK_SYS.includes(ds) && !views[ds]) refreshLinksSoon(ds);   /* بيانات وصلت والنظام غير محمّل: يُحدَّث ملخص الموقف في الخلفية */
     if (ds === 'ac' && views.ac && current !== 'ac') views.ac.webContents.reload();
     if (ds === 'arf' && views.ar) views.ar.webContents.executeJavaScript('window.__filesArrived&&window.__filesArrived()').catch(() => {});

@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>التقارير الشهرية لدوائر المقيم</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:#eef1f4;color:#1b2433;font:14px/1.6 Tahoma,'Segoe UI',Arial,sans-serif;direction:rtl}
+#bar{position:sticky;top:0;z-index:20;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:8px 14px;background:#0e7490;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.18)}
+#bar b{font-size:15px}
+#bar .st{margin-inline-start:auto;font-size:12px;opacity:.9}
+button{font:inherit;cursor:pointer;border-radius:5px;border:1px solid #0e7490;background:#fff;color:#0e7490;padding:4px 12px}
+#bar button{background:rgba(255,255,255,.14);color:#fff;border-color:rgba(255,255,255,.5)}
+button.pri{background:#0e7490;color:#fff}
+button.sm{padding:1px 8px;font-size:12px}
+button:disabled{opacity:.5;cursor:default}
+input,select{font:inherit;border:1px solid #b9c3cd;border-radius:5px;padding:4px 8px;background:#fff;min-width:0}
+main{padding:12px 14px 30px;max-width:1500px;margin:0 auto}
+.card{background:#fff;border:1px solid #d3dae1;border-radius:7px;padding:12px 14px;margin-bottom:12px}
+.card h4{margin:0 0 8px;color:#0e5a70;font-size:14px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px}
+.kpi{background:#fff;border:1px solid #d3dae1;border-radius:7px;padding:10px 14px}
+.kpi b{display:block;font-size:26px;line-height:1.2;color:#0e5a70}
+.kpi span{font-size:12px;color:#5a6676}
+.kpi.bad b{color:#b42318}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.hb{display:grid;grid-template-columns:120px 1fr 34px;gap:8px;align-items:center;margin:4px 0}
+.hb i{display:block;height:11px;background:#0e7490;border-radius:2px;min-width:3px}
+.hb .t{height:11px;background:#eef1f4;border-radius:2px}
+.hb em{font-style:normal;color:#5a6676;text-align:left}
+.tw{overflow-x:auto;border:1px solid #d3dae1;border-radius:6px;background:#fff}
+table{border-collapse:collapse;width:100%;min-width:1100px}
+th,td{padding:6px 9px;border-bottom:1px solid #e3e8ed;text-align:right;vertical-align:top}
+th{background:#e4ebf0;position:sticky;top:0;white-space:nowrap}
+td.n{text-align:center;color:#5a6676}
+td.w{white-space:nowrap}
+.sub{font-size:12px;color:#5a6676}
+.pill{display:inline-block;padding:0 9px;border-radius:10px;font-size:12px;font-weight:700;color:#fff;white-space:nowrap}
+.bad{color:#b42318;font-weight:700}
+.ok{color:#1f7a3d}
+.lk{white-space:nowrap}
+.lk input{width:170px}
+.empty{padding:26px;text-align:center;color:#5a6676}
+#msg{min-height:20px;font-size:13px;margin:6px 0}
+#msg.err{color:#b42318}
+details summary{cursor:pointer;font-weight:700;color:#0e5a70}
+.cfg{display:grid;grid-template-columns:130px 1fr;gap:8px;align-items:center;margin-top:10px;max-width:760px}
+</style>
+</head>
+<body>
+<div id="bar">
+  <b>التقارير الشهرية لدوائر المقيم</b>
+  <button id="bPull" class="pull">⬇ جلب التقارير الجديدة</button>
+  <span class="st" id="st"></span>
+</div>
+<main>
+  <div class="card" id="cfgCard">
+    <details id="cfg">
+      <summary>⚙ إعداد الربط مع تطبيق التقارير (Google Apps Script)</summary>
+      <div class="cfg">
+        <label for="cUrl">رابط التطبيق</label><input id="cUrl" dir="ltr" placeholder="https://script.google.com/macros/s/.../exec">
+        <label for="cCode">رمز لوحة القسم</label><input id="cCode" type="password" dir="ltr" autocomplete="off">
+        <span></span><div class="row"><button class="pri" id="cSave">حفظ الإعداد</button><span class="sub">الرمز نفسه DASH_CODE في السكربت. يُحفظ على هذه الحاسبة فقط ولا يُزامَن.</span></div>
+      </div>
+    </details>
+  </div>
+  <div id="msg" role="status"></div>
+  <div class="kpis" id="kpis"></div>
+  <div class="card"><h4>المشاريع حسب القضاء</h4><div id="dist"></div></div>
+  <div class="card">
+    <div class="row" style="margin-bottom:8px">
+      <input id="q" type="search" placeholder="بحث: المشروع، الشركة، المقيم، الاضبارة، رقم العقد" style="flex:1;min-width:220px">
+      <select id="fm" aria-label="الشهر"></select>
+      <select id="fd" aria-label="القضاء"></select>
+      <select id="fl" aria-label="الربط"><option value="">كل المشاريع</option><option value="u">غير المربوطة بالاضبارة</option><option value="l">المربوطة</option></select>
+    </div>
+    <div class="tw"><table>
+      <thead><tr><th>ت</th><th>اسم المشروع</th><th>الشركة المنفذة</th><th>القضاء</th><th>المقيم</th><th>الشهر</th><th>الإنجاز</th><th>السلامة المهنية</th><th>الاضبارة</th><th>الملف</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table></div>
+  </div>
+  <datalist id="dlReg"></datalist>
+</main>
+
+<script>
+(function(){
+'use strict';
+const D = window.desktop || null, LSK = 'anbar_monthly_reports_v1';
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const AR = '٠١٢٣٤٥٦٧٨٩';
+const ar = s => String(s == null ? '' : s).replace(/[0-9]/g, d => AR[d]);
+const lat = s => String(s == null ? '' : s).replace(/[٠-٩]/g, d => AR.indexOf(d)).replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d));
+const MONTHS = ['كانون الثاني','شباط','آذار','نيسان','أيار','حزيران','تموز','آب','أيلول','تشرين الأول','تشرين الثاني','كانون الأول'];
+const mLabel = m => { const x = /^(\d{4})-(\d{2})/.exec(m || ''); return x ? MONTHS[+x[2]-1] + ' ' + ar(x[1]) : (m || ''); };
+const SAFE = { 'ملتزمة': '#2e7d4f', 'ملتزمة جزئياً': '#b7791f', 'غير ملتزمة': '#b42318' };
+
+/* ---------- مفاتيح الربط (القاعدة نفسها المعتمدة في الموقف العام) ---------- */
+/* رقم العقد وسنته: «٩١ لسنة ٢٠٢٤ في ...» ← «91/2024». فارغ إن تعذّر. */
+function contractKey(s){ const m = /(\d+)\s*(?:\/|\\|-|لسنة|لسنه|بتاريخ|ل)\s*(\d{4})/.exec(lat(s)); return m ? String(parseInt(m[1], 10)) + '/' + m[2] : ''; }
+/* توحيد الاسم: أ/إ/آ←ا، ة←ه، ى←ي، حذف التشكيل والتطويل وعلامات الترقيم */
+function normName(s){ return lat(s).replace(/[ً-ٰٟـ]/g, '').replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/[^ء-يa-zA-Z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim(); }
+/* مفاتيح عقد المشروع في الموقف: رقم العقد وحده + السنة (حقل year) أو الرقم والسنة معاً في النص */
+function regKeys(p){
+  const out = new Set(), k = contractKey(p.contractNo); if (k) out.add(k);
+  const n = lat(p.contractNo).replace(/\D/g, '').replace(/^0+/, ''), y = lat(p.year).replace(/\D/g, '');
+  if (n && /^\d{4}$/.test(y)) out.add(n + '/' + y);
+  return out;
+}
+const words = s => new Set(normName(s).split(' ').filter(w => w.length > 1));
+function jacc(a, b){ if (!a.size || !b.size) return 0; let i = 0; a.forEach(w => { if (b.has(w)) i++; }); return i / (a.size + b.size - i); }
+/* ربط تقرير بمشروع من الموقف: الاضبارة المسجلة ← رقم العقد (والاسم عند التكرار) ← تطابق الاسم */
+function matchProject(r, projects){
+  if (r.fileNo) { const p = projects.find(x => String(x.fileNo).trim() === String(r.fileNo).trim()); return { p: p || null, by: 'file' }; }
+  const ck = contractKey(r.contractNo), rn = normName(r.project);
+  if (ck) {
+    let c = projects.filter(p => regKeys(p).has(ck));
+    if (c.length > 1) { const w = c.filter(p => normName(p.name) === rn); c = w.length ? w : c.filter(p => jacc(words(p.name), words(r.project)) >= .5); }
+    if (c.length === 1) return { p: c[0], by: 'contract' };
+  }
+  const eq = projects.filter(p => normName(p.name) === rn);
+  if (eq.length === 1) return { p: eq[0], by: 'name' };
+  const rw = words(r.project); let best = null, bs = 0, tie = false;
+  projects.forEach(p => { const s = jacc(words(p.name), rw); if (s > bs) { bs = s; best = p; tie = false; } else if (s === bs && s > 0) tie = true; });
+  return bs >= .85 && !tie ? { p: best, by: 'name' } : { p: null, by: '' };
+}
+/* دمج ما جُلب من السكربت: نسخة السكربت الأحدث تغلب في المحتوى، ورقم الاضبارة الذي رُبط هنا يبقى */
+function mergeRecords(local, remote){
+  const by = {}; local.forEach(r => { by[r.id] = r; }); let added = 0, changed = 0; const now = Date.now();
+  remote.forEach(s => { if (!s || !s.id) return; const l = by[s.id];
+    if (!l) { by[s.id] = Object.assign({}, s, { srcUpdated: s.updated || 0, updated: now }); added++; return; }
+    if ((s.updated || 0) === (l.srcUpdated || 0)) return;
+    by[s.id] = Object.assign({}, s, { fileNo: l.fileNo || s.fileNo || '', srcUpdated: s.updated || 0, updated: now }); changed++; });
+  return { records: Object.keys(by).map(k => by[k]), added, changed };
+}
+
+/* ---------- البيانات ---------- */
+let DB = { app: 'anbar-monthly-reports', version: 1, records: [] }, REG = [], FILES = {}, CANCFG = true;
+function loadDB(){ let t = null; try { t = D && D.load ? D.load() : localStorage.getItem(LSK); } catch (_) {}
+  try { const o = t ? JSON.parse(t) : null; if (o && Array.isArray(o.records)) DB = o; } catch (_) {} }
+function persist(){ DB.saved = new Date().toISOString(); const t = JSON.stringify(DB); try { if (D && D.save) D.save(t); else localStorage.setItem(LSK, t); } catch (_) {} }
+function loadReg(){ REG = []; try { const t = D && D.regLoad ? D.regLoad() : null; const o = t ? JSON.parse(t) : null; REG = (o && o.projects) || []; } catch (_) {} }
+function msg(t, err){ const m = $('msg'); m.textContent = t || ''; m.className = err ? 'err' : ''; }
+
+/* ---------- العرض ---------- */
+const dev = r => { const a = parseFloat(lat(r.actualPct)), p = parseFloat(lat(r.plannedPct)); return isNaN(a) || isNaN(p) ? 0 : p - a; };
+const pkey = r => r.projectKey || ('n:' + normName(r.project));
+function view(){
+  const q = $('q').value.trim(), m = $('fm').value, d = $('fd').value, f = $('fl').value;
+  return DB.records.map(r => { const mm = matchProject(r, REG); return { r, p: mm.p, by: mm.by, fn: (mm.p && mm.p.fileNo) || r.fileNo || '' }; })
+    .map(x => Object.assign(x, { name: (x.p && x.p.name) || x.r.project, co: (x.p && x.p.contractor) || x.r.company, dist: (x.p && x.p.district) || x.r.district }))
+    .filter(x => (!m || x.r.month === m) && (!d || x.dist === d) && (!f || (f === 'l' ? !!x.fn : !x.fn)) &&
+      (!q || [x.name, x.co, x.r.resident, x.fn, x.r.contractNo].join(' ').includes(q)))
+    .sort((a, b) => (b.r.month || '').localeCompare(a.r.month || '') || (b.r.updated || 0) - (a.r.updated || 0));
+}
+function fillFilters(){
+  const pm = $('fm').value, pd = $('fd').value, all = DB.records.map(r => { const p = matchProject(r, REG).p; return { m: r.month, d: (p && p.district) || r.district }; });
+  const ms = [...new Set(all.map(x => x.m).filter(Boolean))].sort().reverse(), ds = [...new Set(all.map(x => x.d).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ar'));
+  $('fm').innerHTML = '<option value="">كل الأشهر</option>' + ms.map(m => '<option value="' + esc(m) + '">' + esc(mLabel(m)) + '</option>').join('');
+  $('fd').innerHTML = '<option value="">كل الأقضية</option>' + ds.map(d => '<option>' + esc(d) + '</option>').join('');
+  if (ms.includes(pm)) $('fm').value = pm; else if (ms.length && !pm) $('fm').value = ms[0];
+  if (ds.includes(pd)) $('fd').value = pd;
+}
+function draw(){
+  const v = view(), keys = new Set(v.map(x => x.fn ? 'f:' + x.fn : pkey(x.r)));
+  const unl = new Set(v.filter(x => !x.fn).map(x => pkey(x.r))).size, late = v.filter(x => dev(x.r) > 20).length, saf = v.filter(x => x.r.safeStatus && x.r.safeStatus !== 'ملتزمة').length;
+  $('kpis').innerHTML =
+    '<div class="kpi"><b>' + ar(v.length) + '</b><span>تقرير مُرسَل</span></div>' +
+    '<div class="kpi"><b>' + ar(keys.size) + '</b><span>مشروع</span></div>' +
+    '<div class="kpi"><b>' + ar(new Set(v.map(x => x.co).filter(Boolean)).size) + '</b><span>شركة منفذة</span></div>' +
+    '<div class="kpi ' + (unl ? 'bad' : '') + '"><b>' + ar(unl) + '</b><span>مشروع غير مربوط بالاضبارة</span></div>' +
+    '<div class="kpi ' + (late ? 'bad' : '') + '"><b>' + ar(late) + '</b><span>انحراف أكثر من 20%</span></div>' +
+    '<div class="kpi ' + (saf ? 'bad' : '') + '"><b>' + ar(saf) + '</b><span>سلامة مهنية غير مستوفاة</span></div>';
+  const by = {}; v.forEach(x => { const k = x.dist || 'غير محدد'; by[k] = (by[k] || 0) + 1; });
+  const ks = Object.keys(by).sort((a, b) => by[b] - by[a]), mx = Math.max(1, ...ks.map(k => by[k]));
+  $('dist').innerHTML = ks.length ? ks.map(k => '<div class="hb"><span>' + esc(k) + '</span><div class="t"><i style="width:' + by[k] / mx * 100 + '%"></i></div><em>' + ar(by[k]) + '</em></div>').join('') : '<div class="empty">لا توجد بيانات</div>';
+  $('dlReg').innerHTML = REG.filter(p => p && p.fileNo != null).map(p => '<option value="' + esc(p.fileNo) + ' — ' + esc(String(p.name || '').slice(0, 70)) + '">').join('');
+  $('rows').innerHTML = v.length ? v.map((x, i) => { const r = x.r, bad = dev(r) > 20;
+    const pct = 'فعلي ' + (r.actualPct !== '' && r.actualPct != null ? ar(r.actualPct) + '%' : '—') + '<br>مخطط ' + (r.plannedPct !== '' && r.plannedPct != null ? ar(r.plannedPct) + '%' : '—');
+    const link = x.fn ? '<span class="ok">✔ ' + esc(ar(x.fn)) + '</span>' + (x.by && x.by !== 'file' ? '<div class="sub">' + (x.by === 'contract' ? 'بالعقد' : 'بالاسم') + '</div>' : '') +
+        '<div><button class="sm" data-unlink="' + esc(r.id) + '"' + (r.fileNo ? '' : ' style="display:none"') + '>فك</button></div>'
+      : '<div class="lk"><input list="dlReg" data-fn="' + esc(r.id) + '" placeholder="رقم الاضبارة" aria-label="رقم الاضبارة"> <button class="sm pri" data-link="' + esc(r.id) + '">ربط</button></div>';
+    return '<tr><td class="n">' + ar(i + 1) + '</td><td>' + esc(x.name) + (r.contractNo ? '<div class="sub">عقد ' + esc(ar(r.contractNo)) + '</div>' : '') + '</td>' +
+      '<td>' + esc(x.co) + '</td><td>' + esc(x.dist) + '</td><td>' + esc(r.resident) + '</td><td class="w">' + esc(mLabel(r.month)) + '</td>' +
+      '<td class="w ' + (bad ? 'bad' : '') + '">' + pct + '</td>' +
+      '<td>' + (r.safeStatus ? '<span class="pill" style="background:' + (SAFE[r.safeStatus] || '#5a6676') + '">' + esc(r.safeStatus) + '</span>' : '—') + '</td>' +
+      '<td>' + link + '</td>' +
+      '<td class="w">' + (r.pdfId ? '<button class="sm pri" data-open="' + esc(r.id) + '">' + (FILES[r.id] ? 'فتح' : 'تنزيل وفتح') + '</button> ' + (FILES[r.id] ? '<button class="sm" data-show="' + esc(r.id) + '">المجلد</button>' : '') : '') + '</td></tr>';
+  }).join('') : '<tr><td colspan="10" class="empty">' + (DB.records.length ? 'لا تقارير مطابقة' : 'لم تُجلب تقارير بعد — اضبط الربط ثم اضغط «جلب التقارير الجديدة»') + '</td></tr>';
+  const st = $('st'); st.textContent = DB.lastPull ? 'آخر جلب: ' + new Date(DB.lastPull).toLocaleString('ar-IQ') : '';
+}
+async function refreshLocal(){ try { if (D && D.mrLocal) FILES = (await D.mrLocal(DB.records.filter(r => r.pdfId).map(r => ({ id: r.id, project: r.project, month: r.month, resident: r.resident })))) || {}; } catch (_) {} }
+function redraw(){ fillFilters(); draw(); }
+
+/* ---------- الأحداث ---------- */
+$('bPull').onclick = async () => {
+  if (!D || !D.mrPull) return msg('الجلب متاح في البرنامج الكامل فقط', true);
+  $('bPull').disabled = true; msg('جارٍ جلب التقارير وتنزيل ملفات PDF…');
+  try {
+    const r = await D.mrPull(); if (!r || r.error) throw new Error((r && r.error) || 'تعذر الجلب');
+    const m = mergeRecords(DB.records, r.records); DB.records = m.records; DB.lastPull = Date.now(); FILES = Object.assign(FILES, r.files || {}); persist(); redraw();
+    msg('تم الجلب: ' + ar(m.added) + ' جديد، ' + ar(m.changed) + ' محدَّث' + (r.downloaded ? '، نُزِّل ' + ar(r.downloaded) + ' ملف PDF' : '') + (r.failed ? ' — تعذر تنزيل ' + ar(r.failed) + ' ملف (أعد الجلب)' : '') + '.');
+  } catch (e) { msg(e.message, true); } finally { $('bPull').disabled = false; }
+};
+$('cSave').onclick = async () => {
+  try { const c = await D.mrCfg({ url: $('cUrl').value, code: $('cCode').value }); $('cCode').value = ''; $('cCode').placeholder = c && c.hasCode ? '•••• محفوظ' : ''; msg('حُفظ الإعداد'); } catch (e) { msg('تعذر الحفظ', true); }
+};
+document.addEventListener('click', async e => {
+  const b = e.target.closest && e.target.closest('[data-open],[data-show],[data-link],[data-unlink]'); if (!b) return;
+  const rec = id => DB.records.find(r => r.id === id);
+  if (b.dataset.link) { const i = document.querySelector('[data-fn="' + b.dataset.link + '"]'), fn = String(i.value || '').split(' — ')[0].trim(), r = rec(b.dataset.link);
+    if (!fn) return msg('اكتب رقم الاضبارة أو اخترها من القائمة', true);
+    r.fileNo = fn; r.updated = Date.now(); persist(); redraw(); return msg('رُبط المشروع بالاضبارة ' + ar(fn)); }
+  if (b.dataset.unlink) { const r = rec(b.dataset.unlink); r.fileNo = ''; r.updated = Date.now(); persist(); redraw(); return; }
+  const r = rec(b.dataset.open || b.dataset.show); if (!r) return;
+  try { let p = FILES[r.id];
+    if (!p) { msg('جارٍ تنزيل الملف…'); const x = await D.mrPdf({ id: r.id, project: r.project, month: r.month, resident: r.resident, pdfId: r.pdfId }); if (!x || x.error) throw new Error((x && x.error) || 'تعذر التنزيل'); p = FILES[r.id] = x.path; msg(''); draw(); }
+    if (b.dataset.show) D.showFile(p); else D.openFile(p); } catch (err) { msg(err.message, true); }
+});
+['q', 'fm', 'fd', 'fl'].forEach(i => $(i).addEventListener('input', draw));
+window.__syncReload = function(){ loadDB(); loadReg(); refreshLocal().then(redraw); };
+
+/* ---------- الإقلاع ---------- */
+(async function(){
+  loadDB(); loadReg();
+  try { const c = D && D.mrCfg ? await D.mrCfg() : null; if (c) { $('cUrl').value = c.url || ''; $('cCode').placeholder = c.hasCode ? '•••• محفوظ' : ''; if (!c.url || !c.hasCode) $('cfg').open = true; } else { $('cfgCard').hidden = true; $('bPull').hidden = true; } } catch (_) {}
+  await refreshLocal(); redraw();
+  window.MR = { contractKey, normName, regKeys, matchProject, mergeRecords };
+})();
+})();
+</script>
+</body>
+</html>

@@ -3329,7 +3329,7 @@ function pageAdvance(r,c,i){const P=r.project,DU=durOf(P),a=r.advances[i],x=c.ro
    ${stops}
    <div class="pcts">${pct('نسبة الانجاز المالي',finP,'fin')}${pct('نسبة الانجاز الفعلي',acP,'act')}${pct('نسبة الانجاز المخطط',plP,'pln')}${dev}</div>
    ${prevBoxes}
-   <div class="dec"><div class="rh"><span>قرار اللجنة</span><span class="rn">السلفة رقم ( ${esc(advNo(a,i))} )</span></div><div class="rb">${a.rec?esc(a.rec).replace(/\n/g,'<br>'):defRec(r,i)}${words?`<div class="amt">مبلغ السلفة الصافي: ( ${fmt(x.net)} ) فقط ${words} دينار لا غير.</div>`:''}</div></div>
+   <div class="dec"><div class="rh"><span>قرار اللجنة</span><span class="rn">السلفة رقم ( ${esc(advNo(a,i))} )</span></div><div class="rb">${a.rec?esc(a.rec).replace(/\n/g,'<br>'):defRec(r,i)}</div></div>
    <div class="sigs">${sig}</div><div class="apps">${app}</div>
 <div class="lhf"><img src="${IMG_LHB}" alt="website: www.anbar.iq — E-mail: Eng@anbar.iq"></div></div>`;}
 function fitBoxes(root){root.querySelectorAll('.fit').forEach(el=>{el.style.fontSize='';let fs=parseFloat(getComputedStyle(el).fontSize),n=0;

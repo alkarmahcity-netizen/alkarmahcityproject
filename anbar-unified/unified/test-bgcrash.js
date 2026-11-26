@@ -13,11 +13,16 @@ const sleep = ms => new Promise(r => setTimeout(r, ms)); const R = []; const ok 
   ok('background crash: no message, the view is reloaded silently', a.dlg === 0 && a.alive && /du\.html/.test(a.url), JSON.stringify(a));
   const ready = await app.evaluate(async () => global.__uni.views.du.webContents.executeJavaScript('typeof DB==="object"&&Array.isArray(DB.recs)'));
   ok('the reloaded view works', ready === true);
+  for (let i = 0; i < 2; i++) { await app.evaluate(() => { global.__uni.views.du.webContents.forcefullyCrashRenderer(); }); await sleep(5000); }
+  const loop = await app.evaluate(() => ({ dlg: global.__dlg, gone: !global.__uni.views.du }));
+  ok('repeated background crashes (3 in 10 min): the view is closed instead of reloading forever', loop.gone && loop.dlg === 0, JSON.stringify(loop));
+  await pg.evaluate(() => window.desktop.go('du')); await sleep(2500);
+  ok('the closed view reopens normally with its tab', await app.evaluate(async () => !!global.__uni.views.du && await global.__uni.views.du.webContents.executeJavaScript('typeof DB==="object"')));
   await pg.evaluate(() => window.desktop.go('du')); await sleep(1500);
   await app.evaluate(() => { global.__uni.views.du.webContents.forcefullyCrashRenderer(); }); await sleep(3000);
   const b = await app.evaluate(() => ({ dlg: global.__dlg }));
   ok('crash in the open tab: the message is shown as before', b.dlg === 1, JSON.stringify(b));
-  const log = fs.readFileSync(path.join(DD, 'errors.log'), 'utf8'); ok('the reason is written to errors.log', /background view reloaded after render-process-gone/.test(log));
+  const log = fs.readFileSync(path.join(DD, 'errors.log'), 'utf8'); ok('the reason is written to errors.log', /background view render-process-gone/.test(log));
   await app.close();
   R.forEach(x => console.log(x[0], x[1], x[2] ? '— ' + x[2] : '')); console.log(`${R.filter(x => x[0] === 'PASS').length}/${R.length}`); process.exit(R.every(x => x[0] === 'PASS') ? 0 : 1);
 })().catch(e => { console.error(e); process.exit(1); });

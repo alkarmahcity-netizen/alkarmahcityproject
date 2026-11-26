@@ -138,6 +138,7 @@ function matchProject(r, projects){
 function mergeRecords(local, remote){
   const by = {}; local.forEach(r => { by[r.id] = r; }); let added = 0, changed = 0; const now = Date.now();
   remote.forEach(s => { if (!s || !s.id) return; const l = by[s.id];
+    if (l && l.deleted && (s.updated || 0) <= (l.srcUpdated || 0)) return;   // حُذف هنا: لا يعود بالجلب إلا إن أعاد المقيم إرساله
     if (!l) { by[s.id] = Object.assign({}, s, { srcUpdated: s.updated || 0, updated: now }); added++; return; }
     if ((s.updated || 0) === (l.srcUpdated || 0)) return;
     by[s.id] = Object.assign({}, s, { fileNo: l.fileNo || s.fileNo || '', srcUpdated: s.updated || 0, updated: now }); changed++; });
@@ -157,14 +158,14 @@ const dev = r => { const a = parseFloat(lat(r.actualPct)), p = parseFloat(lat(r.
 const pkey = r => r.projectKey || ('n:' + normName(r.project));
 function view(){
   const q = $('q').value.trim(), m = $('fm').value, d = $('fd').value, f = $('fl').value;
-  return DB.records.map(r => { const mm = matchProject(r, REG); return { r, p: mm.p, by: mm.by, fn: (mm.p && mm.p.fileNo) || r.fileNo || '' }; })
-    .map(x => Object.assign(x, { name: (x.p && x.p.name) || x.r.project, co: (x.p && x.p.contractor) || x.r.company, dist: (x.p && x.p.district) || x.r.district }))
+  return DB.records.filter(r => !r.deleted).map(r => { const mm = matchProject(r, REG); return { r, p: mm.p, by: mm.by, fn: (mm.p && mm.p.fileNo) || r.fileNo || '' }; })
+    .map(x => Object.assign(x, { name: x.r.project || (x.p && x.p.name) || '', co: x.r.company || (x.p && x.p.contractor) || '', dist: x.r.district || (x.p && x.p.district) || '', regName: (x.p && x.p.name) || '' }))
     .filter(x => (!m || x.r.month === m) && (!d || x.dist === d) && (!f || (f === 'l' ? !!x.fn : !x.fn)) &&
       (!q || [x.name, x.co, x.r.resident, x.fn, x.r.contractNo].join(' ').includes(q)))
     .sort((a, b) => (b.r.month || '').localeCompare(a.r.month || '') || (b.r.updated || 0) - (a.r.updated || 0));
 }
 function fillFilters(){
-  const pm = $('fm').value, pd = $('fd').value, all = DB.records.map(r => { const p = matchProject(r, REG).p; return { m: r.month, d: (p && p.district) || r.district }; });
+  const pm = $('fm').value, pd = $('fd').value, all = DB.records.filter(r => !r.deleted).map(r => { const p = matchProject(r, REG).p; return { m: r.month, d: (p && p.district) || r.district }; });
   const ms = [...new Set(all.map(x => x.m).filter(Boolean))].sort().reverse(), ds = [...new Set(all.map(x => x.d).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ar'));
   $('fm').innerHTML = '<option value="">كل الأشهر</option>' + ms.map(m => '<option value="' + esc(m) + '">' + esc(mLabel(m)) + '</option>').join('');
   $('fd').innerHTML = '<option value="">كل الأقضية</option>' + ds.map(d => '<option>' + esc(d) + '</option>').join('');
@@ -190,12 +191,12 @@ let draw = function(){
     const link = x.fn ? '<span class="ok">✔ ' + esc(ar(x.fn)) + '</span>' + (x.by && x.by !== 'file' ? '<div class="sub">' + (x.by === 'contract' ? 'بالعقد' : 'بالاسم') + '</div>' : '') +
         '<div><button class="sm" data-unlink="' + esc(r.id) + '"' + (r.fileNo ? '' : ' style="display:none"') + '>فك</button></div>'
       : '<div class="lk"><input list="dlReg" data-fn="' + esc(r.id) + '" placeholder="رقم الاضبارة" aria-label="رقم الاضبارة"> <button class="sm pri" data-link="' + esc(r.id) + '">ربط</button></div>';
-    return '<tr><td class="n">' + ar(i + 1) + '</td><td>' + esc(x.name) + (r.contractNo ? '<div class="sub">عقد ' + esc(ar(r.contractNo)) + '</div>' : '') + '</td>' +
+    return '<tr><td class="n">' + ar(i + 1) + '</td><td>' + esc(x.name) + (r.contractNo ? '<div class="sub">عقد ' + esc(ar(r.contractNo)) + '</div>' : '') + (x.regName && normName(x.regName) !== normName(x.name) ? '<div class="sub">في الموقف: ' + esc(x.regName) + '</div>' : '') + '</td>' +
       '<td>' + esc(x.co) + '</td><td>' + esc(x.dist) + '</td><td>' + esc(r.resident) + '</td><td class="w">' + esc(mLabel(r.month)) + '</td>' +
       '<td class="w ' + (bad ? 'bad' : '') + '">' + pct + '</td>' +
       '<td>' + (r.safeStatus ? '<span class="pill" style="background:' + (SAFE[r.safeStatus] || '#5a6676') + '">' + esc(r.safeStatus) + '</span>' : '—') + '</td>' +
       '<td>' + link + '</td>' +
-      '<td class="w">' + (r.pdfId ? '<button class="sm pri" data-open="' + esc(r.id) + '">' + (FILES[r.id] ? 'فتح' : 'تنزيل وفتح') + '</button> ' + (FILES[r.id] ? '<button class="sm" data-show="' + esc(r.id) + '">المجلد</button>' : '') : '') + '</td></tr>';
+      '<td class="w">' + (r.pdfId ? '<button class="sm pri" data-open="' + esc(r.id) + '">' + (FILES[r.id] ? 'فتح' : 'تنزيل وفتح') + '</button> ' + (FILES[r.id] ? '<button class="sm" data-show="' + esc(r.id) + '">المجلد</button>' : '') : '') + ' <button class="sm" data-del="' + esc(r.id) + '" title="حذف هذا التقرير من البرنامج">🗑</button></td></tr>';
   }).join('') : '<tr><td colspan="10" class="empty">' + (DB.records.length ? 'لا تقارير مطابقة' : 'لم تُجلب تقارير بعد — اضبط الربط ثم اضغط «جلب التقارير الجديدة»') + '</td></tr>';
   const st = $('st'); st.textContent = DB.lastPull ? 'آخر جلب: ' + new Date(DB.lastPull).toLocaleString('ar-IQ') : '';
 };
@@ -205,11 +206,11 @@ let MODE = 'p'; try { MODE = localStorage.getItem('mr_mode') || 'p'; } catch (_)
 const num = v => { const n = parseFloat(lat(v)); return isNaN(n) ? null : n; };
 function grid(){
   const q = $('q').value.trim(), d = $('fd').value, f = $('fl').value;
-  const all = DB.records.map(r => { const mm = matchProject(r, REG), fn = (mm.p && mm.p.fileNo) || r.fileNo || ''; return { r, p: mm.p, fn, name: (mm.p && mm.p.name) || r.project, co: (mm.p && mm.p.contractor) || r.company, dist: (mm.p && mm.p.district) || r.district }; })
+  const all = DB.records.filter(r => !r.deleted).map(r => { const mm = matchProject(r, REG), fn = (mm.p && mm.p.fileNo) || r.fileNo || ''; return { r, p: mm.p, by: mm.by, fn, name: r.project || (mm.p && mm.p.name) || '', co: r.company || (mm.p && mm.p.contractor) || '', dist: r.district || (mm.p && mm.p.district) || '', regName: (mm.p && mm.p.name) || '' }; })
     .filter(x => (!d || x.dist === d) && (!f || (f === 'l' ? !!x.fn : !x.fn)) && (!q || [x.name, x.co, x.r.resident, x.fn, x.r.contractNo].join(' ').includes(q)));
   const months = [...new Set(all.map(x => x.r.month).filter(Boolean))].sort();   // تصاعدياً: الأقدم أولاً (يمين الصفحة)
-  const P = {}; all.forEach(x => { const k = x.fn ? 'f:' + x.fn : pkey(x.r); const g = P[k] = P[k] || { k, fn: x.fn, name: x.name, co: x.co, dist: x.dist, res: x.r.resident, cno: x.r.contractNo, by: {} };
-    const o = g.by[x.r.month]; if (!o || (x.r.updated || 0) > (o.updated || 0)) g.by[x.r.month] = x.r; if (x.r.resident) g.res = x.r.resident; });
+  const P = {}; all.forEach(x => { const k = x.fn ? 'f:' + x.fn : pkey(x.r); const g = P[k] = P[k] || { k, fn: x.fn, name: x.name, co: x.co, dist: x.dist, res: x.r.resident, cno: x.r.contractNo, regName: x.regName, how: x.by, by: {} };
+    const o = g.by[x.r.month]; if (!o || (x.r.updated || 0) > (o.updated || 0)) { g.by[x.r.month] = x.r; if (!o || (x.r.month || '') >= (g.lastM || '')) { g.lastM = x.r.month || ''; g.name = x.name; g.co = x.co; g.cno = x.r.contractNo; if (x.dist) g.dist = x.dist; } } if (x.r.resident) g.res = x.r.resident; });
   const G = Object.values(P).sort((a, b) => (a.dist || '').localeCompare(b.dist || '', 'ar') || (a.name || '').localeCompare(b.name || '', 'ar'));
   if (!G.length) { $('grid').innerHTML = '<div class="empty">' + (DB.records.length ? 'لا مشاريع مطابقة' : 'لم تُجلب تقارير بعد — اضبط الربط ثم اضغط «جلب التقارير الجديدة»') + '</div>'; return; }
   const cell = (g, m, i) => { const r = g.by[m]; if (!r) return '<td><div class="mc none">لم يصل تقرير</div></td>';
@@ -220,10 +221,11 @@ function grid(){
       '<span class="tr"><i style="width:' + Math.max(0, Math.min(100, a || 0)) + '%"></i></span>' +
       '<div class="d">' + (ch == null ? '<span class="sub">أول تقرير</span>' : ch > 0 ? '<span class="up">▲ ' + ar(ch) + '% عن الشهر السابق</span>' : ch < 0 ? '<span class="dn">▼ ' + ar(-ch) + '%</span>' : '<span class="sub">بلا تقدم عن الشهر السابق</span>') + '</div>' +
       (r.safeStatus ? '<span class="pill" style="background:' + (SAFE[r.safeStatus] || '#5a6676') + '">' + esc(r.safeStatus) + '</span>' : '') +
-      (r.pdfId ? '<div><button class="sm pri" data-open="' + esc(r.id) + '" title="نموذج التقرير كما أرسله المقيم">📄 ' + (FILES[r.id] ? 'فتح التقرير' : 'تنزيل وفتح') + '</button></div>' : '') + '</div></td>'; };
+      (r.pdfId ? '<div><button class="sm pri" data-open="' + esc(r.id) + '" title="نموذج التقرير كما أرسله المقيم">📄 ' + (FILES[r.id] ? 'فتح التقرير' : 'تنزيل وفتح') + '</button></div>' : '') + '<div><button class="sm" data-del="' + esc(r.id) + '" title="حذف هذا التقرير من البرنامج">🗑 حذف</button></div></div></td>'; };
   $('grid').innerHTML = '<table><thead><tr><th class="pj">المشروع</th>' + months.map(m => '<th class="mo">' + esc(mLabel(m)) + '</th>').join('') + '</tr></thead><tbody>' +
-    G.map(g => '<tr><td class="pj"><b>' + esc(g.name) + '</b><div class="sub">' + esc(g.co || '') + (g.dist ? ' — ' + esc(g.dist) : '') + '</div>' +
-      '<div class="sub">المقيم: ' + esc(g.res || '—') + ' · ' + (g.fn ? '<span class="ok">اضبارة ' + esc(ar(g.fn)) + '</span>' : '<span class="bad">غير مربوط (اربطه من «قائمة التقارير»)</span>') + '</div></td>' +
+    G.map(g => '<tr><td class="pj"><b>' + esc(g.name) + '</b><div class="sub">الشركة: ' + esc(g.co || '—') + (g.dist ? ' — ' + esc(g.dist) : '') + '</div>' +
+      '<div class="sub">رقم العقد: ' + esc(ar(g.cno || '—')) + ' · المقيم: ' + esc(g.res || '—') + '</div>' +
+      '<div class="sub">' + (g.fn ? '<span class="ok">اضبارة ' + esc(ar(g.fn)) + '</span>' + (g.regName && normName(g.regName) !== normName(g.name) ? ' <span title="اسم المشروع في الموقف العام">(في الموقف: ' + esc(g.regName) + ')</span>' : '') + (g.how === 'name' ? ' <span class="bad">— رُبط بالاسم، تحقّق</span>' : '') : '<span class="bad">غير مربوط (اربطه من «قائمة التقارير»)</span>') + '</div></td>' +
       months.map((m, i) => cell(g, m, i)).join('') + '</tr>').join('') + '</tbody></table>';
   setTimeout(() => { const t = $('grid'); t.scrollLeft = -t.scrollWidth; }, 0);   // يظهر أحدث شهر أولاً
 }
@@ -246,8 +248,11 @@ $('cSave').onclick = async () => {
   try { const c = await D.mrCfg({ url: $('cUrl').value, code: $('cCode').value }); $('cCode').value = ''; $('cCode').placeholder = c && c.hasCode ? '•••• محفوظ' : ''; msg('حُفظ الإعداد'); } catch (e) { msg('تعذر الحفظ', true); }
 };
 document.addEventListener('click', async e => {
-  const b = e.target.closest && e.target.closest('[data-open],[data-show],[data-link],[data-unlink]'); if (!b) return;
+  const b = e.target.closest && e.target.closest('[data-open],[data-show],[data-link],[data-unlink],[data-del]'); if (!b) return;
   const rec = id => DB.records.find(r => r.id === id);
+  if (b.dataset.del) { const r = rec(b.dataset.del); if (!r) return;
+    if (!confirm('حذف تقرير شهر ' + mLabel(r.month) + ' لمشروع «' + (r.project || '') + '»؟\n(يُحذف من البرنامج ومن الحاسبات المتزامنة، ولا يعود بالجلب إلا إذا أعاد المقيم إرساله)')) return;
+    r.deleted = Date.now(); r.updated = Date.now(); persist(); redraw(); return msg('حُذف التقرير'); }
   if (b.dataset.link) { const i = document.querySelector('[data-fn="' + b.dataset.link + '"]'), fn = String(i.value || '').split(' — ')[0].trim(), r = rec(b.dataset.link);
     if (!fn) return msg('اكتب رقم الاضبارة أو اخترها من القائمة', true);
     r.fileNo = fn; r.updated = Date.now(); persist(); redraw(); return msg('رُبط المشروع بالاضبارة ' + ar(fn)); }
@@ -266,7 +271,7 @@ window.__syncReload = function(){ loadDB(); loadReg(); refreshLocal().then(redra
   loadDB(); loadReg();
   try { const c = D && D.mrCfg ? await D.mrCfg() : null; if (c) { $('cUrl').value = c.url || ''; $('cCode').placeholder = c.hasCode ? '•••• محفوظ' : ''; if (!c.url || !c.hasCode) $('cfg').open = true; } else { $('cfgCard').hidden = true; $('bPull').hidden = true; } } catch (_) {}
   await refreshLocal(); setMode(MODE === 'l' ? 'l' : 'p'); redraw();
-  window.MR = { contractKey, normName, regKeys, matchProject, mergeRecords };
+  window.MR = { contractKey, normName, regKeys, matchProject, mergeRecords, db: () => DB };
 })();
 })();
 </script>

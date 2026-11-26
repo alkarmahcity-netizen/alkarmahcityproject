@@ -119,7 +119,8 @@
       if (ad.where === 'beforeend') { a.appendChild(nb); a.appendChild(g); } else { a.insertAdjacentElement('afterend', g); a.insertAdjacentElement('afterend', nb); }
     } catch (_) {}
   }
-  let pend = false; new MutationObserver(() => { if (!pend) { pend = true; requestAnimationFrame(() => { pend = false; ensure(); }); } }).observe(document.body, { childList: true, subtree: true });
+  /* يُتحقق من وجود الزرين بعد هدوء التغييرات (لا مع كل حرف يُكتب في المحرر) */
+  let pend = 0; new MutationObserver(() => { clearTimeout(pend); pend = setTimeout(ensure, 400); }).observe(document.body, { childList: true, subtree: true });
   ensure();
   window.GdIssue = { issue, dlg, ensure, ready: () => ad.ready(), link: () => ad.link() };
 })('__SYS__');

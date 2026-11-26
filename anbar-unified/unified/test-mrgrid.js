@@ -4,7 +4,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms)); const R = []; const ok 
 (async () => { const T = fs.mkdtempSync(path.join(os.tmpdir(), 'mrg-')); const mk = n => { const d = path.join(T, n); fs.mkdirSync(d); return d; };
   const DD = mk('d'), RG = mk('r');
   fs.writeFileSync(path.join(RG, 'registry.json'), JSON.stringify({ app: 'anbar-projects-shared', version: 1, projects: [{ fileNo: '900', name: 'انشاء مدرسة نموذجية في الرمادي (مثال)', contractor: 'شركة مثال أ', contractNo: '91', year: '2024', district: 'الرمادي' }, { fileNo: '901', name: 'تأهيل شارع في هيت (مثال)', contractor: 'شركة مثال ب', contractNo: '15', year: '2025', district: 'هيت' }], links: {}, meta: {} }));
-  const rec = (id, pj, co, cno, m, a, p, s) => ({ id, projectKey: 'c:' + cno, project: pj, company: co, district: '', contractNo: cno, resident: 'مقيم (مثال)', month: m, actualPct: a, plannedPct: p, safeStatus: s, pdfId: 'PDF' + id, updated: 1 });
+  const rec = (id, pj, co, cno, m, a, p, s) => ({ id, projectKey: 'c:' + cno, project: pj, company: co, district: '', contractNo: cno, resident: 'مقيم (مثال)', month: m, actualPct: a, plannedPct: p, safeStatus: s, pdfId: 'PDF' + id, updated: 1, srcUpdated: 1 });
   const recs = [rec('a1', 'انشاء مدرسة نموذجية في الرمادي', 'شركة مثال أ', '91/2024', '2026-09', 40, 45, 'ملتزمة'), rec('a2', 'انشاء مدرسة نموذجية في الرمادي', 'شركة مثال أ', '91/2024', '2026-10', 48, 55, 'ملتزمة'), rec('a3', 'انشاء مدرسة نموذجية في الرمادي', 'شركة مثال أ', '91/2024', '2026-11', 55, 80, 'ملتزمة جزئياً'),
     rec('b1', 'تأهيل شارع في هيت', 'شركة مثال ب', '15/2025', '2026-10', 20, 25, 'ملتزمة'), rec('b2', 'تأهيل شارع في هيت', 'شركة مثال ب', '15/2025', '2026-11', 20, 35, 'غير ملتزمة'), rec('c1', 'مشروع غير موجود في الموقف', 'شركة مثال ج', '', '2026-11', 10, 10, 'ملتزمة')];
   fs.writeFileSync(path.join(DD, 'MonthlyReports-Data.json'), JSON.stringify({ app: 'anbar-monthly-reports', version: 1, records: recs }));
@@ -24,6 +24,12 @@ const sleep = ms => new Promise(r => setTimeout(r, ms)); const R = []; const ok 
   ok('each report cell has the report form (PDF) button', /فتح التقرير|تنزيل وفتح/.test(school[3]));
   const un = g.rows.find(r => /غير موجود/.test(r[0])) || [];
   ok('unlinked project flagged', /غير مربوط/.test(un[0] || ''), un[0]);
+  ok('the report\'s own project name, company and contract number are shown (registry name only as a note)', /انشاء مدرسة نموذجية في الرمادي/.test(school[0]) && /الشركة: شركة مثال أ/.test(school[0]) && /رقم العقد: ٩١\/٢٠٢٤/.test(school[0]) && /في الموقف: انشاء مدرسة نموذجية في الرمادي \(مثال\)/.test(school[0]), school[0]);
+  console.log('DBG', await V(`(()=>{window.confirm=()=>true;const b=document.querySelector('[data-del="a3"]');if(!b)return 'nobtn';b.click();return 'clicked '+!!MR.db().records.find(r=>r.id==='a3').deleted})()`)); await sleep(600); console.log('DBG2', await V(`!!MR.db().records.find(r=>r.id==='a3').deleted+' '+document.getElementById('msg').textContent`));
+  const dl = await V(`JSON.stringify({heads:[...document.querySelectorAll('#grid thead th')].length,row:([...document.querySelectorAll('#grid tbody tr')].find(tr=>/مدرسة/.test(tr.textContent))||{}).textContent,rec:MR.db().records.find(r=>r.id==='a3')})`).then(JSON.parse);
+  ok('delete a report: it disappears (kept as deleted for sync)', /لم يصل تقرير/.test(dl.row) && !/٥٥% \//.test(dl.row) && dl.rec && dl.rec.deleted > 0, JSON.stringify(dl).slice(0, 200));
+  const mg = await V(`JSON.stringify(MR.mergeRecords(MR.db().records,[{id:'a3',month:'2026-11',project:'x',updated:1},{id:'a9',month:'2026-11',project:'y',updated:5}]))`).then(JSON.parse);
+  ok('a deleted report is not brought back by the next pull (unless the resident re-sends it)', mg.records.find(r => r.id === 'a3').deleted && mg.added === 1, JSON.stringify({ added: mg.added, changed: mg.changed }));
   await V(`document.getElementById('vL').click();1`); await sleep(500);
   const l = await V(`JSON.stringify({grid:document.getElementById('grid').hidden,list:!document.getElementById('list').hidden,rows:document.querySelectorAll('#rows tr').length})`).then(JSON.parse);
   ok('«قائمة التقارير» still available (the original list with linking)', l.grid && l.list && l.rows >= 1, JSON.stringify(l));

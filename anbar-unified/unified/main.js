@@ -1039,7 +1039,13 @@ function ensureView(id) {
   v.webContents.on('render-process-gone', (_e, d) => {
     if (v.__unloading) return;
     /* توقفت وهي في الخلفية (المستخدم في تبويب آخر): تُعاد بصمت بلا رسالة — السبب يُكتب في errors.log */
-    if (current !== id) { logError(id, 'background view reloaded after render-process-gone: ' + (d && d.reason || '')); setTimeout(() => { try { if (!v.webContents.isDestroyed()) v.webContents.reload(); } catch (_) {} }, 1500); return; }
+    if (current !== id) {
+      /* حدّ لإعادة التحميل الصامتة: واجهة تتوقف مراراً (مثلاً لنفاد الذاكرة) لا تُعاد بلا نهاية في الخلفية فتُبطئ البرنامج —
+         بعد مرتين خلال 10 دقائق تُغلق، وتُفتح من جديد حين يختار المستخدم تبويبها */
+      const now = Date.now(); v.__crashes = (v.__crashes || []).filter(t => now - t < 10 * 60 * 1000); v.__crashes.push(now);
+      logError(id, 'background view render-process-gone (' + (d && d.reason || '') + ') #' + v.__crashes.length);
+      if (v.__crashes.length > 2) { try { if (views[id] === v) { delete views[id]; delete viewLeft[id]; } if (win && !win.isDestroyed() && win.getBrowserView() === v) win.setBrowserView(null); if (!v.webContents.isDestroyed()) v.webContents.destroy(); } catch (_) {} logError(id, 'background view closed after repeated crashes (reopens with its tab)'); return; }
+      setTimeout(() => { try { if (!v.webContents.isDestroyed()) v.webContents.reload(); } catch (_) {} }, 3000); return; }
     dialog.showMessageBox(win, { type: 'error', title: 'خطأ', message: 'توقفت واجهة «' + a.title + '» بشكل غير متوقع. بياناتك محفوظة في ملف البيانات، وسيُعاد تحميلها الآن.' }).then(() => v.webContents.reload());
   });
   if (a.file) v.webContents.loadFile(path.join(__dirname, a.file), a.query ? { query: a.query } : undefined);

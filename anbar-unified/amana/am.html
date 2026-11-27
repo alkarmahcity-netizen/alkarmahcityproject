@@ -346,8 +346,8 @@ function calc(p){const adv=Array.isArray(p.advances)?p.advances:[];const raised=
   return {raised,paid,amt,rem:amt-paid,fin:amt?paid/amt*100:0,n:adv.length,prog:num(p.progress)};}
 /* قيد «لا يتكرر عضو لجنة التنفيذ في أكثر من 3 مشاريع» = سقف للمشاريع الجارية في آن واحد لا في السنة:
    المشروع يُحسب على العضو ما دام قيد التنفيذ (لم يباشر، قيد التنفيذ، متوقف)، ويخرج من حسابه حين يصبح «منجزاً» أو «مستلماً»؛
-   فيجوز إشراكه في مشروع رابع بعد إنجاز أحد الثلاثة. الافتراضي: «قيد التنفيذ» و«متوقف» فقط؛ «لم يباشر» يُضاف من الإعدادات (countNew). */
-const isActive=p=>{const st=p.status||'new';if(st==='done'||st==='recv')return false;if(st==='new'&&S().countNew!==true)return false;return true;};
+   فيجوز إشراكه في مشروع رابع بعد إنجاز أحد الثلاثة. «لم يباشر» يُحسب قيد التنفيذ (اللجنة مكلّفة به)؛ يمكن استثناؤه من الإعدادات (countNew=false). */
+const isActive=p=>{const st=p.status||'new';if(st==='done'||st==='recv')return false;if(st==='new'&&S().countNew===false)return false;return true;};
 function people(){const map=new Map(),seen=new Set(),byId=new Map(P().map(p=>[p.id,p]));
   /* كل أوامر المشروع الواحد (الرئيسي وأوامره السابقة المكررة) مشروع واحد؛ حالته حالة الأمر الأحدث */
   for(const p of P()){if(p.kind==='add')continue;const gid=p.dupOf||p.id,g=byId.get(gid)||p,gs=g.status||'new',bk=isActive(g)?'act':(gs==='done'||gs==='recv')?'fin':'idle';
@@ -439,9 +439,9 @@ function rEng(){const pm=people(),mx=S().maxCom,byId=new Map(P().map(p=>[p.id,p]
   <div class="card"><div class="row"><input id="eq" placeholder="بحث باسم المهندس" value="${esc(ENG.q)}" style="flex:1;min-width:200px">
    <label><input type="checkbox" id="eOnly"${ENG.only?' checked':''}> المهندسون فقط (م.) — من لا لقب له يُعدّ مهندساً</label>
    <label><input type="checkbox" id="eOver"${ENG.over?' checked':''}> المتجاوزون فقط (أكثر من ${mx})</label></div>
-   <p class="hint">لا يجوز تكليف العضو (رئيساً أو عضواً) في لجان تنفيذ أكثر من (${mx}) مشاريع <b>قيد التنفيذ في الوقت نفسه</b>؛ ويجوز إشراكه في مشروع رابع بعد إنجاز أحد الثلاثة واستلامه. الحساب على المشاريع «قيد التنفيذ» و«المتوقفة» في كل السنوات${S().countNew===true?' ومعها «لم يباشر»':''}، و«المنجز» و«المستلم» لا تُحسب. الاسم الواحد يُوحَّد إملاؤه، والأوامر المكررة لنفس المشروع والملاحق لا تُحسب. حدّث حالات المشاريع (بطاقة المشروع أو استمارة إكمال النواقص) ليكون العدّ صحيحاً.</p></div>
-  <div class="tw"><table><thead><tr><th class="n">ت</th><th>الاسم</th><th>الصفة</th><th class="n">قيد التنفيذ</th><th class="n">المنجزة</th>${S().countNew===true?'':'<th class="n">لم يباشر (لا يُحسب)</th>'}<th class="n">لجان التسلم</th><th>المشاريع الجارية (لجان التنفيذ)</th><th>المنجزة والمستلمة</th>${S().countNew===true?'':'<th>لم يباشر</th>'}</tr></thead><tbody>
-  ${rows.map((r,i)=>`<tr class="${r.over?'flag':''}"><td class="n">${i+1}</td><td><b>${esc(r.e.name)}</b></td><td>${{eng:'مهندس',tech:'فني',staff:'موظف'}[r.e.role]||'—'}</td><td class="n ${r.over?'bad':''}">${r.e.act.length}${r.over?' ⚠':''}</td><td class="n">${r.e.fin.length}</td>${S().countNew===true?'':`<td class="n">${r.e.idle.length}</td>`}<td class="n">${r.e.recv.length}</td><td>${lst(r.e.act)}</td><td>${lst(r.e.fin)}</td>${S().countNew===true?'':`<td>${lst(r.e.idle)}</td>`}</tr>`).join('')||'<tr><td colspan="10" class="empty">لا أسماء</td></tr>'}</tbody></table></div>`;}
+   <p class="hint">لا يجوز تكليف العضو (رئيساً أو عضواً) في لجان تنفيذ أكثر من (${mx}) مشاريع <b>قيد التنفيذ في الوقت نفسه</b>؛ ويجوز إشراكه في مشروع رابع بعد إنجاز أحد الثلاثة واستلامه. الحساب على المشاريع «قيد التنفيذ» و«المتوقفة»${S().countNew===false?'':' و«لم يباشر»'} في كل السنوات، و«المنجز» و«المستلم» لا تُحسب. الاسم الواحد يُوحَّد إملاؤه، والأوامر المكررة لنفس المشروع والملاحق لا تُحسب. حدّث حالات المشاريع (بطاقة المشروع أو استمارة إكمال النواقص) ليكون العدّ صحيحاً.</p></div>
+  <div class="tw"><table><thead><tr><th class="n">ت</th><th>الاسم</th><th>الصفة</th><th class="n">قيد التنفيذ</th><th class="n">المنجزة</th>${S().countNew!==false?'':'<th class="n">لم يباشر (لا يُحسب)</th>'}<th class="n">لجان التسلم</th><th>المشاريع الجارية (لجان التنفيذ)</th><th>المنجزة والمستلمة</th>${S().countNew!==false?'':'<th>لم يباشر</th>'}</tr></thead><tbody>
+  ${rows.map((r,i)=>`<tr class="${r.over?'flag':''}"><td class="n">${i+1}</td><td><b>${esc(r.e.name)}</b></td><td>${{eng:'مهندس',tech:'فني',staff:'موظف'}[r.e.role]||'—'}</td><td class="n ${r.over?'bad':''}">${r.e.act.length}${r.over?' ⚠':''}</td><td class="n">${r.e.fin.length}</td>${S().countNew!==false?'':`<td class="n">${r.e.idle.length}</td>`}<td class="n">${r.e.recv.length}</td><td>${lst(r.e.act)}</td><td>${lst(r.e.fin)}</td>${S().countNew!==false?'':`<td>${lst(r.e.idle)}</td>`}</tr>`).join('')||'<tr><td colspan="10" class="empty">لا أسماء</td></tr>'}</tbody></table></div>`;}
 function rAdv(){const rows=[];P().filter(inYear).forEach(p=>(p.advances||[]).forEach(a=>rows.push({p,a})));rows.sort((x,y)=>(y.a.date||'').localeCompare(x.a.date||''));
   let r=0,pd=0;rows.forEach(x=>{r+=num(x.a.raised);pd+=num(x.a.paid);});
   const per=P().filter(p=>inYear(p)&&isProj(p)).map(p=>({p,c:calc(p)})).filter(x=>x.c.n);
@@ -1127,7 +1127,7 @@ function applyFill(list){const st={upd:0,ll:0,prog:0,dates:0,ben:0,adv:0,low:0,m
 /* ---------- الإعدادات ---------- */
 function rSet(){const s=S();return `<div class="grid2"><div class="card"><h4>الحدود (تعليمات التنفيذ أمانة 1/2018 المعدلة 3/2022)</h4><div class="fg">
   <label>أقصى عدد مشاريع قيد التنفيذ لعضو لجنة التنفيذ في آن واحد<input type="number" data-s="maxCom" value="${s.maxCom}"></label>
-  <label class="w2"><span><input type="checkbox" data-sb="countNew"${s.countNew===true?' checked':''}> احتساب المشاريع «لم يباشر» ضمن الجارية (اللجنة مكلّفة بها)</span></label>
+  <label class="w2"><span><input type="checkbox" data-sb="countNew"${s.countNew===false?'':' checked'}> احتساب المشاريع «لم يباشر» ضمن الجارية (اللجنة مكلّفة بها)</span></label>
   <label>سقف العمل أمانة (دينار)<input data-s="ceiling" value="${fm(s.ceiling)}"></label>
   <label>حد السلفة الواحدة (دينار)<input data-s="advMax" value="${fm(s.advMax)}"></label>
   <label>مدة التسلم بعد الإنجاز (أشهر)<input type="number" data-s="recvMonths" value="${s.recvMonths}"></label></div></div>

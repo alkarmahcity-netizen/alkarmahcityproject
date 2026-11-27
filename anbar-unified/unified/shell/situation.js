@@ -120,26 +120,30 @@ const ov=p=>{try{p=window.PlanLink?PlanLink.apply(p):p;}catch(_){}try{p=window.F
    متلكئ: الانحراف (المخطط − الفعلي) أكثر من 20% و: المصروف يساوي المرفوع، أو لم تُرفع سلفة (المرفوع صفر).
    لا يُعدّ متلكئاً: عدم تسليم الموقع، إشغال الموقع من جهة أخرى، تأخر إصدار أمر تغيير، تأخر صرف المستحقات (ومنه: مرفوع غير مصروف).
    الأسباب تُقرأ من الحالة والإجراءات القانونية والملاحظات، أو يختارها القسم في بطاقة المشروع (meta.tlkEx). */
-const TLK_EX={site:'عدم تسليم الموقع',occ:'إشغال الموقع من جهة أخرى',co:'تأخر إصدار أمر تغيير',dues:'تأخر صرف المستحقات'};
+const TLK_EX={site:'عدم تسليم الموقع',occ:'إشغال الموقع من جهة أخرى',co:'تأخر إصدار أمر تغيير',dues:'تأخر صرف المستحقات',emp:'سبب يعود لجهة التعاقد'};
 const TLK_RX=[['site',/(عدم|لم\s*يتم|لم\s*ي?سلم|بانتظار|تأخر|تاخر)\s*(استلام|تسليم)\s*(ال)?موقع|الموقع\s*غير\s*مسلم/],['occ',/[اإ]شغال\s*(ال)?موقع|الموقع\s*مشغول|شغل\s*(ال)?موقع|تجاوز(ات)?\s*على\s*(ال)?موقع/],
-  ['co',/(تأخر|تاخر|انتظار|بانتظار|عدم)\s*(اصدار|إصدار|صدور|المصادقة\s*على)?\s*(امر|أمر|اوامر|أوامر)\s*(ال)?(تغيير|غيار)/],['dues',/(عدم|تأخر|تاخر|بانتظار|لعدم)\s*صرف\s*(ال)?(مستحقات|سلف)|مستحقات\s*(ال)?شركة\s*غير\s*مصروفة/]];
-function tlkOf(p){if(!p||!has(p.actualPct)||!has(p.planPct))return null;const lag=num(p.planPct)-num(p.actualPct);if(!(lag>20))return null;
+  ['co',/(تأخر|تاخر|انتظار|بانتظار|عدم)\s*(اصدار|إصدار|صدور|المصادقة\s*على)?\s*(امر|أمر|اوامر|أوامر)\s*(ال)?(تغيير|غيار)/],['dues',/(عدم|تأخر|تاخر|بانتظار|لعدم)\s*صرف\s*(ال)?(مستحقات|سلف)|مستحقات\s*(ال)?شركة\s*غير\s*مصروفة/],
+  ['emp',/(بسبب|سببه|يعود\s*(الى|إلى)|تأخير\s*من|تأخر\s*من|تاخر\s*من|من\s*قبل)\s*(ال)?(جهة\s*(ال)?تعاقد|رب\s*العمل|صاحب\s*العمل|جهة\s*التعاقد)/]];
+/* الشرط الثاني (2.19.12): الإنجاز الفعلي 90% فأكثر والمخطط 100% ومضى على تاريخ الإنجاز المخطط أكثر من 30 يوماً،
+   بشرط المرفوع يساوي المصروف وعدم وجود سبب من الاستثناءات (أمر تغيير، الموقع، جهة التعاقد، المستحقات) */
+function tlkOf(p){if(!p||!has(p.actualPct)||!has(p.planPct))return null;const lag=num(p.planPct)-num(p.actualPct),pd=planDays(p);
+  const late=num(p.actualPct)>=90&&num(p.actualPct)<100&&num(p.planPct)>=100&&pd!=null&&pd>30;if(!(lag>20)&&!late)return null;
   if(stKind(p.status)==='ok'||num(p.actualPct)>=100||/سحب\s*العمل|مسحوب/.test(String(p.status||'')))return null;
   const raised=num(p.advRaised),paid=num(p.advPaid),tol=Math.max(1000,Math.abs(raised)*0.001),o={lag,raised,paid,on:false,rule:'',ex:'',exBy:''};
   if(raised>0&&paid<raised-tol){o.ex='dues';o.exBy='auto';o.note='مرفوع غير مصروف '+money(raised-paid);return o;}   // تأخر صرف المستحقات
-  o.rule=raised<=0?'zero':'equal';
+  o.rule=lag>20?(raised<=0?'zero':'equal'):'late';o.days=pd;
   let m={};try{m=AnbarReg.getMeta(p.fileNo)||{};}catch(_){}
   if(m.tlkEx&&TLK_EX[m.tlkEx]){o.ex=m.tlkEx;o.exBy='manual';return o;}
   const txt=[p.status,p.legal,p.notes,...Object.values(p.more||{})].map(x=>String(x==null?'':x)).join(' ');
   for(const [k,rx] of TLK_RX)if(rx.test(txt)){o.ex=k;o.exBy='auto';return o;}
   o.on=true;return o;}
 const tlkOn=p=>{const t=tlkOf(p);return !!(t&&t.on);};
-function tlkBox(p){const t=tlkOf(p);if(!t)return '';const fn=esc(String(p.fileNo)),why=`الانحراف ${pc(t.lag)}% (المخطط ${pc(p.planPct)}% — الفعلي ${pc(p.actualPct)}%)`;
+function tlkBox(p){const t=tlkOf(p);if(!t)return '';const fn=esc(String(p.fileNo)),why=t.lag>20?`الانحراف ${pc(t.lag)}% (المخطط ${pc(p.planPct)}% — الفعلي ${pc(p.actualPct)}%) أكثر من 20%`:`الإنجاز الفعلي ${pc(p.actualPct)}% والمخطط ${pc(p.planPct)}% ومضى ${t.days} يوماً على تاريخ الإنجاز المخطط (${esc(planDate(p))}) — أكثر من 30 يوماً`;
   const REF='حسب تعليمات تنفيذ العقود العامة رقم (1) لسنة 2025 وضوابطها وضوابط تنفيذ العقود الحكومية رقم (2) لسنة 2014';
-  if(t.on)return `<div class="tlkbox"><b>⚠ مشروع متلكئ **</b> — ${REF}: ${why} أكثر من 20%، و${t.rule==='zero'?'لم تُرفع سلفة للمشروع (المرفوع صفر)':'المصروف يساوي المرفوع'}.
+  if(t.on)return `<div class="tlkbox"><b>⚠ مشروع متلكئ **</b> — ${REF}: ${why}، و${t.rule==='zero'?'لم تُرفع سلفة للمشروع (المرفوع صفر)':'المصروف يساوي المرفوع'}.
     <div class="tlkact"><b>يجب إكمال الإجراءات القانونية بحق الشركة.</b>${p.legal&&p.legal!=='-'?` <span class="co">الإجراءات المسجلة في الموقف: ${esc(p.legal)}</span>`:''}</div>
     <div class="tlkex"><span class="co">لا يُعدّ متلكئاً إن كان السبب:</span> ${Object.entries(TLK_EX).filter(([k])=>k!=='dues'||t.rule==='zero'||true).map(([k,l])=>`<button class="btn sm" data-tlkex="${k}" data-fn="${fn}">${l}</button>`).join('')}</div></div>`;
-  return `<div class="tlkno">ℹ ${why} أكثر من 20% — <b>لا يُعدّ متلكئاً</b>: ${esc(TLK_EX[t.ex]||'')}${t.note?' ('+esc(t.note)+')':''}${t.exBy==='manual'?' — باختيار القسم <button class="btn sm" data-tlkex="-" data-fn="'+fn+'">إلغاء</button>':t.exBy==='auto'&&t.ex!=='dues'?' — من نص الحالة/الملاحظات':''}.</div>`;}
+  return `<div class="tlkno">ℹ ${why} — <b>لا يُعدّ متلكئاً</b>: ${esc(TLK_EX[t.ex]||'')}${t.note?' ('+esc(t.note)+')':''}${t.exBy==='manual'?' — باختيار القسم <button class="btn sm" data-tlkex="-" data-fn="'+fn+'">إلغاء</button>':t.exBy==='auto'&&t.ex!=='dues'?' — من نص الحالة/الملاحظات':''}.</div>`;}
 document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-tlkex]');if(!b)return;const fn=b.dataset.fn,k=b.dataset.tlkex;
   if(k!=='-'&&!confirm(`تسجيل أن المشروع لا يُعدّ متلكئاً بسبب: «${TLK_EX[k]}»؟`))return;
   try{AnbarReg.setMeta(fn,{tlkEx:k,tlkExAt:Date.now()});window.desktop&&window.desktop.auditNote&&window.desktop.auditNote('sit','tlk',k==='-'?`إلغاء استثناء التلكؤ لمشروع الاضبارة ${fn}`:`مشروع الاضبارة ${fn} لا يُعدّ متلكئاً: ${TLK_EX[k]}`);}catch(err){flash('تعذّر الحفظ: '+(err.message||err),true);return;}
@@ -189,7 +193,7 @@ function kpis(R,S){const P=R.map(r=>r.p),n=P.length,FV=finVis();
   return [k('مشروع في الموقف',n,brkHtml),
     kf('مبالغ أوامر التغيير (دينار)',`<span title="${money(chg)}">${compact(chg)}</span>`,`${P.filter(p=>num(p.changeCost)).length} مشروع بأوامر تغيير — ${num(sum(p=>p.orig))?pc(chg/num(sum(p=>p.orig))*100):0}% من الكلفة الأصلية`,'warn'),
     kf('إجمالي كلفة العقود (دينار)',`<span title="${money(totalCost)}">${compact(totalCost)}</span>`,`أوامر التغيير: ${chg>=0?'+':''}${money(chg)}`,'gold'),
-    (()=>{const nt=P.filter(tlkOn).length;return `<div class="kpi ${nt?'bad':''}" data-kfx="tlk" style="cursor:pointer" title="عرض المشاريع المتلكئة"><span>متلكئة حسب الضوابط</span><b>${nt}</b><small>انحراف أكثر من 20% مع صرف كل المرفوع أو بلا سلفة — اضغط للعرض</small></div>`;})(),
+    (()=>{const nt=P.filter(tlkOn).length;return `<div class="kpi ${nt?'bad':''}" data-kfx="tlk" style="cursor:pointer" title="عرض المشاريع المتلكئة"><span>متلكئة حسب الضوابط</span><b>${nt}</b><small>انحراف أكثر من 20%، أو 90% فأكثر وتجاوز الموعد بأكثر من 30 يوماً — مع صرف كل المرفوع — اضغط للعرض</small></div>`;})(),
     k('متوسط الانجاز الفعلي',pc(avgAct)+'%',`المخطط ${pc(avgPl)}% — الفرق ${pc(avgAct-avgPl)}%`,avgAct<avgPl?'warn':'blue'),
     kf('السلف المرفوعة (دينار)',`<span title="${money(raised)}">${compact(raised)}</span>`,`${money(raised)} — ${P.filter(p=>num(p.advRaised)>0).length} مشروع (من الموقف)`,'blue'),
     kf('السلف المصروفة (دينار)',`<span title="${money(paid)}">${compact(paid)}</span>`,`${money(paid)}${raised?` — ${pc(paid/raised*100)}% من المرفوعة`:''}`,'ok'),
@@ -224,7 +228,7 @@ function table(f){
     <td><div class="pn">${esc(p.name)}</div><div class="co">${esc(p.contractor||'')}${p.contractNo?' — عقد '+esc(p.contractNo)+(p.year?'/'+esc(p.year):''):''}${p.sector?' — القطاع: '+esc(p.sector):''}${p.district?' — '+esc(p.district)+(p.sub?' / '+esc(p.sub):''):''}</div></td>
     <td class="n"><b>${money(r.total)}</b>${num(p.changeCost)?`<br><span class="co">أوامر التغيير ${num(p.changeCost)>0?'+':''}${money(p.changeCost)}</span>`:''}</td>
     <td style="min-width:130px">${progress(p)}${p.planEnd?`<div class="pdays${planDays(p)>0&&stKind(p.status)!=='ok'?' late':''}" title="تاريخ الإنجاز المخطط ${esc(planDate(p))}">المخطط ${esc(planDate(p))}${planDays(p)!=null?' — '+planDaysTxt(p,1):''}</div>`:''}</td>
-    <td><span class="chip ${stKind(p.status)}">${esc(p.status||'—')}</span>${tlkOn(p)?'<span class="chip tlk" title="متلكئ حسب الضوابط: الانحراف أكثر من 20% — يجب إكمال الإجراءات القانونية بحق الشركة">متلكئ **</span>':''}${p.legal&&p.legal!=='-'?`<div class="co">${esc(p.legal)}</div>`:''}</td>
+    <td><span class="chip ${stKind(p.status)}">${esc(p.status||'—')}</span>${tlkOn(p)?'<span class="chip tlk" title="متلكئ حسب الضوابط — يجب إكمال الإجراءات القانونية بحق الشركة">متلكئ **</span>':''}${p.legal&&p.legal!=='-'?`<div class="co">${esc(p.legal)}</div>`:''}</td>
     <td class="n">${num(p.advRaised)||num(p.advPaid)?`مرفوعة ${money(p.advRaised)}<br>مصروفة ${money(p.advPaid)}${num(p.advRaised)?` <span class="co">(${pc(num(p.advPaid)/num(p.advRaised)*100)}%)</span>`:''}${finDiff(p)?`<br><span class="co" style="color:#b45309">المالية: ${p._finXl.raised!=null&&Math.round(p._finXl.raised)!==Math.round(num(p.advRaised))?'مرفوعة '+money(p._finXl.raised)+' ':''}${p._finXl.paid!=null&&Math.round(p._finXl.paid)!==Math.round(num(p.advPaid))?'مصروفة '+money(p._finXl.paid):''}</span>`:''}`:finCell(p)}</td>
     <td>${EVt?`<div>${esc(p.resident||'—')}</div>`:`<div class="co" data-finshow="1" style="cursor:pointer" title="كلمة سر المدير">🔒 مخفي</div>`}<div class="co">${esc(p.residentOffice||'')}</div>${EVt&&AnbarReg.supText(p.fileNo)?`<div class="co">المشرفون: ${esc(AnbarReg.supText(p.fileNo))}</div>`:''}</td>
     <td>${r.sys.length?r.sys.map(([a,t,k])=>`<span class="pill ${k}" data-app="${a}">${esc(t)}</span>`).join(''):'<span class="co">لا سجل</span>'}</td></tr>`;}).join('')}</tbody></table>`;}

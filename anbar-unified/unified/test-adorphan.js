@@ -26,7 +26,9 @@ const R = []; const ok = (n, c, d = '') => R.push([c ? 'PASS' : 'FAIL', n, d]);
   const inject = at => { const j = JSON.parse(fs.readFileSync(regF, 'utf8')); j.links = j.links || {}; j.links['571'] = Object.assign({}, j.links['571'], { ad: { count: 1, cumulative: 200000000, at, src: 'other-pc', items: [{ no: 1, cum: 200000000, net: 200000000, date: '2026-10-20' }] } }); fs.writeFileSync(regF, JSON.stringify(j)); };
   inject('2026-10-20T10:00:00.000Z'); await pg.evaluate(() => window.AnbarReg.invalidate()); await sleep(300);
   ok('the removed summary written by ANOTHER PC does not come back through sync (same summary)', await pg.evaluate(() => !window.AnbarReg.links('571').ad), JSON.stringify(await pg.evaluate(() => window.AnbarReg.links('571'))));
-  inject('2026-11-25T10:00:00.000Z'); await pg.evaluate(() => window.AnbarReg.invalidate()); await sleep(300);
+  // «أحدث»: بعد وقت الملخص المُزال (يختمه البرنامج بوقت كتابته) — كان تاريخاً ثابتاً (25/11/2026) فصار أقدم من وقت تشغيل الاختبار
+  const dropAt = await pg.evaluate(() => (window.AnbarReg.getMeta('571') || {}).linkDrop_ad || '');
+  inject(new Date(Math.max(Date.parse(dropAt) || 0, Date.now()) + 2 * 60000).toISOString()); await pg.evaluate(() => window.AnbarReg.invalidate()); await sleep(300);
   ok('…but a NEWER summary (a real new advance) does come back', await pg.evaluate(() => !!window.AnbarReg.links('571').ad));
   t = await txt();
   ok('the warning says it was written on another PC / by another user', /كتبه البرنامج على حاسبة أخرى أو باسم مستخدم آخر/.test(t), t.slice(0, 400));

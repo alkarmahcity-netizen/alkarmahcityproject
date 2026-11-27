@@ -279,6 +279,10 @@ async function mrPhLoad(fn){const el=$q('mrPh');if(!el||el.dataset.fn!==String(f
   const SC={'ملتزمة':'#2e7d4f','ملتزمة جزئياً':'#b7791f','غير ملتزمة':'#b42318'},decided=meta.mrPctDec===r.key;
   let h=`<h5>📋 من آخر تقرير شهري للمقيم <small class="co">(شهر ${ML(r.month)}${r.resident?' — المقيم '+esc(r.resident):''})</small></h5>
    <div class="dg f2">${d('الانجاز المخطط (التقرير)',f(rp))}${d('الانجاز الفعلي (التقرير)',f(ra))}${d('السلامة المهنية',r.safeStatus?`<span class="chip" style="background:${SC[r.safeStatus]||'#555'};color:#fff">${esc(r.safeStatus)}</span>`:'—')}${r.status?d('حالة المشروع (التقرير)',esc(r.status)):''}</div>`;
+  /* أوامر التغيير كما كتبها المقيم (للاطلاع والمقارنة؛ لا تُكتب في الموقف). المبالغ تُخفى كبقية مبالغ الموقف حتى كلمة سر المدير */
+  if(r.coCount!==''||r.coAmount!==''||r.coTotal!==''){const FV=finVis(),sm=v=>{if(v===''||v==null||!isFinite(+v))return '—';return FV?(+v<0?'−':'')+money(Math.abs(+v)):'🔒';},
+      sitT=has(p.total)?num(p.total):null,dif=FV&&r.coTotal!==''&&sitT!=null&&Math.abs(+r.coTotal-sitT)>=1;
+    h+=`<div class="dg f2">${d('عدد أوامر التغيير (التقرير)',r.coCount!==''?esc(r.coCount):'—')}${d('صافي مبالغ أوامر التغيير (التقرير)',sm(r.coAmount))}${d('مبلغ العقد مع أوامر التغيير (التقرير)',sm(r.coTotal)+(dif?` <small class="co">— في الموقف ${money(sitT)}</small>`:''))}</div>${FV?'':'<div class="hint">المبالغ مخفية — تظهر بكلمة سر المدير كبقية مبالغ الموقف.</div>'}`;}
   if(p._mrPct&&!differ)h+=`<div class="hint">✔ نسب الموقف معتمدة من تقرير شهر ${ML(p._mrPct)}.</div>`;
   else if(differ&&!decided&&(ra!=null||rp!=null))h+=`<div class="mrwarn">⚠ نسب التقرير تختلف عن نسب الموقف: المخطط ${f(cp)} ← ${f(rp)}، الفعلي ${f(ca)} ← ${f(ra)}. القرار للقسم (المحافظة):
      <div class="row"><button class="btn sm pri" data-mrpct="ok" data-fn="${esc(fn)}" data-key="${esc(r.key)}" data-a="${ra==null?'':ra}" data-p="${rp==null?'':rp}" data-m="${esc(r.month)}">✔ تُعتمد</button><button class="btn sm" data-mrpct="no" data-fn="${esc(fn)}" data-key="${esc(r.key)}">✖ تحققت — لا تُعتمد</button></div></div>`;

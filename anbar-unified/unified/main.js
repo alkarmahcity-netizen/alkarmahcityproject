@@ -889,7 +889,7 @@ ipcMain.handle('mr:card', async (e, fn) => {
     let P = []; try { P = (JSON.parse(fs.readFileSync(regFile(), 'utf8')).projects) || []; } catch (_) {}
     const mine = recs.filter(r => { const p = MRK(r, P); return p && String(p.fileNo).trim() === String(fn).trim(); }).sort((a, b) => String(b.month).localeCompare(String(a.month)));
     if (!mine.length) return null;
-    const L = mine[0], rep = { id: L.id, key: L.id + '|' + (L.srcUpdated || L.updated || ''), month: L.month || '', resident: L.resident || '', actualPct: String(L.actualPct ?? ''), plannedPct: String(L.plannedPct ?? ''), safeStatus: L.safeStatus || '', status: L.status || '' };
+    const L = mine[0], rep = { id: L.id, key: L.id + '|' + (L.srcUpdated || L.updated || ''), month: L.month || '', resident: L.resident || '', actualPct: String(L.actualPct ?? ''), plannedPct: String(L.plannedPct ?? ''), safeStatus: L.safeStatus || '', status: L.status || '', coCount: String(L.coCount ?? ''), coAmount: String(L.coAmount ?? ''), coTotal: String(L.coTotal ?? '') };
     const r = mine.find(mrHasPh); if (!r) return { rep, ph: null };
     try { if (fs.existsSync(mrPhPath(r, 0))) await mrToCards([r], false); } catch (_) {}
     let meta = {}; try { meta = (JSON.parse(fs.readFileSync(regFile(), 'utf8')).meta || {})[String(fn)] || {}; } catch (_) {}

@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>مشاريع التنفيذ أمانة</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:#f1efe9;color:#1f2430;font:14px/1.6 Tahoma,'Segoe UI',Arial,sans-serif;direction:rtl}
+#bar{position:sticky;top:0;z-index:30;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:8px 14px;background:#7a4e12;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.18)}
+#bar b{font-size:15px}
+#bar select{background:#fff}
+#bar .st{margin-inline-start:auto;font-size:12px;opacity:.9}
+nav#tabs{display:flex;flex-wrap:wrap;gap:4px;padding:8px 14px 0;background:#e8e2d6;border-bottom:1px solid #d6cdbb;position:sticky;top:44px;z-index:25}
+nav#tabs button{border:1px solid #d6cdbb;border-bottom:none;border-radius:7px 7px 0 0;background:#f6f2ea;color:#5b3a0c;padding:6px 14px;font-weight:700}
+nav#tabs button.on{background:#fff;color:#7a4e12;box-shadow:0 -2px 0 #7a4e12 inset}
+button{font:inherit;cursor:pointer;border-radius:5px;border:1px solid #7a4e12;background:#fff;color:#7a4e12;padding:4px 12px}
+#bar button{background:rgba(255,255,255,.14);color:#fff;border-color:rgba(255,255,255,.5)}
+button.pri{background:#7a4e12;color:#fff}
+button.sm{padding:1px 8px;font-size:12px}
+button.dng{color:#b42318;border-color:#b42318}
+button:disabled{opacity:.5;cursor:default}
+input,select,textarea{font:inherit;border:1px solid #c2b9a7;border-radius:5px;padding:4px 8px;background:#fff;min-width:0}
+textarea{width:100%;resize:vertical}
+main{padding:12px 14px 40px;max-width:1600px;margin:0 auto}
+.card{background:#fff;border:1px solid #ddd3c1;border-radius:8px;padding:12px 14px;margin-bottom:12px}
+.card h4{margin:0 0 8px;color:#6a430f;font-size:14px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-bottom:12px}
+.kpi{background:#fff;border:1px solid #ddd3c1;border-radius:8px;padding:10px 14px}
+.kpi b{display:block;font-size:clamp(16px,1.6vw,21px);line-height:1.3;color:#6a430f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;direction:ltr;text-align:right}
+.kpi span{font-size:12px;color:#6b6457}
+.kpi.bad b{color:#b42318}.kpi.bad{border-color:#e9b1aa;background:#fff7f6}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:900px){.grid2{grid-template-columns:1fr}}
+.tw{overflow:auto;border:1px solid #ddd3c1;border-radius:6px;background:#fff;max-height:70vh}
+table{border-collapse:collapse;width:100%}
+th,td{padding:5px 8px;border-bottom:1px solid #ece6da;text-align:right;vertical-align:top}
+th{background:#efe7d8;position:sticky;top:0;white-space:nowrap;z-index:1}
+tfoot td{background:#f6f0e4;font-weight:700;position:sticky;bottom:0}
+td.n,th.n{text-align:center}
+td.m{white-space:nowrap;text-align:left;direction:ltr;font-variant-numeric:tabular-nums}
+tr.clk{cursor:pointer}tr.clk:hover td{background:#fbf6ec}
+tr.flag td{background:#fff3f1}
+.sub{font-size:12px;color:#6b6457}
+.pill{display:inline-block;padding:0 9px;border-radius:10px;font-size:12px;font-weight:700;color:#fff;white-space:nowrap;background:#8a7f6b}
+.p-run{background:#2563a8}.p-done{background:#1f7a3d}.p-recv{background:#0f766e}.p-stop{background:#b42318}.p-new{background:#8a7f6b}.p-add{background:#7c3aed}
+.bad{color:#b42318;font-weight:700}.ok{color:#1f7a3d}.warn{color:#a15c00;font-weight:700}
+.bars .hb{display:grid;grid-template-columns:150px 1fr 120px;gap:8px;align-items:center;margin:3px 0;font-size:13px}
+.bars .t{height:12px;background:#f1ebe0;border-radius:3px;position:relative;overflow:hidden}
+.bars .t i{position:absolute;inset:0 auto 0 0;background:#c8a56a}.bars .t u{position:absolute;inset:0 auto 0 0;background:#7a4e12;text-decoration:none}
+.empty{padding:26px;text-align:center;color:#6b6457}
+#msg{position:fixed;bottom:14px;left:14px;z-index:99;background:#1f2430;color:#fff;padding:8px 14px;border-radius:7px;display:none;max-width:60vw}
+#msg.err{background:#b42318}
+.modal{position:fixed;inset:0;background:rgba(20,16,8,.45);z-index:60;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:24px 10px}
+.modal .box{background:#fff;border-radius:10px;width:min(1150px,100%);padding:14px 18px;box-shadow:0 10px 40px rgba(0,0,0,.3)}
+.modal h3{margin:0 0 10px;color:#6a430f}
+.fg{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px 12px}
+.fg label{display:flex;flex-direction:column;font-size:12px;color:#5b5446;gap:2px}
+.fg label.w2{grid-column:span 2}.fg label.w3{grid-column:1/-1}
+.mem{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.mem span{font-size:12px;border:1px solid #ddd3c1;border-radius:10px;padding:0 8px;background:#faf7f1}
+.mem span.x{border-color:#b42318;color:#b42318;background:#fff3f1;font-weight:700}
+.adv td input{width:100%}
+svg.map{width:100%;height:auto;background:#eef3f6;border:1px solid #ddd3c1;border-radius:8px}
+svg.map .d{fill:#fbf7ef;stroke:#9c8c6c;stroke-width:.6}
+svg.map .d:hover{fill:#f2e6cc}
+svg.map text{font:bold 17px Tahoma;fill:#6a430f;paint-order:stroke;stroke:#fff;stroke-width:2.5px;pointer-events:none}
+svg.map circle{stroke:#fff;stroke-width:.8;cursor:pointer}
+.legend span{display:inline-flex;align-items:center;gap:4px;margin-inline-end:12px;font-size:12px}.legend i{width:10px;height:10px;border-radius:50%;display:inline-block}
+.doc{background:#fff;width:210mm;min-height:297mm;margin:0 auto;padding:18mm 18mm 16mm;font:15pt/1.7 'Simplified Arabic','Traditional Arabic',Tahoma,serif;color:#000;border:1px solid #ccc}
+.doc .hd{display:flex;justify-content:space-between;font-weight:700;font-size:13pt;border-bottom:2px solid #000;padding-bottom:6px;margin-bottom:10px}
+.doc .ttl{text-align:center;font-weight:700;font-size:17pt;margin:6px 0}
+.doc table{border-collapse:collapse;width:100%;margin:6px 0;font-size:13pt}.doc table th,.doc table td{border:1px solid #000;padding:2px 6px;text-align:center;position:static;background:none}
+.doc table th{background:#d9d9d9}
+.doc .sg{margin-top:28px;margin-inline-start:55%;text-align:center;font-weight:700}
+.doc .cc{margin-top:20px;font-size:12pt}.doc .cc ul{margin:2px 0;padding-inline-start:22px}
+.doc p{margin:0 0 4px;text-align:justify;white-space:pre-wrap}
+@media print{body{background:#fff}body>*:not(#printArea){display:none!important}#printArea{display:block!important}#printArea .doc{border:none;padding:0;width:auto;min-height:0}@page{size:A4;margin:16mm}}
+#printArea{display:none}
+.chips button{margin:2px}
+.hint{color:#6b6457;font-size:12.5px}
+details summary{cursor:pointer;font-weight:700;color:#6a430f}
+</style>
+</head>
+<body>
+<div id="bar">
+  <b>🏗️ مشاريع التنفيذ أمانة — لجان التنفيذ والتسلم</b>
+  <label>السنة: <select id="fYear"></select></label>
+  <button id="bNew">＋ مشروع جديد</button>
+  <button id="bImport" title="استيراد سجل الأوامر الإدارية (الصادر 2024/2025/2026) وملف التخصيصات (Projects) — يمكن اختيار الملفين معاً">📥 استيراد Excel</button>
+  <button id="bExport" title="الموقف بالإكسل: الإحداثيات والمبلغ المرفوع والمصروف ونسبة الإنجاز الفعلي، مع الأقضية والقطاعات والمهندسين والسلف">📤 الموقف بالإكسل</button>
+  <span class="st" id="stInfo"></span>
+</div>
+<nav id="tabs">
+  <button data-t="dash" class="on">📊 لوحة المعلومات</button>
+  <button data-t="proj">📁 المشاريع</button>
+  <button data-t="eng">👷 المهندسون واللجان</button>
+  <button data-t="adv">💰 السلف المصروفة</button>
+  <button data-t="map">🗺️ الخريطة والإحداثيات</button>
+  <button data-t="let">✉️ المخاطبات</button>
+  <button data-t="set">⚙ الإعدادات والبيانات</button>
+</nav>
+<main id="main"></main>
+<input type="file" id="fileIn" accept=".xlsx,.xlsm" multiple hidden>
+<input type="file" id="jsonIn" accept=".json" hidden>
+<div id="msg"></div>
+<div id="printArea"></div>
+<script src="../shell/xlwriter.js"></script>
+<script src="../shell/anbar-geo.js"></script>
+<script>
+'use strict';
+/* ===================== نظام «مشاريع التنفيذ أمانة» =====================
+   مشاريع تُنفَّذ بلجان تنفيذ ولجان تسلّم (لا شركات) وفق تعليمات تنفيذ الأعمال بأسلوب التنفيذ أمانة رقم (1) لسنة 2018 المعدلة بالتعليمات رقم (3) لسنة 2022.
+   السجلات: {records:[...]} — مشروع type:'p'، الإعدادات id:'am-settings' type:'s'. كل سجل يحمل id وupdated (للمزامنة بين الحاسبات).
+   يعمل داخل البرنامج الموحد (window.desktop) أو وحده في المتصفح (حفظ على الجهاز + نسخة JSON). */
+const DESK=window.desktop||null;
+const LSK='anbar_amana_v1';
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+const num=v=>{if(v==null||v==='')return 0;if(typeof v==='number')return isFinite(v)?v:0;const n=parseFloat(String(v).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[,،\s]/g,''));return isFinite(n)?n:0;};
+const fm=v=>Math.round(num(v)).toLocaleString('en-US');
+const pc=v=>(Math.round(num(v)*10)/10).toLocaleString('en-US')+'%';
+const dmy=d=>{const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(d||'');return m?`${+m[3]}/${+m[2]}/${m[1]}`:'';};
+const today=()=>new Date().toISOString().slice(0,10);
+const STATUS={new:['لم يباشر','p-new'],run:['قيد التنفيذ','p-run'],done:['منجز','p-done'],recv:['مستلم (صدرت شهادة الإنجاز)','p-recv'],stop:['متوقف / متلكئ','p-stop']};
+const DEF_SET={id:'am-settings',type:'s',maxCom:3,ceiling:500000000,advMax:100000000,recvMonths:3,
+  memoTo:'السيد نائب المحافظ للشؤون الفنية المحترم',orderSign:{hon:'',name:'',title:'محافظ الأنبار'},memoSign:{hon:'المهندس',name:'',title:'مدير قسم الشؤون الهندسية'},
+  sectors:[]};
+let DB={version:1,records:[]};
+let TAB='dash',YEAR='all',F={q:'',dist:'',sector:'',status:'',flag:false,kind:'p'},ENG={only:true,over:false,q:''};
+
+/* ---------- الحفظ والتحميل ---------- */
+function load(){let t=null;try{t=DESK?DESK.load():localStorage.getItem(LSK);}catch(_){}
+  try{const o=t?JSON.parse(t):null;if(o&&Array.isArray(o.records))DB=o;}catch(_){}
+  if(!DB.records.find(r=>r.id==='am-settings'))DB.records.push(Object.assign({updated:1},JSON.parse(JSON.stringify(DEF_SET))));}
+let saveT=0;
+function persist(now){clearTimeout(saveT);const go=()=>{const t=JSON.stringify(DB);try{if(DESK)DESK.save(t);else localStorage.setItem(LSK,t);}catch(e){flash('تعذّر الحفظ: '+(e&&e.message||e),true);}info();};if(now)go();else saveT=setTimeout(go,350);}
+window.addEventListener('beforeunload',()=>{if(saveT){clearTimeout(saveT);const t=JSON.stringify(DB);try{if(DESK&&DESK.saveSync)DESK.saveSync(t);else if(!DESK)localStorage.setItem(LSK,t);}catch(_){}}});
+window.__syncReload=()=>{load();render();};
+const S=()=>Object.assign({},DEF_SET,DB.records.find(r=>r.id==='am-settings')||{});
+function setS(patch){const s=DB.records.find(r=>r.id==='am-settings');Object.assign(s,patch,{updated:Date.now()});persist();}
+const P=()=>DB.records.filter(r=>r&&r.type==='p');
+const touch=p=>{p.updated=Date.now();};
+function flash(t,err){const m=$('#msg');m.textContent=t;m.className=err?'err':'';m.style.display='block';clearTimeout(flash.t);flash.t=setTimeout(()=>{m.style.display='none';},err?6000:2600);}
+function info(){const ps=P();$('#stInfo').textContent=`${ps.length} سجل — ${DESK?'محفوظ في ملف بيانات البرنامج':'محفوظ على هذا الجهاز (صدّر نسخة JSON احتياطية)'}`;}
+
+/* ---------- الأسماء والقضاء ---------- */
+const DIST_FIX=[[/^(ال)?فلوج[هة]$|^الفوج[هة]$/,'الفلوجة'],[/^(ال)?رطب[هة]$/,'الرطبة'],[/^عن[هة]$/,'عنه'],[/^(ال)?بغداد?ي$/,'البغدادي'],[/^(ال)?عامري[هة]( الصمود)?$/,'العامرية'],[/^را[وو]?[هة]$/,'راوه'],[/^(ال)?قائم$/,'القائم'],[/^(ال)?رمادي$/,'الرمادي'],[/^حديث[هة]$/,'حديثة'],[/^(ال)?خالدي[هة]$/,'الخالدية'],[/^(ال)?حباني[هة]$/,'الحبانية'],[/^(ال)?كرم[هة]$/,'الكرمة'],[/^هيت$/,'هيت'],[/^(ال)?نخيب$/,'النخيب'],[/^(ال)?صقلاوي[هة]$/,'الصقلاوية']];
+function fixDist(s){s=String(s||'').replace(/\s+/g,' ').trim();if(!s)return '';for(const [re,v] of DIST_FIX)if(re.test(s))return v;return s;}
+/* القضاء من القطاع: «الرمادي 8» ← الرمادي */
+const distOfSector=s=>fixDist(String(s||'').replace(/[\d٠-٩]+/g,'').trim());
+const nk=s=>String(s||'').replace(/[ً-ٟـ]/g,'').replace(/[أإآ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي').replace(/عبد\s+/g,'عبد').replace(/[^؀-ۿA-Za-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+const PFX=/^(المهندس(?:ة)?|م\s*[.\/]|السيد(?:ة)?|الفني(?:ة)?|ر\s*\.?\s*مهندس)[\s.]*/;
+/* أعضاء اللجنة من خلية واحدة: أسطر، أو مسافات كثيرة بين اسمين، أو «/»، أو تكرار البادئة (م. / السيد / الفني) */
+function splitMembers(s){s=String(s||'').replace(/\r/g,'\n').replace(/(السيدة|السيد|الفنية|الفني)(?=[\u0621-\u064A.])/g,'$1 ').replace(/م\s*\.\s*السيد(ة?)/g,'السيد$1').replace(/(الفنية|الفني|السيدة|السيد|المهندسة|المهندس)\s*\/\s*/g,'$1 ').replace(/(^|[\s\/])م\s*\/\s*/g,'$1م.');
+  s=s.replace(/(^|[^؀-ۿ])(م\s*\.|المهندسة?\s|السيدة?\s|الفنية?\s)/g,'$1\n$2');
+  return s.split(/\n|\/|\s{4,}|،|,/).map(x=>x.replace(/\s+/g,' ').trim()).filter(x=>x&&nk(x.replace(PFX,'')).length>2);}
+function memberInfo(raw){const m=PFX.exec(raw),p=m?m[1].replace(/\s/g,''):'';const name=raw.replace(PFX,'').trim();
+  const role=/^م[.\/]$|^المهندس|مهندس/.test(p)?'eng':/^الفني/.test(p)?'tech':/^السيد/.test(p)?'staff':'';return {raw,name,key:nk(name),role};}
+const yearOf=p=>+p.year||(p.orderDate?+p.orderDate.slice(0,4):0);
+const isProj=p=>p.kind!=='add';
+
+/* ---------- الحسابات ---------- */
+function calc(p){const adv=Array.isArray(p.advances)?p.advances:[];const raised=adv.reduce((a,x)=>a+num(x.raised),0),paid=adv.reduce((a,x)=>a+num(x.paid),0),amt=num(p.amount);
+  return {raised,paid,amt,rem:amt-paid,fin:amt?paid/amt*100:0,n:adv.length,prog:num(p.progress)};}
+/* عدد لجان التنفيذ لكل شخص في كل سنة (المادة 1/رابعاً/أ: لا يجوز اشتراك الموظف بأكثر من 3 لجان) */
+function people(){const map=new Map();
+  for(const p of P()){if(!isProj(p))continue;const y=yearOf(p);
+    for(const [k,list] of [['exec',p.exec],['recv',p.recv]])(list||[]).forEach(raw=>{const mi=memberInfo(raw);if(!mi.key)return;
+      let e=map.get(mi.key);if(!e){e={key:mi.key,name:mi.name,role:mi.role,years:{}};map.set(mi.key,e);}if(!e.role&&mi.role)e.role=mi.role;if(mi.role==='eng')e.role='eng';
+      const Y=e.years[y]=e.years[y]||{exec:[],recv:[]};Y[k].push(p.id);});}
+  return map;}
+function overSet(map){const mx=S().maxCom,out=new Set();for(const e of map.values())for(const y in e.years)if(e.years[y].exec.length>mx)out.add(e.key+'|'+y);return out;}
+function projFlags(p,ov){const s=S(),c=calc(p),f=[],y=yearOf(p);
+  if(c.amt>s.ceiling)f.push('المبلغ يتجاوز سقف التنفيذ أمانة ('+fm(s.ceiling)+')');
+  (p.advances||[]).forEach(a=>{if(num(a.paid||a.raised)>s.advMax)f.push(`السلفة ${a.no||''} تتجاوز ${fm(s.advMax)} للسلفة الواحدة`);});
+  if(c.amt&&c.paid>c.amt)f.push('المصروف أكبر من مبلغ الأمر الإداري');
+  if(c.amt&&c.raised>c.amt)f.push('المرفوع أكبر من مبلغ الأمر الإداري');
+  if(ov)(p.exec||[]).forEach(raw=>{const k=memberInfo(raw).key;if(ov.has(k+'|'+y))f.push(`«${memberInfo(raw).name}» في أكثر من ${s.maxCom} لجان تنفيذ لعام ${y}`);});
+  if(!p.exec||!p.exec.length)f.push('لا توجد أسماء لجنة التنفيذ');
+  if(p.status==='done'&&p.doneDate&&!p.recvDate){const d=(Date.now()-new Date(p.doneDate))/864e5;if(d>s.recvMonths*30.4)f.push('مضى أكثر من 3 أشهر على الإنجاز ولم يُسجَّل التسلم');}
+  return f;}
+const inYear=p=>YEAR==='all'||String(yearOf(p))===String(YEAR);
+function years(){const s=new Set(P().map(yearOf).filter(Boolean));[2024,2025,2026].forEach(y=>s.add(y));return [...s].sort();}
+
+/* ---------- التفقيط (المبلغ كتابةً) ---------- */
+function tafqit(n){n=Math.round(num(n));if(!n)return 'صفر';
+  const ones=['','واحد','اثنان','ثلاثة','أربعة','خمسة','ستة','سبعة','ثمانية','تسعة','عشرة','أحد عشر','اثنا عشر','ثلاثة عشر','أربعة عشر','خمسة عشر','ستة عشر','سبعة عشر','ثمانية عشر','تسعة عشر'];
+  const tens=['','','عشرون','ثلاثون','أربعون','خمسون','ستون','سبعون','ثمانون','تسعون'],hund=['','مائة','مائتان','ثلاثمائة','أربعمائة','خمسمائة','ستمائة','سبعمائة','ثمانمائة','تسعمائة'];
+  const tri=x=>{const h=Math.floor(x/100),r=x%100,p=[];if(h)p.push(hund[h]);if(r){if(r<20)p.push(ones[r]);else{const o=r%10,t=Math.floor(r/10);p.push(o?ones[o]+' و'+tens[t]:tens[t]);}}return p.join(' و');};
+  const sc=[['','',''],['ألف','ألفان','آلاف'],['مليون','مليونان','ملايين'],['مليار','ملياران','مليارات']];const parts=[];let i=0;
+  while(n>0&&i<4){const g=n%1000;if(g){let w;if(i===0)w=tri(g);else if(g===1)w=sc[i][0];else if(g===2)w=sc[i][1];else if(g>=3&&g<=10)w=tri(g)+' '+sc[i][2];else w=tri(g)+' '+sc[i][0];parts.unshift(w);}n=Math.floor(n/1000);i++;}
+  return parts.join(' و');}
+
+/* ---------- العرض ---------- */
+function render(){const ys=years();$('#fYear').innerHTML=`<option value="all">كل السنوات</option>`+ys.map(y=>`<option${String(y)===String(YEAR)?' selected':''}>${y}</option>`).join('');
+  document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===TAB));
+  const fn={dash:rDash,proj:rProj,eng:rEng,adv:rAdv,map:rMap,let:rLet,set:rSet}[TAB];$('#main').innerHTML=fn();info();}
+function groupBy(list,keyf){const m=new Map();list.forEach(p=>{const k=keyf(p)||'غير محدد';const c=calc(p);const g=m.get(k)||{k,n:0,amt:0,raised:0,paid:0,prog:0,eng:new Set()};g.n++;g.amt+=c.amt;g.raised+=c.raised;g.paid+=c.paid;g.prog+=c.prog;
+  (p.exec||[]).forEach(r=>{const mi=memberInfo(r);if(mi.role!=='staff'&&mi.role!=='tech')g.eng.add(mi.key);});m.set(k,g);});return [...m.values()].sort((a,b)=>b.amt-a.amt);}
+function grpTable(title,rows,label){const t=rows.reduce((a,g)=>({n:a.n+g.n,amt:a.amt+g.amt,raised:a.raised+g.raised,paid:a.paid+g.paid}),{n:0,amt:0,raised:0,paid:0});const mx=Math.max(1,...rows.map(g=>g.amt));
+  return `<div class="card"><h4>${title}</h4><div class="tw" style="max-height:none"><table><thead><tr><th>${label}</th><th class="n">عدد المشاريع</th><th>مبلغ الأوامر الإدارية</th><th>المبلغ المرفوع</th><th>المبلغ المصروف</th><th>المتبقي</th><th class="n">نسبة الصرف</th><th class="n">معدل الإنجاز الفعلي</th><th class="n">مهندسو التنفيذ</th><th style="min-width:140px"></th></tr></thead><tbody>
+  ${rows.map(g=>`<tr><td><b>${esc(g.k)}</b></td><td class="n">${g.n}</td><td class="m">${fm(g.amt)}</td><td class="m">${fm(g.raised)}</td><td class="m">${fm(g.paid)}</td><td class="m">${fm(g.amt-g.paid)}</td><td class="n">${pc(g.amt?g.paid/g.amt*100:0)}</td><td class="n">${pc(g.n?g.prog/g.n:0)}</td><td class="n">${g.eng.size}</td><td><div class="bars"><div class="t" title="المبلغ (فاتح) والمصروف (غامق)"><i style="width:${g.amt/mx*100}%"></i><u style="width:${g.paid/mx*100}%"></u></div></div></td></tr>`).join('')}</tbody>
+  <tfoot><tr><td>المجموع</td><td class="n">${t.n}</td><td class="m">${fm(t.amt)}</td><td class="m">${fm(t.raised)}</td><td class="m">${fm(t.paid)}</td><td class="m">${fm(t.amt-t.paid)}</td><td class="n">${pc(t.amt?t.paid/t.amt*100:0)}</td><td></td><td></td><td></td></tr></tfoot></table></div></div>`;}
+function rDash(){const all=P().filter(isProj),ps=all.filter(inYear);if(!all.length)return `<div class="card empty"><h3>لا توجد مشاريع بعد</h3><p>ابدأ بـ «📥 استيراد Excel» واختر سجل الأوامر الإدارية (الصادر 2024 / 2025 / 2026) وملف التخصيصات معاً، أو أضف مشروعاً يدوياً بـ «＋ مشروع جديد».</p><button class="pri" data-a="import">📥 استيراد Excel</button></div>`;
+  const pm=people(),ov=overSet(pm),mx=S().maxCom;let amt=0,raised=0,paid=0,prog=0,coords=0,flagged=0;const engs=new Set(),execAll=new Set();
+  ps.forEach(p=>{const c=calc(p);amt+=c.amt;raised+=c.raised;paid+=c.paid;prog+=c.prog;if(p.lat&&p.lng)coords++;if(projFlags(p,ov).length)flagged++;(p.exec||[]).forEach(r=>{const mi=memberInfo(r);execAll.add(mi.key);if(mi.role==='eng'||!mi.role)engs.add(mi.key);});(p.recv||[]).forEach(r=>{const mi=memberInfo(r);if(mi.role==='eng'||!mi.role)engs.add(mi.key);});});
+  const overList=[...pm.values()].filter(e=>Object.keys(e.years).some(y=>(YEAR==='all'||y===String(YEAR))&&e.years[y].exec.length>mx));
+  const st={};ps.forEach(p=>{const k=p.status||'new';st[k]=(st[k]||0)+1;});
+  const byYear=groupBy(all,p=>String(yearOf(p)||'')).sort((a,b)=>a.k.localeCompare(b.k));
+  return `<div class="kpis">
+   <div class="kpi"><b>${ps.length}</b><span>مشروع ${YEAR==='all'?'(كل السنوات)':'لعام '+YEAR}</span></div>
+   <div class="kpi"><b>${fm(amt)}</b><span>مجموع مبالغ الأوامر الإدارية (دينار)</span></div>
+   <div class="kpi"><b>${fm(raised)}</b><span>المبلغ المرفوع</span></div>
+   <div class="kpi"><b>${fm(paid)}</b><span>المبلغ المصروف — ${pc(amt?paid/amt*100:0)}</span></div>
+   <div class="kpi"><b>${fm(amt-paid)}</b><span>المتبقي</span></div>
+   <div class="kpi"><b>${pc(ps.length?prog/ps.length:0)}</b><span>معدل نسبة الإنجاز الفعلي</span></div>
+   <div class="kpi"><b>${engs.size}</b><span>مهندس في لجان التنفيذ والتسلم (${execAll.size} عضو تنفيذ)</span></div>
+   <div class="kpi${overList.length?' bad':''}" data-a="goOver" style="cursor:pointer"><b>${overList.length}</b><span>مضاف في لجان التنفيذ أكثر من ${mx} مرات في السنة ←</span></div>
+   <div class="kpi${flagged?' bad':''}"><b>${flagged}</b><span>مشروع عليه ملاحظة</span></div>
+   <div class="kpi"><b>${coords} / ${ps.length}</b><span>مشروع له إحداثيات</span></div></div>
+  <div class="card"><h4>حالة المشاريع</h4><div class="row">${Object.entries(STATUS).map(([k,v])=>`<span class="pill ${v[1]}">${v[0]}: ${st[k]||0}</span>`).join(' ')}</div></div>
+  ${YEAR==='all'?grpTable('حسب السنة',byYear,'السنة'):''}
+  ${grpTable('حسب القضاء',groupBy(ps,p=>p.district),'القضاء')}
+  ${grpTable('حسب القطاع',groupBy(ps,p=>p.sector),'القطاع')}`;}
+function filtered(){const ov=overSet(people()),q=nk(F.q);
+  return {ov,list:P().filter(p=>inYear(p)&&(F.kind==='all'||(F.kind==='p'?isProj(p):!isProj(p)))&&(!F.dist||p.district===F.dist)&&(!F.sector||p.sector===F.sector)&&(!F.status||(p.status||'new')===F.status)
+    &&(!q||nk([p.name,p.orderNo,p.beneficiary,p.district,p.sector,(p.exec||[]).join(' '),(p.recv||[]).join(' ')].join(' ')).includes(q))&&(!F.flag||projFlags(p,ov).length))
+    .sort((a,b)=>(b.orderDate||'').localeCompare(a.orderDate||'')||num(b.orderNo)-num(a.orderNo))};}
+const uniq=a=>[...new Set(a.filter(Boolean))].sort((x,y)=>x.localeCompare(y,'ar'));
+function rProj(){const {ov,list}=filtered(),all=P();let t={amt:0,raised:0,paid:0};
+  const rows=list.map((p,i)=>{const c=calc(p),f=projFlags(p,ov);t.amt+=c.amt;t.raised+=c.raised;t.paid+=c.paid;const s=STATUS[p.status||'new'];
+    return `<tr class="clk${f.length?' flag':''}" data-open="${p.id}"><td class="n">${i+1}</td><td class="n">${yearOf(p)||''}</td><td class="n">${esc(p.orderNo)}<div class="sub">${dmy(p.orderDate)}</div></td><td>${!isProj(p)?'<span class="pill p-add">ملحق</span> ':''}${esc(p.name)}${p.beneficiary?`<div class="sub">${esc(p.beneficiary)}</div>`:''}${f.length?`<div class="sub bad">⚠ ${f.map(esc).join(' — ')}</div>`:''}</td>
+    <td>${esc(p.district)}</td><td>${esc(p.sector)}</td><td class="m">${fm(c.amt)}</td><td class="m">${fm(c.raised)}</td><td class="m">${fm(c.paid)}</td><td class="n">${c.n}</td><td class="n">${pc(c.prog)}</td><td class="n">${p.lat&&p.lng?'📍':'—'}</td><td><span class="pill ${s[1]}">${s[0]}</span></td></tr>`;}).join('');
+  return `<div class="card"><div class="row">
+   <input id="fq" placeholder="بحث: اسم المشروع، رقم الأمر، عضو لجنة، الجهة…" value="${esc(F.q)}" style="flex:1;min-width:220px">
+   <select id="fDist"><option value="">كل الأقضية</option>${uniq(all.map(p=>p.district)).map(d=>`<option${d===F.dist?' selected':''}>${esc(d)}</option>`).join('')}</select>
+   <select id="fSector"><option value="">كل القطاعات</option>${uniq(all.map(p=>p.sector)).map(d=>`<option${d===F.sector?' selected':''}>${esc(d)}</option>`).join('')}</select>
+   <select id="fStatus"><option value="">كل الحالات</option>${Object.entries(STATUS).map(([k,v])=>`<option value="${k}"${k===F.status?' selected':''}>${v[0]}</option>`).join('')}</select>
+   <select id="fKind"><option value="p"${F.kind==='p'?' selected':''}>المشاريع</option><option value="add"${F.kind==='add'?' selected':''}>ملاحق الأوامر</option><option value="all"${F.kind==='all'?' selected':''}>الكل</option></select>
+   <label><input type="checkbox" id="fFlag"${F.flag?' checked':''}> عليها ملاحظات فقط</label>
+   <button class="pri" data-a="new">＋ مشروع</button></div></div>
+  <div class="tw"><table><thead><tr><th class="n">ت</th><th class="n">السنة</th><th class="n">الأمر الإداري</th><th>اسم المشروع</th><th>القضاء</th><th>القطاع</th><th>مبلغ الأمر الإداري</th><th>المبلغ المرفوع</th><th>المبلغ المصروف</th><th class="n">السلف</th><th class="n">الإنجاز الفعلي</th><th class="n">إحداثيات</th><th>الحالة</th></tr></thead>
+  <tbody>${rows||'<tr><td colspan="13" class="empty">لا نتائج</td></tr>'}</tbody><tfoot><tr><td colspan="6">المجموع (${list.length})</td><td class="m">${fm(t.amt)}</td><td class="m">${fm(t.raised)}</td><td class="m">${fm(t.paid)}</td><td colspan="4"></td></tr></tfoot></table></div>`;}
+function rEng(){const pm=people(),mx=S().maxCom,byId=new Map(P().map(p=>[p.id,p])),q=nk(ENG.q);
+  const ys=YEAR==='all'?years().map(String):[String(YEAR)];
+  const rows=[];for(const e of pm.values()){if(ENG.only&&e.role&&e.role!=='eng')continue;if(q&&!e.key.includes(q))continue;
+    for(const y of ys){const Y=e.years[y];if(!Y)continue;const over=Y.exec.length>mx;if(ENG.over&&!over)continue;rows.push({e,y,Y,over});}}
+  rows.sort((a,b)=>b.Y.exec.length-a.Y.exec.length||b.Y.recv.length-a.Y.recv.length||a.e.name.localeCompare(b.e.name,'ar'));
+  const nOver=rows.filter(r=>r.over).length,distinct=new Set(rows.map(r=>r.e.key)).size;
+  const lst=ids=>ids.map(id=>{const p=byId.get(id);return p?`<div class="sub">• ${esc(p.orderNo)} — ${esc(p.name)}</div>`:'';}).join('');
+  return `<div class="kpis"><div class="kpi"><b>${distinct}</b><span>${ENG.only?'مهندس':'عضو'} في اللجان ${YEAR==='all'?'':'لعام '+YEAR}</span></div><div class="kpi${nOver?' bad':''}"><b>${nOver}</b><span>حالة إضافة في لجان التنفيذ أكثر من ${mx} مرات في السنة الواحدة</span></div></div>
+  <div class="card"><div class="row"><input id="eq" placeholder="بحث باسم المهندس" value="${esc(ENG.q)}" style="flex:1;min-width:200px">
+   <label><input type="checkbox" id="eOnly"${ENG.only?' checked':''}> المهندسون فقط (م.) — من لا لقب له يُعدّ مهندساً</label>
+   <label><input type="checkbox" id="eOver"${ENG.over?' checked':''}> المتجاوزون فقط (أكثر من ${mx})</label></div>
+   <p class="hint">المادة (1/رابعاً/أ) من تعليمات التنفيذ أمانة رقم (1) لسنة 2018 المعدلة: «لا يجوز اشتراك الموظف بأكثر من (3) ثلاث لجان». يُعدّ الاسم الواحد بعد توحيد الإملاء (أ/ا، ة/ه، عبد الله/عبدالله)، والملاحق لا تُحسب.</p></div>
+  <div class="tw"><table><thead><tr><th class="n">ت</th><th>الاسم</th><th>الصفة</th><th class="n">السنة</th><th class="n">لجان التنفيذ</th><th class="n">لجان التسلم</th><th>مشاريع لجان التنفيذ</th><th>مشاريع لجان التسلم</th></tr></thead><tbody>
+  ${rows.map((r,i)=>`<tr class="${r.over?'flag':''}"><td class="n">${i+1}</td><td><b>${esc(r.e.name)}</b></td><td>${{eng:'مهندس',tech:'فني',staff:'موظف'}[r.e.role]||'—'}</td><td class="n">${r.y}</td><td class="n ${r.over?'bad':''}">${r.Y.exec.length}${r.over?' ⚠':''}</td><td class="n">${r.Y.recv.length}</td><td>${lst(r.Y.exec)}</td><td>${lst(r.Y.recv)}</td></tr>`).join('')||'<tr><td colspan="8" class="empty">لا أسماء</td></tr>'}</tbody></table></div>`;}
+function rAdv(){const rows=[];P().filter(inYear).forEach(p=>(p.advances||[]).forEach(a=>rows.push({p,a})));rows.sort((x,y)=>(y.a.date||'').localeCompare(x.a.date||''));
+  let r=0,pd=0;rows.forEach(x=>{r+=num(x.a.raised);pd+=num(x.a.paid);});
+  const per=P().filter(p=>inYear(p)&&isProj(p)).map(p=>({p,c:calc(p)})).filter(x=>x.c.n);
+  return `<div class="kpis"><div class="kpi"><b>${rows.length}</b><span>سلفة مسجلة</span></div><div class="kpi"><b>${per.length}</b><span>مشروع له سلف</span></div><div class="kpi"><b>${fm(r)}</b><span>المبلغ المرفوع</span></div><div class="kpi"><b>${fm(pd)}</b><span>المبلغ المصروف</span></div></div>
+  <p class="hint">تُضاف السلفة من بطاقة المشروع (📁 المشاريع ← المشروع ← «＋ سلفة»). حد السلفة الواحدة ${fm(S().advMax)} دينار وبما لا يتجاوز مبلغ العمل الكلي (المادة 3/أولاً).</p>
+  <div class="tw"><table><thead><tr><th class="n">ت</th><th>المشروع</th><th>القضاء</th><th>القطاع</th><th class="n">رقم السلفة</th><th class="n">التاريخ</th><th>المبلغ المرفوع</th><th>المبلغ المصروف</th><th>رقم الصك/المستند</th><th>ملاحظات</th></tr></thead><tbody>
+  ${rows.map((x,i)=>`<tr class="clk" data-open="${x.p.id}"><td class="n">${i+1}</td><td>${esc(x.p.name)}<div class="sub">أمر ${esc(x.p.orderNo)} — ${dmy(x.p.orderDate)}</div></td><td>${esc(x.p.district)}</td><td>${esc(x.p.sector)}</td><td class="n">${esc(x.a.no)}</td><td class="n">${dmy(x.a.date)}</td><td class="m">${fm(x.a.raised)}</td><td class="m">${fm(x.a.paid)}</td><td>${esc(x.a.cheque)}</td><td>${esc(x.a.note)}</td></tr>`).join('')||'<tr><td colspan="10" class="empty">لا سلف</td></tr>'}</tbody>
+  <tfoot><tr><td colspan="6">المجموع</td><td class="m">${fm(r)}</td><td class="m">${fm(pd)}</td><td colspan="2"></td></tr></tfoot></table></div>`;}
+
+/* ---------- الخريطة (حدود الأقضية من البرنامج، بلا إنترنت) ---------- */
+const G=window.ANBAR_GEO||null;
+const BB={minLat:30.9,maxLat:35.3,minLng:38.6,maxLng:44.4},W=1000,H=Math.round(W*(BB.maxLat-BB.minLat)/(BB.maxLng-BB.minLng)*1.18);
+function inPoly(lat,lng,poly){let ins=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){const [ya,xa]=poly[i],[yb,xb]=poly[j];if(((ya>lat)!==(yb>lat))&&(lng<(xb-xa)*(lat-ya)/(yb-ya)+xa))ins=!ins;}return ins;}
+const distAt=(lat,lng)=>{if(!G)return '';const d=G.dists.find(d=>inPoly(lat,lng,d.p));return d?d.n:'';};
+/* x من الغرب الى الشرق (الشرق يمين الخريطة) */
+const X=(lat,lng)=>[(lng-BB.minLng)/(BB.maxLng-BB.minLng)*W,(BB.maxLat-lat)/(BB.maxLat-BB.minLat)*H];
+function mapSvg(points,small){if(!G)return '<div class="empty">حدود الأقضية غير متاحة</div>';
+  const path=poly=>'M'+poly.map(([la,ln])=>X(la,ln).map(v=>v.toFixed(1)).join(',')).join('L')+'Z';
+  const cen=poly=>{let a=0,b=0;poly.forEach(([la,ln])=>{a+=la;b+=ln;});return X(a/poly.length,b/poly.length);};
+  return `<svg class="map" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${G.dists.map(d=>`<path class="d" d="${path(d.p)}"><title>${esc(d.n)}</title></path>`).join('')}
+   ${small?'':G.dists.map(d=>{const [x,y]=cen(d.p);return `<text x="${x}" y="${y}" text-anchor="middle">${esc(d.n)}</text>`;}).join('')}
+   ${points.map(p=>{const [x,y]=X(p.lat,p.lng);return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${small?7:5}" fill="${p.color||'#7a4e12'}" data-open="${p.id||''}"><title>${esc(p.t||'')}</title></circle>`;}).join('')}</svg>`;}
+const stColor={new:'#8a7f6b',run:'#2563a8',done:'#1f7a3d',recv:'#0f766e',stop:'#b42318'};
+function rMap(){const ps=P().filter(p=>inYear(p)&&isProj(p)),wc=ps.filter(p=>p.lat&&p.lng),no=ps.filter(p=>!(p.lat&&p.lng));
+  const pts=wc.map(p=>({id:p.id,lat:+p.lat,lng:+p.lng,color:stColor[p.status||'new'],t:`${p.name}\n${fm(calc(p).amt)} د — إنجاز ${pc(p.progress)}`}));
+  const mism=wc.filter(p=>{const d=distAt(+p.lat,+p.lng);return d&&p.district&&nk(d)!==nk(p.district)&&!['الحبانية','الصقلاوية','العامرية','النخيب','الخالدية'].includes(p.district);});
+  return `<div class="grid2"><div class="card"><h4>مواقع المشاريع (${wc.length} من ${ps.length})</h4><div class="legend">${Object.entries(STATUS).map(([k,v])=>`<span><i style="background:${stColor[k]}"></i>${v[0]}</span>`).join('')}</div>${mapSvg(pts)}
+   <p class="hint">النقر على النقطة يفتح المشروع. حدود الأقضية الرسمية من ملف الحدود الإدارية في البرنامج (تعمل بلا إنترنت).</p></div>
+   <div class="card"><h4>مشاريع بلا إحداثيات (${no.length})</h4><p class="hint">اكتب الإحداثيات بصيغة «33.4215, 43.3021» أو الصق رابط خرائط Google، ثم Enter.</p>
+   <div class="tw" style="max-height:60vh"><table><thead><tr><th>المشروع</th><th>القضاء</th><th style="min-width:200px">الإحداثيات</th></tr></thead><tbody>
+   ${no.slice(0,400).map(p=>`<tr><td><a href="#" data-open="${p.id}">${esc(p.name)}</a><div class="sub">أمر ${esc(p.orderNo)} — ${yearOf(p)}</div></td><td>${esc(p.district)}</td><td><input data-ll="${p.id}" placeholder="خط العرض, خط الطول" style="width:100%"></td></tr>`).join('')}</tbody></table></div>
+   ${mism.length?`<h4 style="margin-top:12px" class="warn">⚠ إحداثيات تقع خارج القضاء المسجل (${mism.length})</h4>${mism.map(p=>`<div class="sub"><a href="#" data-open="${p.id}">${esc(p.name)}</a>: المسجل ${esc(p.district)} — حسب الإحداثيات ${esc(distAt(+p.lat,+p.lng))}</div>`).join('')}`:''}</div></div>`;}
+/* «33.42, 43.30» أو رابط Google (@lat,lng أو q=lat,lng) أو أرقام عربية */
+function parseLL(s){s=String(s||'').replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/٫/g,'.');const m=/@(-?\d+\.\d+),(-?\d+\.\d+)/.exec(s)||/[?&](?:q|ll|query)=(-?\d+\.\d+),\s*(-?\d+\.\d+)/.exec(s)||/(-?\d{1,3}\.\d+)\s*[,،\s]\s*(-?\d{1,3}\.\d+)/.exec(s);
+  if(!m)return null;let a=+m[1],b=+m[2];if(a>=38.5&&b<38.5){const t=a;a=b;b=t;}/* العراق: خط العرض 29–38 وخط الطول 38.5–49 */return {lat:a,lng:b};}
+const gmaps=p=>`https://www.google.com/maps?q=${p.lat},${p.lng}`;
+
+/* ---------- بطاقة المشروع ---------- */
+function openProj(id){const isNew=!id;const p=isNew?{id:uid(),type:'p',kind:'p',year:YEAR==='all'?new Date().getFullYear():+YEAR,orderNo:'',orderDate:'',name:'',district:'',sector:'',beneficiary:'',amount:0,exec:[],recv:[],advances:[],progress:0,status:'new',lat:'',lng:'',notes:''}:JSON.parse(JSON.stringify(P().find(x=>x.id===id)));
+  if(!p)return;const d=document.createElement('div');d.className='modal';d.id='pm';
+  const yrs=years(),sectors=uniq(P().map(x=>x.sector).concat(S().sectors||[])),dists=uniq(P().map(x=>x.district).concat(G?G.dists.map(x=>x.n):[]));
+  d.innerHTML=`<div class="box"><h3>${isNew?'مشروع جديد':'بطاقة المشروع'}${p.src?` <span class="sub">(${esc(p.src)})</span>`:''}</h3>
+  <div class="fg">
+   <label>السنة<select data-f="year">${yrs.map(y=>`<option${+y===+p.year?' selected':''}>${y}</option>`).join('')}</select></label>
+   <label>عدد الأمر الإداري (الصادر)<input data-f="orderNo" value="${esc(p.orderNo)}"></label>
+   <label>تاريخ الأمر الإداري<input type="date" data-f="orderDate" value="${esc(p.orderDate)}"></label>
+   <label>النوع<select data-f="kind"><option value="p"${p.kind!=='add'?' selected':''}>مشروع</option><option value="add"${p.kind==='add'?' selected':''}>ملحق أمر إداري</option></select></label>
+   <label class="w3">اسم المشروع<input data-f="name" value="${esc(p.name)}"></label>
+   <label>القضاء<input data-f="district" list="dl1" value="${esc(p.district)}"></label>
+   <label>القطاع<input data-f="sector" list="dl2" value="${esc(p.sector)}"></label>
+   <label class="w2">الجهة المستفيدة<input data-f="beneficiary" value="${esc(p.beneficiary)}"></label>
+   <label>مبلغ الأمر الإداري (دينار)<input data-f="amount" inputmode="numeric" value="${p.amount?fm(p.amount):''}"></label>
+   <label>نسبة الإنجاز الفعلي %<input data-f="progress" type="number" min="0" max="100" step="0.1" value="${num(p.progress)||''}"></label>
+   <label>الحالة<select data-f="status">${Object.entries(STATUS).map(([k,v])=>`<option value="${k}"${k===(p.status||'new')?' selected':''}>${v[0]}</option>`).join('')}</select></label>
+   <label>تاريخ المباشرة<input type="date" data-f="startDate" value="${esc(p.startDate||'')}"></label>
+   <label>تاريخ الإنجاز<input type="date" data-f="doneDate" value="${esc(p.doneDate||'')}"></label>
+   <label>تاريخ التسلم (شهادة الإنجاز)<input type="date" data-f="recvDate" value="${esc(p.recvDate||'')}"></label>
+  </div>
+  <datalist id="dl1">${dists.map(x=>`<option>${esc(x)}</option>`).join('')}</datalist><datalist id="dl2">${sectors.map(x=>`<option>${esc(x)}</option>`).join('')}</datalist>
+  <div class="grid2" style="margin-top:10px">
+   <div><b>لجنة تنفيذ العمل أمانة</b> <span class="sub">(اسم في كل سطر، الأول رئيس اللجنة؛ اكتب «م.» قبل اسم المهندس و«السيد» للموظف)</span><textarea data-f="exec" rows="4">${esc((p.exec||[]).join('\n'))}</textarea><div class="mem" id="memX"></div></div>
+   <div><b>لجنة التسلم</b><textarea data-f="recv" rows="4">${esc((p.recv||[]).join('\n'))}</textarea><div class="mem" id="memR"></div></div>
+  </div>
+  <div class="card" style="margin-top:10px"><h4>📍 الإحداثيات</h4><div class="row">
+   <label>خط العرض <input data-f="lat" value="${esc(p.lat)}" style="width:120px" dir="ltr"></label><label>خط الطول <input data-f="lng" value="${esc(p.lng)}" style="width:120px" dir="ltr"></label>
+   <input id="llPaste" placeholder="أو الصق هنا: 33.4215, 43.3021 أو رابط خرائط Google" style="flex:1;min-width:240px" dir="ltr">
+   <button class="sm" data-pa="gps" title="موقع هذا الجهاز (في الموقع)">📡 موقعي الحالي</button><a id="gml" target="_blank" rel="noopener" class="sub"></a></div><div id="llInfo" class="sub"></div><div id="llMap" style="max-width:300px;margin-top:6px"></div></div>
+  <div class="card"><h4>💰 السلف (المرفوع والمصروف)</h4><table class="adv"><thead><tr><th>رقم السلفة</th><th>التاريخ</th><th>المبلغ المرفوع</th><th>المبلغ المصروف</th><th>رقم الصك / المستند</th><th>ملاحظات</th><th></th></tr></thead><tbody id="advB"></tbody></table>
+   <div class="row" style="margin-top:6px"><button class="sm" data-pa="addAdv">＋ سلفة</button><span id="advT" class="sub"></span></div></div>
+  <label class="sub">ملاحظات<textarea data-f="notes" rows="2">${esc(p.notes||'')}</textarea></label>
+  <div id="pFlags" class="sub bad"></div>
+  <div class="row" style="margin-top:10px"><button class="pri" data-pa="save">💾 حفظ</button><button data-pa="close">إغلاق</button>
+   ${isNew?'':`<button data-pa="letMemo">✉️ مطالعة</button><button data-pa="letOrder">✉️ أمر إداري</button><button class="dng" data-pa="del" style="margin-inline-start:auto">🗑 حذف المشروع</button>`}</div></div>`;
+  document.body.appendChild(d);
+  const fv=k=>d.querySelector(`[data-f="${k}"]`);
+  const advRow=a=>`<tr data-aid="${a.id}"><td><input data-af="no" value="${esc(a.no)}" style="width:70px"></td><td><input type="date" data-af="date" value="${esc(a.date)}"></td><td><input data-af="raised" value="${a.raised?fm(a.raised):''}" inputmode="numeric"></td><td><input data-af="paid" value="${a.paid?fm(a.paid):''}" inputmode="numeric"></td><td><input data-af="cheque" value="${esc(a.cheque)}"></td><td><input data-af="note" value="${esc(a.note)}"></td><td><button class="sm dng" data-pa="delAdv">✕</button></td></tr>`;
+  const drawAdv=()=>{d.querySelector('#advB').innerHTML=(p.advances||[]).map(advRow).join('');sum();};
+  const readAdv=()=>{p.advances=[...d.querySelectorAll('#advB tr')].map(tr=>{const g=k=>tr.querySelector(`[data-af="${k}"]`).value;const o=(p.advances||[]).find(x=>x.id===tr.dataset.aid)||{};return Object.assign(o,{id:tr.dataset.aid,no:g('no'),date:g('date'),raised:num(g('raised')),paid:num(g('paid')),cheque:g('cheque'),note:g('note')});});};
+  const read=()=>{['year','orderNo','orderDate','kind','name','district','sector','beneficiary','status','startDate','doneDate','recvDate','notes','lat','lng'].forEach(k=>{p[k]=fv(k).value.trim();});p.year=+p.year;p.district=fixDist(p.district);
+    p.amount=num(fv('amount').value);p.progress=Math.max(0,Math.min(100,num(fv('progress').value)));p.exec=splitLines(fv('exec').value);p.recv=splitLines(fv('recv').value);readAdv();};
+  const sum=()=>{readAdv();const c=calc(Object.assign({},p,{amount:num(fv('amount').value)}));d.querySelector('#advT').innerHTML=`المرفوع: <b>${fm(c.raised)}</b> — المصروف: <b>${fm(c.paid)}</b> — المتبقي من مبلغ الأمر: <b>${fm(c.rem)}</b> — نسبة الصرف: <b>${pc(c.fin)}</b>`;};
+  const mems=()=>{const pm=people(),y=String(fv('year').value),mx=S().maxCom;
+    const one=(k,box)=>{const self=P().find(x=>x.id===p.id);const html=splitLines(fv(k).value).map(raw=>{const mi=memberInfo(raw),e=pm.get(mi.key),Y=e&&e.years[y];let c=Y?Y.exec.length:0;
+      if(k==='exec'&&!(self&&(self.exec||[]).some(r=>memberInfo(r).key===mi.key)&&+self.year===+y))c++;const rc=Y?Y.recv.length:0;
+      return `<span class="${k==='exec'&&c>mx?'x':''}" title="${esc(mi.name)}: لجان تنفيذ ${c} — تسلم ${rc} في ${y}">${esc(mi.name)} — تنفيذ ${c} / تسلم ${rc}${k==='exec'&&c>mx?' ⚠':''}</span>`;}).join('');d.querySelector(box).innerHTML=html;};
+    one('exec','#memX');one('recv','#memR');};
+  const llShow=()=>{const lat=num(fv('lat').value),lng=num(fv('lng').value),a=d.querySelector('#gml');if(lat&&lng){a.href=gmaps({lat,lng});a.textContent='🌍 فتح في خرائط Google';const ds=distAt(lat,lng);
+      d.querySelector('#llInfo').innerHTML=ds?`حسب الإحداثيات: قضاء <b>${esc(ds)}</b>`+(fv('district').value&&nk(ds)!==nk(fixDist(fv('district').value))?' <span class="warn">— يختلف عن القضاء المسجل</span>':''):'<span class="warn">الإحداثيات خارج حدود محافظة الأنبار — تحقّق منها</span>';
+      d.querySelector('#llMap').innerHTML=mapSvg([{lat,lng,color:'#b42318',t:fv('name').value}],true);}else{a.textContent='';d.querySelector('#llInfo').textContent='';d.querySelector('#llMap').innerHTML='';}};
+  drawAdv();mems();llShow();
+  d.addEventListener('input',e=>{const f=e.target.dataset.f;if(f==='exec'||f==='recv'||f==='year')mems();if(e.target.dataset.af||f==='amount')sum();if(f==='lat'||f==='lng'||f==='district')llShow();
+    if(e.target.id==='llPaste'){const ll=parseLL(e.target.value);if(ll){fv('lat').value=ll.lat;fv('lng').value=ll.lng;llShow();}}});
+  d.addEventListener('change',e=>{if(e.target.dataset.f==='year')mems();});
+  d.addEventListener('click',e=>{const b=e.target.closest('[data-pa]');if(e.target===d){return;}if(!b)return;const a=b.dataset.pa;
+    if(a==='close')d.remove();
+    else if(a==='addAdv'){readAdv();(p.advances=p.advances||[]).push({id:uid(),no:String((p.advances||[]).length+1),date:today(),raised:0,paid:0,cheque:'',note:''});drawAdv();}
+    else if(a==='delAdv'){readAdv();const id=b.closest('tr').dataset.aid;p.advances=p.advances.filter(x=>x.id!==id);drawAdv();}
+    else if(a==='gps'){if(!navigator.geolocation)return flash('الجهاز لا يدعم تحديد الموقع',true);navigator.geolocation.getCurrentPosition(pos=>{fv('lat').value=pos.coords.latitude.toFixed(6);fv('lng').value=pos.coords.longitude.toFixed(6);llShow();},()=>flash('تعذّر تحديد الموقع',true),{enableHighAccuracy:true,timeout:15000});}
+    else if(a==='save'){read();if(!p.name)return flash('اكتب اسم المشروع',true);
+      const big=(p.advances||[]).filter(x=>num(x.paid||x.raised)>S().advMax);if(big.length&&!confirm(`سلفة تتجاوز ${fm(S().advMax)} دينار للسلفة الواحدة (المادة 3/أولاً). حفظ رغم ذلك؟`))return;
+      if(p.amount>S().ceiling&&!confirm(`المبلغ يتجاوز سقف التنفيذ أمانة (${fm(S().ceiling)} دينار). حفظ رغم ذلك؟`))return;
+      if(p.progress>=100&&p.status==='run')p.status='done';touch(p);const i=DB.records.findIndex(x=>x.id===p.id);if(i>=0)DB.records[i]=p;else DB.records.push(p);persist();d.remove();render();flash('تم الحفظ');}
+    else if(a==='del'){if(!confirm('حذف هذا المشروع نهائياً؟'))return;DB.records=DB.records.filter(x=>x.id!==p.id);try{DESK&&DESK.tomb&&DESK.tomb(p.id);}catch(_){}persist();d.remove();render();flash('حُذف المشروع');}
+    else if(a==='letMemo'||a==='letOrder'){read();d.remove();TAB='let';LET.pid=p.id;LET.kind=a==='letMemo'?'memo':'order';render();}});
+  const pf=projFlags(p,overSet(people()));d.querySelector('#pFlags').innerHTML=pf.map(x=>'⚠ '+esc(x)).join('<br>');}
+const splitLines=v=>String(v||'').split('\n').map(x=>x.replace(/\s+/g,' ').trim()).filter(Boolean);
+
+/* ---------- المخاطبات: المطالعة والأمر الإداري بصيغة «المخاطبات» في البرنامج الموحد ---------- */
+const LET={pid:'',kind:'order',q:''};
+const DOCS={
+  memo:{t:'مطالعة: طلب الموافقة على التنفيذ أمانة وتشكيل اللجنتين',type:'memo'},
+  order:{t:'أمر إداري: تشكيل لجنة تنفيذ العمل أمانة ولجنة التسلم',type:'order'},
+  adv:{t:'مطالعة: طلب صرف سلفة للجنة التنفيذ',type:'memo'},
+  stat:{t:'مطالعة: موقف المشروع (المرفوع والمصروف والإنجاز)',type:'memo'},
+  add:{t:'أمر إداري: ملحق (تعديل أعضاء لجنة)',type:'order'}};
+const memTable=(list,ttl)=>({cols:['الاسم','الصفة'],rows:(list.length?list:['','','']).map((r,i)=>[memberInfo(r).raw||'',i===0?'رئيساً':'عضواً']),serial:true,shade:'D9D9D9',fit:'full',sz:100,title:ttl});
+function buildDoc(p,kind){const s=S(),c=calc(p),B='…………',P_=p.name||B,amt=c.amt?`(${fm(c.amt)}) دينار (${tafqit(c.amt)} دينار)`:B,D=p.district||B,BEN=p.beneficiary||B;
+  const REF='تعليمات تنفيذ الأعمال بأسلوب التنفيذ أمانة رقم (1) لسنة 2018 المعدلة بالتعليمات رقم (3) لسنة 2022';
+  const ordRef=p.orderNo?`الأمر الإداري المرقم (${p.orderNo}) في ${dmy(p.orderDate)||B}`:'الأمر الإداري الخاص بالمشروع';
+  const ccBase=['مكتب السيد المحافظ / للتفضل بالاطلاع ... مع التقدير.','مكتب السيد نائب المحافظ للشؤون الفنية / للتفضل بالاطلاع ... مع التقدير.',`قائممقامية قضاء ${D} / للتفضل بالاطلاع ... مع التقدير.`,'قسم الشؤون المالية / لاتخاذ ما يلزم ... مع التقدير.','قسم التدقيق / للتفضل بالاطلاع.',...(p.beneficiary?[`${BEN} / للتفضل بالاطلاع ... مع التقدير.`]:[]),'السادة رئيس وأعضاء لجنة التنفيذ ولجنة التسلم / لاتخاذ ما يلزم ...لطفاً.','الاضبارة الخاصة مع الأوليات.'];
+  const o={type:DOCS[kind].type,s:'',full:'',tables:[],to:'',signers:[],cc:[]};const ms=s.memoSign,os=s.orderSign;
+  if(kind==='memo'){o.s='مطالعة';o.to=s.memoTo;
+    o.full=`م/ تنفيذ مشروع (${P_}) بأسلوب التنفيذ أمانة\nنظراً لحاجة ${BEN} إلى تنفيذ مشروع (${P_}) في قضاء (${D})، وقد أعدّت لجنة الكشف التخميني كشفاً بكلفة تخمينية مقدارها ${amt} وصادقت عليه لجنة التدقيق، وهي ضمن السقف المالي المحدد في المادة (1/أولاً/أ) من ${REF} البالغ (${fm(s.ceiling)}) دينار، ولتوفر الملاكات اللازمة ولضرورة سرعة التنفيذ بحسب مقتضيات المصلحة العامة.\nنقترح تنفيذ المشروع أعلاه بأسلوب التنفيذ أمانة، وتشكيل لجنة تنفيذ العمل أمانة من السادة المدرجة أسماؤهم في أدناه:\n[[جدول 1]]\nوتشكيل لجنة التسلم من السادة:\n[[جدول 2]]\nعلماً أن أعضاء اللجنتين غير مشتركين بأكثر من (${s.maxCom}) لجان وفق المادة (1/رابعاً/أ) من التعليمات أعلاه.\nللتفضل بالاطلاع والموافقة ... مع التقدير.`;
+    o.tables=[memTable(p.exec||[],'لجنة التنفيذ'),memTable(p.recv||[],'لجنة التسلم')];o.signers=[Object.assign({},ms)];}
+  else if(kind==='order'){o.s=`تشكيل لجنة تنفيذ العمل أمانة ولجنة التسلم لمشروع (${P_})`;
+    o.full=`استناداً إلى الصلاحيات المخولة إلينا، وإلى أحكام المادتين (1) و(2) من ${REF}، ولمقتضيات المصلحة العامة، قرّرنا ما يأتي:\n1. تنفيذ مشروع (${P_}) في قضاء (${D}) لصالح (${BEN}) بأسلوب التنفيذ أمانة بكلفة تخمينية مقدارها ${amt}.\n2. تشكيل لجنة تنفيذ العمل أمانة من السادة المدرجة أسماؤهم في أدناه:\n[[جدول 1]]\n3. تشكيل لجنة التسلم من السادة المدرجة أسماؤهم في أدناه، وتباشر عملها عند مباشرة لجنة التنفيذ:\n[[جدول 2]]\n4. تُموَّل لجنة التنفيذ بسلف مالية لا تتجاوز (${fm(s.advMax)}) دينار للسلفة الواحدة وبما لا يتجاوز مبلغ العمل الكلي، تُعزَّز بمستندات أصولية متسلسلة مؤيدة من لجنتي التنفيذ والتسلم.\n5. تلتزم لجنة التنفيذ بإنجاز العمل بما لا يزيد على الكلفة المصدقة وخلال السنة المالية، وتتسلّم لجنة التسلم العمل خلال مدة لا تزيد على (${s.recvMonths}) أشهر من تاريخ إنجازه وتصدر شهادة إنجاز العمل.\n6. يُنفَّذ هذا الأمر من تاريخ صدوره.`;
+    o.tables=[memTable(p.exec||[],'لجنة التنفيذ'),memTable(p.recv||[],'لجنة التسلم')];o.signers=[Object.assign({},os)];o.cc=ccBase;}
+  else if(kind==='adv'){const adv=p.advances||[],last=adv[adv.length-1],next=adv.length+1;o.s='مطالعة';o.to=s.memoTo;
+    o.full=`م/ صرف السلفة (${next}) لمشروع (${P_})\nإشارةً إلى ${ordRef} المتضمن تنفيذ مشروع (${P_}) في قضاء (${D}) بأسلوب التنفيذ أمانة بمبلغ ${amt}.\nوبناءً على طلب لجنة التنفيذ، وحيث بلغ مجموع السلف المصروفة سابقاً (${fm(c.paid)}) دينار بنسبة صرف (${pc(c.fin)})، ونسبة الإنجاز الفعلي (${pc(c.prog)})، والمتبقي من مبلغ العمل (${fm(c.rem)}) دينار، مفصلة في أدناه:\n[[جدول 1]]\nنقترح صرف السلفة (${next}) بمبلغ (${B}) دينار لا يتجاوز (${fm(Math.min(s.advMax,Math.max(0,c.rem)))}) دينار وفق المادة (3/أولاً) من ${REF}، على أن تُعزَّز السلف السابقة بمستندات أصولية مؤيدة من لجنتي التنفيذ والتسلم.\nللتفضل بالاطلاع والموافقة ... مع التقدير.`;
+    o.tables=[{cols:['رقم السلفة','التاريخ','المبلغ المرفوع','المبلغ المصروف','رقم الصك / المستند'],rows:adv.length?adv.map(a=>[a.no||'',dmy(a.date),fm(a.raised),fm(a.paid),a.cheque||'']).concat([['المجموع','',fm(c.raised),fm(c.paid),'']]):[['','','','','']],serial:false,shade:'D9D9D9',fit:'full',sz:95}];o.signers=[Object.assign({},ms)];void last;}
+  else if(kind==='stat'){o.s='مطالعة';o.to=s.memoTo;
+    o.full=`م/ موقف مشروع (${P_})\nإشارةً إلى ${ordRef} المتضمن تنفيذ المشروع أعلاه بأسلوب التنفيذ أمانة، نعرض موقفه في أدناه:\n[[جدول 1]]\nللتفضل بالاطلاع ... مع التقدير.`;
+    o.tables=[{cols:['البيان','القيمة'],rows:[['القضاء / القطاع',`${p.district||''}${p.sector?' / '+p.sector:''}`],['الجهة المستفيدة',p.beneficiary||''],['مبلغ الأمر الإداري',fm(c.amt)],['المبلغ المرفوع',fm(c.raised)],['المبلغ المصروف',fm(c.paid)],['المتبقي',fm(c.rem)],['عدد السلف',String(c.n)],['نسبة الصرف',pc(c.fin)],['نسبة الإنجاز الفعلي',pc(c.prog)],['الإحداثيات',p.lat&&p.lng?`${p.lat} , ${p.lng}`:''],['الحالة',STATUS[p.status||'new'][0]]],serial:false,shade:'D9D9D9',fit:'full',sz:90}];o.signers=[Object.assign({},ms)];}
+  else if(kind==='add'){o.s=`ملحق ${ordRef}`;
+    o.full=`إلحاقاً ب${ordRef} الخاص بتشكيل لجنة تنفيذ العمل أمانة ولجنة التسلم لمشروع (${P_})، ولمقتضيات مصلحة العمل، قرّرنا ما يأتي:\n1. تعديل الفقرة (${B}) من الأمر أعلاه لتصبح اللجنة من السادة المدرجة أسماؤهم في أدناه:\n[[جدول 1]]\n2. تبقى الفقرات الأخرى من الأمر أعلاه دون تغيير.\n3. يُنفَّذ هذا الأمر من تاريخ صدوره.`;
+    o.tables=[memTable(p.exec||[],'لجنة التنفيذ')];o.signers=[Object.assign({},os)];o.cc=ccBase;}
+  /* المطالعة: السطر الأول «م/ …» هو الموضوع (يُطبع «م / الموضوع» تحت المخاطَب كما في المخاطبات) */
+  if(o.type==='memo'&&/^م\/ /.test(o.full)){const i=o.full.indexOf('\n');o.s=o.full.slice(3,i).trim();o.full=o.full.slice(i+1);}
+  /* العبارة الختامية «للتفضل بالاطلاع …» تُنقل الى حقل الختام في محرر المخاطبات (لا تتكرر في المتن) */
+  {const m=/\n(للتفضل[^\n]*)$/.exec(o.full);if(m){o.closing=m[1];o.full=o.full.slice(0,m.index);}}
+  return o;}
+function rLet(){const ps=P().filter(inYear).sort((a,b)=>(b.orderDate||'').localeCompare(a.orderDate||''));const q=nk(LET.q);const list=ps.filter(p=>!q||nk(p.name+' '+p.orderNo).includes(q)).slice(0,300);
+  const p=P().find(x=>x.id===LET.pid);
+  return `<div class="grid2"><div class="card"><h4>1) اختر المشروع</h4><input id="lq" placeholder="بحث" value="${esc(LET.q)}" style="width:100%;margin-bottom:6px">
+   <div class="tw" style="max-height:60vh"><table><tbody>${list.map(x=>`<tr class="clk${x.id===LET.pid?' flag':''}" data-lp="${x.id}"><td>${esc(x.name)}<div class="sub">أمر ${esc(x.orderNo)} — ${dmy(x.orderDate)} — ${esc(x.district)}</div></td></tr>`).join('')}</tbody></table></div></div>
+  <div class="card"><h4>2) نوع المستند</h4><div class="chips">${Object.entries(DOCS).map(([k,v])=>`<div><label><input type="radio" name="lk" value="${k}"${k===LET.kind?' checked':''}> ${v.t}</label></div>`).join('')}</div>
+   <h4 style="margin-top:12px">3) الإنشاء</h4>${p?`<p><b>${esc(p.name)}</b><br><span class="sub">مبلغ ${fm(calc(p).amt)} — لجنة التنفيذ ${(p.exec||[]).length} — لجنة التسلم ${(p.recv||[]).length} — السلف ${calc(p).n}</span></p>
+   <div class="row">${DESK?`<button class="pri" data-l="lt">✉️ فتح في «المخاطبات» (الترويسة والتواقيع ورمز QR وWord)</button>`:''}<button ${DESK?'':'class="pri"'} data-l="pv">👁 معاينة وطباعة</button><button data-l="word">⬇ Word</button></div>
+   <p class="hint">${DESK?'يُنشأ المستند في «مخاطبات مشاريع التنفيذ أمانة» — المحرر نفسه في «المخاطبات والمطالعات» بالترويسة الرسمية وصيغة القسم، فتعدّله وتطبعه وتحفظه Word وترقّمه كالعادة.':'خارج البرنامج الموحد: معاينة مبسطة للطباعة وملف Word. داخل البرنامج يُفتح المستند في محرر «المخاطبات» بالترويسة الرسمية.'} الحقول الناقصة تُترك «…………».</p>`:'<p class="hint">اختر مشروعاً من القائمة.</p>'}
+   <h4 style="margin-top:12px">تدقيق اللجان قبل الإصدار</h4>${p?checkHtml(p):''}</div></div>`;}
+function checkHtml(p){const pm=people(),y=String(yearOf(p)),mx=S().maxCom;
+  const row=(raw,k)=>{const mi=memberInfo(raw),Y=(pm.get(mi.key)||{years:{}}).years[y]||{exec:[],recv:[]};const c=Y.exec.length;return `<div class="sub ${k==='exec'&&c>mx?'bad':''}">${esc(mi.name)}: تنفيذ ${c} / تسلم ${Y.recv.length} في ${y}${k==='exec'&&c>mx?' ⚠ يتجاوز '+mx:''}</div>`;};
+  const both=(p.exec||[]).map(r=>memberInfo(r).key).filter(k=>(p.recv||[]).some(r=>memberInfo(r).key===k));
+  return `<b class="sub">لجنة التنفيذ</b>${(p.exec||[]).map(r=>row(r,'exec')).join('')||'<div class="sub bad">لا أسماء</div>'}<b class="sub">لجنة التسلم</b>${(p.recv||[]).map(r=>row(r,'recv')).join('')||'<div class="sub warn">لا أسماء</div>'}${both.length?'<div class="sub bad">⚠ عضو في اللجنتين معاً — لجنة التسلم مستقلة عن لجنة التنفيذ</div>':''}`;}
+function docHtml(o,p){const tb=t=>`<table><thead><tr>${t.serial?'<th>ت</th>':''}${t.cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${t.rows.map((r,i)=>`<tr>${t.serial?`<td>${i+1}</td>`:''}${r.map(c=>`<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+  const body=esc(o.full).replace(/\[\[جدول (\d+)\]\]/g,(m,n)=>{const t=o.tables[+n-1];return t?'</p>'+tb(t)+'<p>':'';});const sg=o.signers[o.signers.length-1]||{};
+  return `<div class="doc"><div class="hd"><div>جمهورية العراق<br>محافظة الأنبار<br>قسم الشؤون الهندسية</div><div>العدد : ${o.type==='order'&&p.orderNo?esc(p.orderNo):'&nbsp;'.repeat(12)}<br>التاريخ : ${o.type==='order'&&p.orderDate?dmy(p.orderDate):'&nbsp;&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;/ '+new Date().getFullYear()}</div></div>
+   <div class="ttl">${o.type==='order'?'(أمر إداري)':'(مطالعة)'}</div>${o.to?`<p><b>${esc(o.to)}</b></p>`:''}${o.s?`<p style="text-align:center"><b>م/ ${esc(o.s)}</b></p>`:''}<p>${body}</p>${o.closing?`<p style="text-align:center">${esc(o.closing)}</p>`:''}
+   <div class="sg">${sg.hon?esc(sg.hon)+'<br>':''}${esc(sg.name)||'&nbsp;'}<br>${esc(sg.title||'')}<br>&nbsp;&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;/ ${new Date().getFullYear()}</div>
+   ${o.cc.length?`<div class="cc"><b>صورة عنه إلى :</b><ul>${o.cc.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:''}</div>`;}
+function letAct(a){const p=P().find(x=>x.id===LET.pid);if(!p)return;const o=buildDoc(p,LET.kind);
+  if(a==='lt'){const ex={f:'',type:o.type,s:o.s,full:o.full,closing:o.closing||'',tables:o.tables.map(({title,...t})=>t),to:o.to,signers:o.signers.filter(x=>x&&x.name),cc:o.cc,no:o.type==='order'?String(p.orderNo||''):'',date:o.type==='order'?(p.orderDate||''):''};
+    DESK.go('aml',JSON.stringify(ex)).then(ok=>{if(!ok)flash('افتح «مخاطبات مشاريع التنفيذ أمانة» بكلمة سر النظام ثم أعد المحاولة');});}
+  else if(a==='pv'){const d=document.createElement('div');d.className='modal';d.innerHTML=`<div class="box" style="width:auto"><div class="row" style="margin-bottom:8px"><button class="pri" data-x="print">🖨 طباعة</button><button data-x="close">إغلاق</button></div>${docHtml(o,p)}</div>`;document.body.appendChild(d);
+    d.addEventListener('click',e=>{const b=e.target.closest('[data-x]');if(!b)return;if(b.dataset.x==='close')d.remove();else{$('#printArea').innerHTML=docHtml(o,p);window.print();}});}
+  else if(a==='word'){const css=[...document.styleSheets[0].cssRules].map(r=>r.cssText).filter(t=>/^\.doc/.test(t)).join('\n');
+    const html=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><style>@page{size:21cm 29.7cm;margin:2cm}body{direction:rtl}${css}.doc{border:none;width:auto;padding:0}</style></head><body dir="rtl">${docHtml(o,p)}</body></html>`;
+    saveFile(`${DOCS[LET.kind].t.split(':')[0]}-${(p.orderNo||p.name).toString().slice(0,40)}.doc`,new TextEncoder().encode('﻿'+html));}}
+
+/* ---------- Excel: الاستيراد ---------- */
+function inflate(data){if(typeof DecompressionStream==='undefined')return Promise.reject(new Error('المتصفح لا يدعم فك ضغط ملفات Excel — استعمل Edge أو Chrome حديثاً'));
+  return new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer().then(b=>new Uint8Array(b));}
+function unzip(buf){const dv=new DataView(buf),u8=new Uint8Array(buf),td=new TextDecoder();let e=u8.length-22;while(e>=0&&dv.getUint32(e,true)!==0x06054b50)e--;if(e<0)return Promise.reject(new Error('ملف Excel غير صالح'));
+  const n=dv.getUint16(e+10,true);let p=dv.getUint32(e+16,true);const out={},jobs=[];
+  for(let i=0;i<n;i++){if(dv.getUint32(p,true)!==0x02014b50)break;const meth=dv.getUint16(p+10,true),csz=dv.getUint32(p+20,true),nl=dv.getUint16(p+28,true),xl=dv.getUint16(p+30,true),cl=dv.getUint16(p+32,true),lo=dv.getUint32(p+42,true);
+    const name=td.decode(u8.subarray(p+46,p+46+nl));p+=46+nl+xl+cl;if(!/^xl\/(sharedStrings\.xml|workbook\.xml|_rels\/workbook\.xml\.rels|worksheets\/[^\/]+\.xml)$/.test(name))continue;
+    const ds=lo+30+dv.getUint16(lo+26,true)+dv.getUint16(lo+28,true),data=u8.subarray(ds,ds+csz);jobs.push(meth===8?inflate(data).then(d=>{out[name]=td.decode(d);}):Promise.resolve().then(()=>{out[name]=td.decode(data);}));}
+  return Promise.all(jobs).then(()=>out);}
+const colIx=ref=>{let n=0;const s=ref.replace(/\d+/g,'');for(let i=0;i<s.length;i++)n=n*26+s.charCodeAt(i)-64;return n-1;};
+function sheetRows(xml,ss){const d=new DOMParser().parseFromString(xml,'text/xml'),rows=[],rs=d.getElementsByTagName('row');
+  for(const row of rs){const ri=+row.getAttribute('r')-1,arr=[];for(const c of row.getElementsByTagName('c')){const t=c.getAttribute('t'),v=c.getElementsByTagName('v')[0];let val='';
+      if(t==='s')val=v?ss[+v.textContent]:'';else if(t==='inlineStr')val=[...c.getElementsByTagName('t')].map(x=>x.textContent).join('');else if(v)val=(t==='str'||t==='b'||t==='e')?v.textContent:parseFloat(v.textContent);arr[colIx(c.getAttribute('r'))]=val;}rows[ri]=arr;}
+  return rows;}
+async function readBook(file){const z=await unzip(await file.arrayBuffer());const ss=[];
+  if(z['xl/sharedStrings.xml']){const d=new DOMParser().parseFromString(z['xl/sharedStrings.xml'],'text/xml');for(const si of d.getElementsByTagName('si')){let s='';for(const t of si.getElementsByTagName('t'))if(t.parentNode.nodeName!=='rPh')s+=t.textContent;ss.push(s);}}
+  const rel={};try{for(const r of new DOMParser().parseFromString(z['xl/_rels/workbook.xml.rels']||'','text/xml').getElementsByTagName('Relationship'))rel[r.getAttribute('Id')]=String(r.getAttribute('Target')).replace(/^\/?(xl\/)?/,'xl/');}catch(_){}
+  const out=[];for(const sh of new DOMParser().parseFromString(z['xl/workbook.xml']||'','text/xml').getElementsByTagName('sheet')){const id=sh.getAttribute('r:id')||sh.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships','id'),pth=rel[id];if(pth&&z[pth])out.push({name:sh.getAttribute('name')||'',rows:sheetRows(z[pth],ss)});}
+  return out;}
+const xDate=v=>{if(typeof v==='number'&&v>20000&&v<80000){const d=new Date(Date.UTC(1899,11,30)+Math.round(v)*864e5);return d.toISOString().slice(0,10);}
+  const m=/(\d{1,4})[\/\-.](\d{1,2})[\/\-.](\d{1,4})/.exec(String(v||''));if(!m)return '';let [a,b,c]=[+m[1],+m[2],+m[3]];if(a>31)return `${a}-${String(b).padStart(2,'0')}-${String(c).padStart(2,'0')}`;return `${c}-${String(b).padStart(2,'0')}-${String(a).padStart(2,'0')}`;};
+const hn=s=>String(s==null?'':s).replace(/\s+/g,' ').trim();
+function findCols(rows,need){for(let i=0;i<Math.min(rows.length,8);i++){const r=(rows[i]||[]).map(hn);if(need.every(n=>r.some(c=>c===n||c.startsWith(n))))return {hdr:i,r};}return null;}
+const ci=(r,...names)=>{for(const n of names){const i=r.findIndex(c=>c===n);if(i>=0)return i;}for(const n of names){const i=r.findIndex(c=>c&&c.startsWith(n));if(i>=0)return i;}return -1;};
+/* صف «اعفاء فلان ويكون فلان بديلاً عنه» تعديل لجنة لأمر سابق (ملحق)، لا مشروع جديد ولا يُعدّ لجنة جديدة */
+const REPL=/اعفاء|إعفاء|بديلا|بديلاً|استبدال|الغاء|إلغاء/;
+/* سجل الأوامر الإدارية: ت | عدد الصادر | تاريخه | اسم المشروع | مبلغ الامر الإداري | لجنة التنفيذ | لجنة الاستلام | القضاء | الملاحظات | الجهة المستفيدة */
+function parseRegister(sh){const f=findCols(sh.rows,['عدد الصادر','اسم المشروع']);if(!f||!f.r.some(c=>/لجنة التنفيذ/.test(c)))return null;const r=f.r;
+  const C={no:ci(r,'عدد الصادر'),date:ci(r,'تاريخة','تاريخه','التاريخ'),name:ci(r,'اسم المشروع'),amt:ci(r,'مبلغ الامر الإداري','مبلغ الأمر الإداري','مبلغ'),ex:ci(r,'لجنة التنفيذ'),rc:ci(r,'لجنة الاستلام','لجنة التسلم'),dist:ci(r,'القضاء'),note:ci(r,'الملاحظات'),ben:ci(r,'الجهة المستفيدة','الجهه المستفيدة')};
+  const sy=+(/(20\d\d)/.exec(sh.name)||[])[1]||0,out=[];
+  for(let i=f.hdr+1;i<sh.rows.length;i++){const x=sh.rows[i]||[];const no=hn(x[C.no]),name=hn(x[C.name]);if(!no||!name)continue;const date=xDate(x[C.date]);let dist=hn(x[C.dist]),note=C.note>=0?hn(x[C.note]):'';
+    if(/ملحق/.test(dist)){note=[dist,note].filter(Boolean).join(' — ');dist='';}
+    out.push({orderNo:no.replace(/\.0$/,''),orderDate:date,year:sy||(date?+date.slice(0,4):0),name,amount:num(x[C.amt]),exec:splitMembers(x[C.ex]),recv:splitMembers(x[C.rc]),district:fixDist(dist),notes:note,beneficiary:C.ben>=0?hn(x[C.ben]):'',kind:/^ملحق/.test(name)||REPL.test(hn(x[C.ex]))?'add':'p'});}
+  return out;}
+/* ملف التخصيصات (ورقة Projects): رقم الصادر | تاريخه | اسم الخطة | اسم المشروع | اسم اللجنة | مبلغ العقد بعد التغيير | مجموع المصروف الكلي | السلف التشغيلية | القضاء (القطاع) | الملاحظات */
+function parseAlloc(sh){const f=findCols(sh.rows,['رقم الصادر','اسم المشروع','اسم اللجنة']);if(!f)return null;const r=f.r;
+  const C={no:ci(r,'رقم الصادر'),date:ci(r,'تاريخة','تاريخه'),plan:ci(r,'اسم الخطة'),name:ci(r,'اسم المشروع'),com:ci(r,'اسم اللجنة'),amt:ci(r,'مبلغ العقد بعد التغيير','مبلغ العقد'),spent:ci(r,'مجموع المصروف الكلي'),adv:ci(r,'السلف التشغيلية'),advPaid:ci(r,'المسدد من السلف التشغيلية'),sec:ci(r,'القضاء'),note:ci(r,'الملاحظات'),prog:ci(r,'نسبة الانجاز المادي'),ben:ci(r,'الجهة المستفيدة /المديرية','الجهة المستفيدة')};
+  const out=[];for(let i=f.hdr+1;i<sh.rows.length;i++){const x=sh.rows[i]||[];const no=hn(x[C.no]),name=hn(x[C.name]),plan=hn(x[C.plan]);if(!no||!name||!/امان/.test(plan))continue;const date=xDate(x[C.date]);
+    out.push({orderNo:no.replace(/\.0$/,''),orderDate:date,year:date?+date.slice(0,4):0,name,amount:num(x[C.amt]),exec:splitMembers(x[C.com]),sector:hn(x[C.sec]),notes:C.note>=0?hn(x[C.note]):'',adv:num(x[C.adv]),spent:num(x[C.spent]),prog:C.prog>=0?num(x[C.prog]):0,beneficiary:C.ben>=0?hn(x[C.ben]):''});}
+  return out;}
+async function importFiles(files){const reg=[],alc=[],seen=[];
+  for(const file of files){let book;try{book=await readBook(file);}catch(e){flash(file.name+': '+(e.message||e),true);continue;}
+    for(const sh of book){const a=parseRegister(sh);if(a){reg.push(...a);seen.push(`${file.name} ← «${sh.name}»: ${a.length} أمر إداري`);continue;}const b=parseAlloc(sh);if(b){alc.push(...b);seen.push(`${file.name} ← «${sh.name}»: ${b.length} مشروع تنفيذ أمانة (تخصيصات وسلف)`);}}}
+  if(!reg.length&&!alc.length)return flash('لم يُعثر على ورقة معروفة (سجل الأوامر الإدارية: «عدد الصادر، اسم المشروع، لجنة التنفيذ» أو التخصيصات: «رقم الصادر، اسم المشروع، اسم اللجنة»)',true);
+  const key=(y,no)=>y+'|'+String(no).replace(/\D/g,'');const cur=new Map(P().map(p=>[key(yearOf(p),p.orderNo),p]));let add=0,adv=0,sec=0;const now=Date.now();
+  const get=(it,src)=>{const k=key(it.year,it.orderNo);let p=cur.get(k);if(!p){p={id:uid(),type:'p',kind:it.kind||'p',year:it.year,orderNo:it.orderNo,orderDate:it.orderDate,name:it.name,district:'',sector:'',beneficiary:'',amount:0,exec:[],recv:[],advances:[],progress:0,status:'new',lat:'',lng:'',notes:'',src};DB.records.push(p);cur.set(k,p);add++;}p.updated=now;return p;};
+  reg.forEach(it=>{const p=get(it,'سجل الأوامر الإدارية');Object.assign(p,{name:it.name,orderDate:it.orderDate||p.orderDate,kind:it.kind,amount:it.amount||p.amount});if(it.exec.length)p.exec=it.exec;if(it.recv.length)p.recv=it.recv;if(it.district)p.district=it.district;if(it.beneficiary)p.beneficiary=it.beneficiary;if(it.notes&&!(p.notes||'').includes(it.notes))p.notes=[p.notes,it.notes].filter(Boolean).join(' — ');});
+  alc.forEach(it=>{const p=get(it,'ملف التخصيصات');if(!p.name)p.name=it.name;if(!p.amount)p.amount=it.amount;if(!p.exec.length&&it.exec.length)p.exec=it.exec;if(it.sector){p.sector=it.sector.replace(/\s+/g,' ').trim();sec++;}if(!p.district)p.district=distOfSector(it.sector);if(!p.beneficiary&&it.beneficiary)p.beneficiary=it.beneficiary;
+    if(it.notes&&!(p.notes||'').includes(it.notes))p.notes=[p.notes,it.notes].filter(Boolean).join(' — ');if(it.prog&&!p.progress)p.progress=it.prog>1?it.prog:it.prog*100;
+    p.advances=(p.advances||[]).filter(a=>a.src!=='xl');const xl=[];if(it.adv>0)xl.push({id:uid(),src:'xl',no:'1',date:'',raised:it.adv,paid:it.adv,cheque:'',note:'السلف التشغيلية (ملف التخصيصات)'});
+    if(it.spent>it.adv)xl.push({id:uid(),src:'xl',no:String(xl.length+1),date:'',raised:it.spent-it.adv,paid:it.spent-it.adv,cheque:'',note:'فرق مجموع المصروف الكلي (ملف التخصيصات)'});
+    if(xl.length){p.advances=xl.concat(p.advances);adv+=xl.length;if(p.status==='new')p.status='run';}});
+  persist(true);render();
+  const d=document.createElement('div');d.className='modal';d.innerHTML=`<div class="box" style="width:min(700px,100%)"><h3>✔ تم الاستيراد</h3>${seen.map(s=>`<div class="sub">• ${esc(s)}</div>`).join('')}
+   <p>مشاريع جديدة: <b>${add}</b> — سلف من ملف التخصيصات: <b>${adv}</b> — مشاريع حُدِّد قطاعها: <b>${sec}</b></p><p class="hint">الربط بين الملفين برقم الأمر الإداري (عدد الصادر = رقم الصادر) وسنته. إعادة الاستيراد تحدّث الأسماء والمبالغ والسلف المستوردة، ولا تمسّ الإحداثيات ونسب الإنجاز والسلف المضافة يدوياً.</p><button class="pri" data-x="1">موافق</button></div>`;
+  document.body.appendChild(d);d.addEventListener('click',e=>{if(e.target.closest('[data-x]'))d.remove();});}
+
+/* ---------- Excel: الموقف ---------- */
+function saveFile(name,bytes){if(DESK&&DESK.saveFile)return DESK.saveFile(name,bytes).then(r=>{if(r==='ok')flash('تم الحفظ: '+name);else if(r==='error')flash('تعذّر الحفظ',true);});
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([bytes]));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},800);return Promise.resolve();}
+function exportXlsx(){if(!window.XLW)return flash('كاتب Excel غير متاح (ملف shell/xlwriter.js)',true);const X=XLW.S,T=v=>({v:v==null?'':String(v),s:X.txt}),I=v=>({v:Math.round(num(v)),s:X.int}),Pp=v=>({v:Math.round(num(v)*10)/10,s:X.pct}),H=v=>({v,s:X.head}),W=v=>({v:v==null?'':String(v),s:X.wrap});
+  const ttl=YEAR==='all'?'كل السنوات':'لعام '+YEAR,pm=people(),ov=overSet(pm),ps=P().filter(p=>inYear(p)&&isProj(p)).sort((a,b)=>yearOf(a)-yearOf(b)||(a.orderDate||'').localeCompare(b.orderDate||''));
+  const hd=['ت','السنة','عدد الأمر الإداري','تاريخه','اسم المشروع','القضاء','القطاع','الجهة المستفيدة','مبلغ الأمر الإداري','المبلغ المرفوع','المبلغ المصروف','المتبقي','نسبة الصرف %','نسبة الإنجاز الفعلي %','خط العرض','خط الطول','رابط الموقع','الحالة','عدد السلف','لجنة التنفيذ','لجنة التسلم','ملاحظات'];
+  const L=XLW.colL(hd.length-1);let t={a:0,r:0,p:0};
+  const rows=[[{v:'موقف مشاريع التنفيذ أمانة — '+ttl,s:X.title}],[{v:'قسم الشؤون الهندسية — محافظة الأنبار — '+dmy(today()),s:X.sub}],[],hd.map(H)];
+  ps.forEach((p,i)=>{const c=calc(p);t.a+=c.amt;t.r+=c.raised;t.p+=c.paid;rows.push([I(i+1),I(yearOf(p)),T(p.orderNo),T(dmy(p.orderDate)),W(p.name),T(p.district),T(p.sector),T(p.beneficiary),I(c.amt),I(c.raised),I(c.paid),I(c.rem),Pp(c.fin),Pp(c.prog),
+    p.lat?{v:+p.lat,s:X.num1}:T(''),p.lng?{v:+p.lng,s:X.num1}:T(''),T(p.lat&&p.lng?gmaps(p):''),T(STATUS[p.status||'new'][0]),I(c.n),W((p.exec||[]).join(' / ')),W((p.recv||[]).join(' / ')),W([p.notes,...projFlags(p,ov)].filter(Boolean).join(' — '))]);});
+  rows.push([{v:'المجموع',s:X.gtT},null,null,null,null,null,null,null,{v:t.a,s:X.gtI},{v:t.r,s:X.gtI},{v:t.p,s:X.gtI},{v:t.a-t.p,s:X.gtI},{v:t.a?Math.round(t.p/t.a*1000)/10:0,s:X.gtP}]);
+  const grp=(name,list,label)=>{const r=[[{v:name+' — '+ttl,s:X.title}],[],[label,'عدد المشاريع','مبلغ الأوامر الإدارية','المبلغ المرفوع','المبلغ المصروف','المتبقي','نسبة الصرف %','معدل الإنجاز الفعلي %','مهندسو التنفيذ'].map(H)];let s={n:0,a:0,r:0,p:0};
+    list.forEach(g=>{s.n+=g.n;s.a+=g.amt;s.r+=g.raised;s.p+=g.paid;r.push([T(g.k),I(g.n),I(g.amt),I(g.raised),I(g.paid),I(g.amt-g.paid),Pp(g.amt?g.paid/g.amt*100:0),Pp(g.n?g.prog/g.n:0),I(g.eng.size)]);});
+    r.push([{v:'المجموع',s:X.gtT},{v:s.n,s:X.gtI},{v:s.a,s:X.gtI},{v:s.r,s:X.gtI},{v:s.p,s:X.gtI},{v:s.a-s.p,s:X.gtI},{v:s.a?Math.round(s.p/s.a*1000)/10:0,s:X.gtP}]);
+    return {name,cols:[22,12,18,18,18,18,12,14,12],rows:r,merges:['A1:I1'],freeze:3,titles:3};};
+  const mx=S().maxCom,ys=YEAR==='all'?years().map(String):[String(YEAR)],er=[[{v:'المهندسون في لجان التنفيذ والتسلم — '+ttl,s:X.title}],[{v:`المؤشَّر: مضاف في لجان التنفيذ أكثر من ${mx} مرات في السنة الواحدة (المادة 1/رابعاً/أ)`,s:X.sub}],['الاسم','الصفة','السنة','لجان التنفيذ','لجان التسلم','تجاوز','مشاريع التنفيذ'].map(H)];
+  const byId=new Map(P().map(p=>[p.id,p]));[...pm.values()].forEach(e=>ys.forEach(y=>{const Y=e.years[y];if(!Y)return;er.push([T(e.name),T({eng:'مهندس',tech:'فني',staff:'موظف'}[e.role]||''),T(y),I(Y.exec.length),I(Y.recv.length),Y.exec.length>mx?{v:'⚠ أكثر من '+mx,s:X.dev}:T(''),W(Y.exec.map(id=>(byId.get(id)||{}).name||'').join(' / '))]);}));
+  er.splice(3,er.length,...er.slice(3).sort((a,b)=>b[3].v-a[3].v));
+  const ar=[[{v:'السلف المصروفة لكل مشروع — '+ttl,s:X.title}],[],['المشروع','عدد الأمر','القضاء','القطاع','رقم السلفة','التاريخ','المبلغ المرفوع','المبلغ المصروف','رقم الصك','ملاحظات'].map(H)];
+  P().filter(inYear).forEach(p=>(p.advances||[]).forEach(a=>ar.push([W(p.name),T(p.orderNo),T(p.district),T(p.sector),T(a.no),T(dmy(a.date)),I(a.raised),I(a.paid),T(a.cheque),T(a.note)])));
+  const buf=XLW.book([{name:'الموقف',cols:[5,7,10,11,46,12,12,20,16,16,16,16,10,11,11,11,30,12,7,40,40,34],rows,merges:[`A1:${L}1`,`A2:${L}2`],freeze:4,titles:4,filter:`A4:${L}4`,heights:{1:30,4:30},zoom:90},
+    grp('حسب القضاء',groupBy(ps,p=>p.district),'القضاء'),grp('حسب القطاع',groupBy(ps,p=>p.sector),'القطاع'),
+    {name:'المهندسون',cols:[30,10,8,12,12,14,90],rows:er,merges:['A1:G1','A2:G2'],freeze:3,titles:3,filter:`A3:G3`},{name:'السلف',cols:[46,10,12,12,9,11,16,16,14,34],rows:ar,merges:['A1:J1'],freeze:3,titles:3,filter:'A3:J3'}],{title:'موقف مشاريع التنفيذ أمانة',author:'قسم الشؤون الهندسية — محافظة الأنبار'});
+  saveFile(`موقف-مشاريع-التنفيذ-أمانة_${YEAR==='all'?'كل-السنوات':YEAR}_${today()}.xlsx`,buf);}
+
+/* ---------- الإعدادات ---------- */
+function rSet(){const s=S();return `<div class="grid2"><div class="card"><h4>الحدود (تعليمات التنفيذ أمانة 1/2018 المعدلة 3/2022)</h4><div class="fg">
+  <label>أقصى عدد لجان تنفيذ للشخص في السنة<input type="number" data-s="maxCom" value="${s.maxCom}"></label>
+  <label>سقف العمل أمانة (دينار)<input data-s="ceiling" value="${fm(s.ceiling)}"></label>
+  <label>حد السلفة الواحدة (دينار)<input data-s="advMax" value="${fm(s.advMax)}"></label>
+  <label>مدة التسلم بعد الإنجاز (أشهر)<input type="number" data-s="recvMonths" value="${s.recvMonths}"></label></div></div>
+  <div class="card"><h4>المخاطبات</h4><div class="fg"><label class="w3">المطالعة إلى<input data-s="memoTo" value="${esc(s.memoTo)}"></label>
+  <label>موقّع المطالعة: اللقب<input data-ss="memoSign.hon" value="${esc(s.memoSign.hon)}"></label><label>الاسم<input data-ss="memoSign.name" value="${esc(s.memoSign.name)}"></label><label>المنصب<input data-ss="memoSign.title" value="${esc(s.memoSign.title)}"></label>
+  <label>موقّع الأمر الإداري: اللقب<input data-ss="orderSign.hon" value="${esc(s.orderSign.hon)}"></label><label>الاسم<input data-ss="orderSign.name" value="${esc(s.orderSign.name)}"></label><label>المنصب<input data-ss="orderSign.title" value="${esc(s.orderSign.title)}"></label></div></div>
+  <div class="card"><h4>البيانات</h4><p class="hint">${DESK?'البيانات في ملف «AmanaProjects-Data.json» في مجلد بيانات البرنامج، وتُزامَن وتُنسخ احتياطياً مع باقي الأنظمة.':'البيانات محفوظة في متصفح هذا الجهاز فقط — احفظ نسخة JSON دورياً.'}</p>
+  <div class="row"><button data-a="jsonOut">⬇ نسخة JSON</button><button data-a="jsonIn">⬆ استعادة من JSON</button><button data-a="import">📥 استيراد Excel</button><button class="dng" data-a="wipe">🗑 حذف كل المشاريع</button></div></div></div>`;}
+
+/* ---------- الأحداث ---------- */
+$('#tabs').addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(b){TAB=b.dataset.t;render();}});
+$('#fYear').addEventListener('change',e=>{YEAR=e.target.value;render();});
+$('#bNew').onclick=()=>openProj('');$('#bImport').onclick=()=>$('#fileIn').click();$('#bExport').onclick=exportXlsx;
+$('#fileIn').addEventListener('change',e=>{const f=[...e.target.files];e.target.value='';if(f.length)importFiles(f);});
+$('#jsonIn').addEventListener('change',async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;try{const o=JSON.parse(await f.text());if(!Array.isArray(o.records))throw new Error('ملف غير صالح');if(!confirm(`استعادة ${o.records.length} سجل؟ تُستبدل البيانات الحالية.`))return;DB=o;persist(true);load();render();flash('تمت الاستعادة');}catch(err){flash(String(err.message||err),true);}});
+$('#main').addEventListener('click',e=>{const o=e.target.closest('[data-open]');if(o&&o.dataset.open){e.preventDefault();openProj(o.dataset.open);return;}
+  const a=e.target.closest('[data-a]');if(a){const k=a.dataset.a;
+    if(k==='import')$('#fileIn').click();else if(k==='new')openProj('');else if(k==='goOver'){TAB='eng';ENG.over=true;render();}
+    else if(k==='jsonOut')saveFile(`AmanaProjects-نسخة_${today()}.json`,new TextEncoder().encode(JSON.stringify(DB,null,1)));else if(k==='jsonIn')$('#jsonIn').click();
+    else if(k==='wipe'){if(!confirm('حذف كل المشاريع؟ لا يمكن التراجع.'))return;P().forEach(p=>{try{DESK&&DESK.tomb&&DESK.tomb(p.id);}catch(_){}});DB.records=DB.records.filter(r=>r.type!=='p');persist(true);render();}return;}
+  const lp=e.target.closest('[data-lp]');if(lp){LET.pid=lp.dataset.lp;render();return;}const l=e.target.closest('[data-l]');if(l)letAct(l.dataset.l);});
+let qT=0;$('#main').addEventListener('input',e=>{const id=e.target.id;
+  if(['fq','eq','lq'].includes(id)){clearTimeout(qT);qT=setTimeout(()=>{if(id==='fq')F.q=e.target.value;else if(id==='eq')ENG.q=e.target.value;else LET.q=e.target.value;const pos=e.target.selectionStart;render();const n=$('#'+id);if(n){n.focus();try{n.setSelectionRange(pos,pos);}catch(_){}}},250);}
+  const sk=e.target.dataset.s,ss=e.target.dataset.ss;if(sk){setS({[sk]:['memoTo'].includes(sk)?e.target.value:num(e.target.value)});}if(ss){const [a,b]=ss.split('.');const cur=Object.assign({},S()[a]);cur[b]=e.target.value;setS({[a]:cur});}});
+$('#main').addEventListener('change',e=>{const id=e.target.id;if(id==='fDist')F.dist=e.target.value;else if(id==='fSector')F.sector=e.target.value;else if(id==='fStatus')F.status=e.target.value;else if(id==='fKind')F.kind=e.target.value;else if(id==='fFlag')F.flag=e.target.checked;
+  else if(id==='eOnly')ENG.only=e.target.checked;else if(id==='eOver')ENG.over=e.target.checked;else if(e.target.name==='lk'){LET.kind=e.target.value;return;}else return;render();});
+$('#main').addEventListener('keydown',e=>{const t=e.target;if(t.dataset&&t.dataset.ll&&e.key==='Enter'){const ll=parseLL(t.value);if(!ll)return flash('صيغة الإحداثيات غير مفهومة',true);const p=P().find(x=>x.id===t.dataset.ll);if(p){p.lat=ll.lat;p.lng=ll.lng;touch(p);persist();render();flash('حُفظت الإحداثيات');}}});
+/* من نظام آخر: فتح مشروع برقم أمره الإداري */
+window.__openProject=a=>{const p=P().find(x=>String(x.orderNo)===String(a)||x.id===a);if(p){openProj(p.id);return true;}return false;};
+load();render();
+</script>
+</body>
+</html>

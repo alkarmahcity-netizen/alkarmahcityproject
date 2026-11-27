@@ -46,7 +46,7 @@
     link() { const e = this.item(); return (e && e.z && e.z.qr) || ''; },
     set(u) { const e = this.item(); if (!e) return; e.z = e.z || {}; e.z.qr = u; const ps = $('printSel'); if (ps) ps.value = 'z'; upd(); try { save(); } catch (_) {} },
     before: () => { const ps = $('printSel'); if (ps && ps.value !== 'z') { ps.value = 'z'; upd(); } }, wait: 1200 };
-  A.dm = A.lt; A.cm = A.lt;
+  A.dm = A.lt; A.cm = A.lt; A.aml = A.lt;
   const ad = A[SYS]; if (!ad) return;
   const say = (m, bad) => { try { if (typeof window.flash === 'function') { window.flash(m, bad); return; } if (typeof toast === 'function') { toast(m); return; } } catch (_) {} if (bad) alert(m); };
   let busy = false;

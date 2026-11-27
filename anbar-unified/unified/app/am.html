@@ -127,7 +127,7 @@ const dmy=d=>{const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(d||'');return m?`${+m[3]}/
 const today=()=>new Date().toISOString().slice(0,10);
 const STATUS={new:['لم يباشر','p-new'],run:['قيد التنفيذ','p-run'],done:['منجز','p-done'],recv:['مستلم (صدرت شهادة الإنجاز)','p-recv'],stop:['متوقف / متلكئ','p-stop']};
 const DEF_SET={id:'am-settings',type:'s',maxCom:3,ceiling:500000000,advMax:100000000,recvMonths:3,
-  memoTo:'السيد نائب المحافظ للشؤون الفنية المحترم',orderSign:{hon:'',name:'',title:'محافظ الأنبار'},memoSign:{hon:'المهندس',name:'',title:'مدير قسم الشؤون الهندسية'},
+  memoTo:'السيد نائب المحافظ للشؤون الفنية المحترم',orderSign:{hon:'المهندس',name:'عمر مشعان دبوس',title:'محافظ الأنبار'},memoSign:{hon:'المهندس',name:'',title:'مدير قسم الشؤون الهندسية'},
   sectors:[]};
 let DB={version:1,records:[]};
 let TAB='dash',YEAR='all',F={q:'',dist:'',sector:'',status:'',flag:false,kind:'p'},ENG={only:true,over:false,q:''};
@@ -374,6 +374,9 @@ const DOCS={
   adv:{t:'مطالعة: طلب صرف سلفة للجنة التنفيذ',type:'memo'},
   stat:{t:'مطالعة: موقف المشروع (المرفوع والمصروف والإنجاز)',type:'memo'},
   add:{t:'أمر إداري: ملحق (تعديل أعضاء لجنة)',type:'order'}};
+/* جدول لجنة في الأمر الإداري كما في أوامر الشعبة: «المهندس/ الاسم» | رئيس اللجنة/عضواً | جهة العمل (تُكتب يدوياً) */
+const ordName=raw=>{const mi=memberInfo(raw);if(!mi.name)return '';return ({eng:'المهندس/ ',staff:'السيد/ ',tech:'الفني/ '}[mi.role]||'')+mi.name;};
+const ordTable=list=>({cols:['الاسم','الصفة','جهة العمل'],rows:(list.length?list:['','','']).map((r,i)=>[ordName(r),i===0?'رئيس اللجنة':'عضواً','']),serial:true,shade:'FFFFFF',fit:'full',sz:100,noHead:true});
 const memTable=(list,ttl)=>({cols:['الاسم','الصفة'],rows:(list.length?list:['','','']).map((r,i)=>[memberInfo(r).raw||'',i===0?'رئيساً':'عضواً']),serial:true,shade:'D9D9D9',fit:'full',sz:100,title:ttl});
 function buildDoc(p,kind){const s=S(),c=calc(p),B='…………',P_=p.name||B,amt=c.amt?`(${fm(c.amt)}) دينار (${tafqit(c.amt)} دينار)`:B,D=p.district||B,BEN=p.beneficiary||B;
   const REF='تعليمات تنفيذ الأعمال بأسلوب التنفيذ أمانة رقم (1) لسنة 2018 المعدلة بالتعليمات رقم (3) لسنة 2022';
@@ -383,9 +386,11 @@ function buildDoc(p,kind){const s=S(),c=calc(p),B='…………',P_=p.name||B,am
   if(kind==='memo'){o.s='مطالعة';o.to=s.memoTo;
     o.full=`م/ تنفيذ مشروع (${P_}) بأسلوب التنفيذ أمانة\nنظراً لحاجة ${BEN} إلى تنفيذ مشروع (${P_}) في قضاء (${D})، وقد أعدّت لجنة الكشف التخميني كشفاً بكلفة تخمينية مقدارها ${amt} وصادقت عليه لجنة التدقيق، وهي ضمن السقف المالي المحدد في المادة (1/أولاً/أ) من ${REF} البالغ (${fm(s.ceiling)}) دينار، ولتوفر الملاكات اللازمة ولضرورة سرعة التنفيذ بحسب مقتضيات المصلحة العامة.\nنقترح تنفيذ المشروع أعلاه بأسلوب التنفيذ أمانة، وتشكيل لجنة تنفيذ العمل أمانة من السادة المدرجة أسماؤهم في أدناه:\n[[جدول 1]]\nوتشكيل لجنة التسلم من السادة:\n[[جدول 2]]\nعلماً أن أعضاء اللجنتين غير مشتركين بأكثر من (${s.maxCom}) لجان وفق المادة (1/رابعاً/أ) من التعليمات أعلاه.\nللتفضل بالاطلاع والموافقة ... مع التقدير.`;
     o.tables=[memTable(p.exec||[],'لجنة التنفيذ'),memTable(p.recv||[],'لجنة التسلم')];o.signers=[Object.assign({},ms)];}
-  else if(kind==='order'){o.s=`تشكيل لجنة تنفيذ العمل أمانة ولجنة التسلم لمشروع (${P_})`;
-    o.full=`استناداً إلى الصلاحيات المخولة إلينا، وإلى أحكام المادتين (1) و(2) من ${REF}، ولمقتضيات المصلحة العامة، قرّرنا ما يأتي:\n1. تنفيذ مشروع (${P_}) في قضاء (${D}) لصالح (${BEN}) بأسلوب التنفيذ أمانة بكلفة تخمينية مقدارها ${amt}.\n2. تشكيل لجنة تنفيذ العمل أمانة من السادة المدرجة أسماؤهم في أدناه:\n[[جدول 1]]\n3. تشكيل لجنة التسلم من السادة المدرجة أسماؤهم في أدناه، وتباشر عملها عند مباشرة لجنة التنفيذ:\n[[جدول 2]]\n4. تُموَّل لجنة التنفيذ بسلف مالية لا تتجاوز (${fm(s.advMax)}) دينار للسلفة الواحدة وبما لا يتجاوز مبلغ العمل الكلي، تُعزَّز بمستندات أصولية متسلسلة مؤيدة من لجنتي التنفيذ والتسلم.\n5. تلتزم لجنة التنفيذ بإنجاز العمل بما لا يزيد على الكلفة المصدقة وخلال السنة المالية، وتتسلّم لجنة التسلم العمل خلال مدة لا تزيد على (${s.recvMonths}) أشهر من تاريخ إنجازه وتصدر شهادة إنجاز العمل.\n6. يُنفَّذ هذا الأمر من تاريخ صدوره.`;
-    o.tables=[memTable(p.exec||[],'لجنة التنفيذ'),memTable(p.recv||[],'لجنة التسلم')];o.signers=[Object.assign({},os)];o.cc=ccBase;}
+  else if(kind==='order'){o.s=`تشكيل لجنتي تنفيذ وتسلم مشروع (${P_})`;o.noSubj=true;
+    /* على نسق أوامر شعبة تنفيذ العمل أمانة الصادرة: ديباجة «لمقتضيات المصلحة العامة…»، «تقرر ما يلي»، جدولا اللجنتين (الاسم، الصفة، جهة العمل)، صرف المبلغ كتابةً، ونسخة منه الى */
+    o.full=`لمقتضيات المصلحة العامة واستناداً إلى الصلاحيات المخولة إلينا وبناءً على ما جاء بتعليمات تنفيذ الأعمال بأسلوب العمل أمانة رقم (3) لسنة 2022 .\nتقرر ما يلي:\n1- تشكيل لجان من السادة المدرجة أسماؤهم أدناه لتنفيذ وتسلم مشروع (${P_}${p.district?' / قضاء '+p.district:''}) بأسلوب تنفيذ العمل أمانة على أن تنهي اللجنة أعمالها خلال السنة المالية الحالية .\nلجنة تنفيذ العمل:\n[[جدول 1]]\nلجنة التسلم/ تباشر عملها عند مباشرة لجنة التنفيذ في مهامها\n[[جدول 2]]\n2- صرف مبلغ قدره (${c.amt?fm(c.amt):B}) ${c.amt?tafqit(c.amt):B} دينار فقط .\n3- ينفذ أمرنا من تاريخ صدوره .`;
+    o.tables=[ordTable(p.exec||[]),ordTable(p.recv||[])];o.signers=[Object.assign({},os)];
+    o.cc=['مكتب السيد المحافظ/ للتفضل بالاطلاع ...مع التقدير.','مكتب نائب المحافظ للشؤون الفنية/ للتفضل بالاطلاع ...مع التقدير.','مكتب معاون المحافظ للشؤون الفنية/ للتفضل بالاطلاع ...مع التقدير.','قسم الشؤون المالية/ لاتخاذ ما يلزم ...مع التقدير.','قسم التدقيق والرقابة الداخلية/ للعلم ...مع التقدير.','السادة رئيس وأعضاء لجنة تنفيذ وتسلم العمل/ لاتخاذ ما يلزم ...مع التقدير.',...(p.beneficiary?[`${BEN}/ للتفضل بالاطلاع ...مع التقدير.`]:[]),'الاضبارة مع الأوليات.'];}
   else if(kind==='adv'){const adv=p.advances||[],last=adv[adv.length-1],next=adv.length+1;o.s='مطالعة';o.to=s.memoTo;
     o.full=`م/ صرف السلفة (${next}) لمشروع (${P_})\nإشارةً إلى ${ordRef} المتضمن تنفيذ مشروع (${P_}) في قضاء (${D}) بأسلوب التنفيذ أمانة بمبلغ ${amt}.\nوبناءً على طلب لجنة التنفيذ، وحيث بلغ مجموع السلف المصروفة سابقاً (${fm(c.paid)}) دينار بنسبة صرف (${pc(c.fin)})، ونسبة الإنجاز الفعلي (${pc(c.prog)})، والمتبقي من مبلغ العمل (${fm(c.rem)}) دينار، مفصلة في أدناه:\n[[جدول 1]]\nنقترح صرف السلفة (${next}) بمبلغ (${B}) دينار لا يتجاوز (${fm(Math.min(s.advMax,Math.max(0,c.rem)))}) دينار وفق المادة (3/أولاً) من ${REF}، على أن تُعزَّز السلف السابقة بمستندات أصولية مؤيدة من لجنتي التنفيذ والتسلم.\nللتفضل بالاطلاع والموافقة ... مع التقدير.`;
     o.tables=[{cols:['رقم السلفة','التاريخ','المبلغ المرفوع','المبلغ المصروف','رقم الصك / المستند'],rows:adv.length?adv.map(a=>[a.no||'',dmy(a.date),fm(a.raised),fm(a.paid),a.cheque||'']).concat([['المجموع','',fm(c.raised),fm(c.paid),'']]):[['','','','','']],serial:false,shade:'D9D9D9',fit:'full',sz:95}];o.signers=[Object.assign({},ms)];void last;}
@@ -416,7 +421,7 @@ function checkHtml(p){const pm=people(),y=String(yearOf(p)),mx=S().maxCom;
 function docHtml(o,p){const tb=t=>`<table><thead><tr>${t.serial?'<th>ت</th>':''}${t.cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${t.rows.map((r,i)=>`<tr>${t.serial?`<td>${i+1}</td>`:''}${r.map(c=>`<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
   const body=esc(o.full).replace(/\[\[جدول (\d+)\]\]/g,(m,n)=>{const t=o.tables[+n-1];return t?'</p>'+tb(t)+'<p>':'';});const sg=o.signers[o.signers.length-1]||{};
   return `<div class="doc"><div class="hd"><div>جمهورية العراق<br>محافظة الأنبار<br>قسم الشؤون الهندسية</div><div>العدد : ${o.type==='order'&&p.orderNo?esc(p.orderNo):'&nbsp;'.repeat(12)}<br>التاريخ : ${o.type==='order'&&p.orderDate?dmy(p.orderDate):'&nbsp;&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;/ '+new Date().getFullYear()}</div></div>
-   <div class="ttl">${o.type==='order'?'(أمر إداري)':'(مطالعة)'}</div>${o.to?`<p><b>${esc(o.to)}</b></p>`:''}${o.s?`<p style="text-align:center"><b>م/ ${esc(o.s)}</b></p>`:''}<p>${body}</p>${o.closing?`<p style="text-align:center">${esc(o.closing)}</p>`:''}
+   <div class="ttl">${o.type==='order'?'(أمر إداري)':'(مطالعة)'}</div>${o.to?`<p><b>${esc(o.to)}</b></p>`:''}${o.s&&!o.noSubj?`<p style="text-align:center"><b>م/ ${esc(o.s)}</b></p>`:''}<p>${body}</p>${o.closing?`<p style="text-align:center">${esc(o.closing)}</p>`:''}
    <div class="sg">${sg.hon?esc(sg.hon)+'<br>':''}${esc(sg.name)||'&nbsp;'}<br>${esc(sg.title||'')}<br>&nbsp;&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;/ ${new Date().getFullYear()}</div>
    ${o.cc.length?`<div class="cc"><b>صورة عنه إلى :</b><ul>${o.cc.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:''}</div>`;}
 function letAct(a){const p=P().find(x=>x.id===LET.pid);if(!p)return;const o=buildDoc(p,LET.kind);

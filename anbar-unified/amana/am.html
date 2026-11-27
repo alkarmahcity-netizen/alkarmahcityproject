@@ -123,7 +123,7 @@ svg.map circle{stroke:#fff;stroke-width:.8;cursor:pointer}
 
 .sheet .dt{display:block;text-align:center;direction:ltr;unicode-bidi:embed;font-size:calc(10.5pt * var(--fsScale));color:#222;margin-top:0.6mm;line-height:1.1}
 
-.sheet{margin-bottom:12px;height:297mm;overflow:hidden}.sheet table.d td,.sheet table.s td{position:static;background-clip:padding-box}.sheet table.d td:not(.k):not(.k2){background:none}.sheet .hd .pname{font-size:10pt}.sheet .appr3{grid-template-columns:1fr 1fr 1fr;gap:4mm;margin-top:10mm}.sheet .appr3 div{min-height:48mm}
+.sheet{margin-bottom:12px;height:297mm;overflow:hidden}.sheet table.d td,.sheet table.s td{position:static;background-clip:padding-box}.sheet table.d td:not(.k):not(.k2){background:none}.sheet .hd .pname{font-size:10pt}.sheet .appr2{gap:4mm;margin-top:6mm}.sheet .appr3{grid-template-columns:1fr 1fr 1fr;gap:4mm;margin-top:4mm}.sheet .appr2 div,.sheet .appr3 div{min-height:34mm}
 
 /* ===== استمارة قرار لجنة تدقيق السلف — منقولة من استمارة السلف في برنامج القسم الهندسي (ad.html) ===== */
 .pg{--g:#1f6b3a;--g2:#e9f4ec;--au:#b08a2e;--bl:#2563a8;--ink:#14201a;--mu:#5a6b61;width:210mm;height:297mm;background:#fff;color:var(--ink);margin:0 auto 14px;position:relative;padding:8mm 11mm 13mm;box-shadow:0 3px 18px rgba(10,30,20,.25);font-family:var(--ff,Arial,'Helvetica Neue',sans-serif);font-size:calc(12.5px*var(--k,1)*var(--fz,1));line-height:calc(1.5*var(--lh,1));overflow:hidden;display:flex;flex-direction:column;gap:1.1mm}
@@ -918,7 +918,7 @@ function audAct(k,b){const {p,a}=audFind();if(!p||!a)return;const done=()=>{touc
 const CERT={pid:'',q:'',st:''};
 const CF=[['outNo','العدد (الصادر)'],['outDate','التاريخ','date'],['visitDate','تاريخ زيارة اللجنة','date'],['recvDate','تاريخ التسلم','date'],['location','موقع المشروع'],
   ['labTests','الفحوصات المختبرية','ta'],['brief','شرح موجز عن المشروع والأعمال المنفذة','ta'],['notes','ملاحظات اللجنة','ta'],['deductions','الأعمال غير المنجزة / الحذف والخصومات'],
-  ['handover','التسليم للجهة المستفيدة','ta'],['rec','توصيات اللجنة','ta'],['benefRep','مصادقة الجهة المستفيدة (الاسم)'],['engDir','مصادقة قسم الشؤون الهندسية (الاسم)'],['deputy','مصادقة نائب المحافظ للشؤون الفنية (الاسم)']];
+  ['handover','التسليم للجهة المستفيدة','ta'],['rec','توصيات اللجنة','ta'],['benefRep','مصادقة الجهة المستفيدة (الاسم)'],['divDir','مدير شعبة تنفيذ العمل أمانة (الاسم)'],['engDir','مدير قسم الشؤون الهندسية (الاسم)'],['asstGov','معاون المحافظ للشؤون الفنية (الاسم)'],['deputy','نائب المحافظ للشؤون الفنية (الاسم)']];
 function certTotals(p){let adv=0,acc=0,tests=[];(p.advances||[]).forEach(a=>{adv+=advAmt(a);(a.audit&&a.audit.receipts||[]).forEach(r=>{acc+=recAcc(r);});(a.audit&&a.audit.tests||[]).forEach(t=>tests.push(t));});
   const audited=(p.advances||[]).some(a=>a.audit);return {adv,acc,bal:adv-acc,audited,tests};}
 function certDefaults(p){const t=certTotals(p),BEN=p.beneficiary||'الجهة المستفيدة';
@@ -926,7 +926,7 @@ function certDefaults(p){const t=certTotals(p),BEN=p.beneficiary||'الجهة ا
   return {location:[p.district,p.sector].filter(Boolean).join(' / '),labTests:tl,
     handover:`سُلِّم المشروع الى ${BEN} بكافة مرفقاته وحسب الكشف المصادق والأعمال المنفذة فعلاً.`,
     rec:`توصي اللجنة بتسلم العمل المنفذ بأسلوب التنفيذ أمانة وإصدار شهادة إنجاز العمل وإرسال نسخة منها الى قسم الشؤون المالية لتسوية حساب السلف، وإبراء ذمة لجنة تنفيذ العمل من أموال الدولة اعتباراً من تاريخ التسلم.`};}
-function certObj(p){if(!p.cert){const s=DB.records.find(r=>r.id==='am-settings');s.certSerial=(+s.certSerial||0)+1;s.updated=Date.now();p.cert=Object.assign({serial:'AM-'+new Date().getFullYear()+'-'+String(s.certSerial).padStart(4,'0'),status:'draft',outNo:'',outDate:'',visitDate:'',recvDate:'',deductions:'لا يوجد',brief:'',notes:'',benefRep:'',engDir:'',deputy:''},certDefaults(p));}return p.cert;}
+function certObj(p){if(!p.cert){const s=DB.records.find(r=>r.id==='am-settings');s.certSerial=(+s.certSerial||0)+1;s.updated=Date.now();p.cert=Object.assign({serial:'AM-'+new Date().getFullYear()+'-'+String(s.certSerial).padStart(4,'0'),status:'draft',outNo:'',outDate:'',visitDate:'',recvDate:'',deductions:'لا يوجد',brief:'',notes:'',benefRep:'',divDir:'',engDir:'',asstGov:'',deputy:''},certDefaults(p));}return p.cert;}
 function certFlags(p){const c=p.cert||{},t=certTotals(p),f=[];
   if(!p.doneDate)f.push('أدخل تاريخ الإنجاز في بطاقة المشروع');
   if(p.doneDate&&c.recvDate){const d=(new Date(c.recvDate)-new Date(p.doneDate))/864e5;if(d>S().recvMonths*30.4)f.push(`التسلم بعد ${Math.round(d)} يوماً من الإنجاز — التعليمات: خلال ${S().recvMonths} أشهر (م2/رابعاً/ج)`);if(d<0)f.push('تاريخ التسلم قبل تاريخ الإنجاز');}
@@ -993,7 +993,8 @@ function certPages(p){const c=p.cert,t=certTotals(p),B='........................
     <table class="d">${rows1.join('')}</table>${sigRow(false)}${foot(1,3)}</div>`;
   const p2=`<div class="sheet">${hd}<p class="subj" style="font-size:calc(11pt * var(--fsScale));margin:0 0 2mm;color:var(--navy2)">تتمة بيانات المحضر (من الصفحة 1):-</p><table class="d">${rows2.join('')}</table>${okLine}${sigRow(false)}${foot(2,3)}</div>`;
   const p3=`<div class="sheet">${hd}<p class="subj" style="font-size:calc(12.5pt * var(--fsScale));margin:0 0 3mm">تواقيع لجنة التسلم والمصادقات — مشروع ( ${v(p.name,30)} )</p>${sigRow(true)}
-    <div class="appr big compact appr3">${box('مصادقة الجهة المستفيدة من المشروع',c.benefRep,'اسم مدير الدائرة وتوقيعه')}${box('مصادقة قسم الشؤون الهندسية في ديوان محافظة الأنبار',c.engDir)}${box('مصادقة السيد نائب المحافظ للشؤون الفنية',c.deputy)}</div>${foot(3,3)}</div>`;
+    <div class="appr big compact appr2">${box('مصادقة الجهة المستفيدة من المشروع',c.benefRep,'اسم مدير الدائرة وتوقيعه')}${box('مدير شعبة تنفيذ العمل أمانة',c.divDir)}</div>
+    <div class="appr big compact appr3">${box('مدير قسم الشؤون الهندسية',c.engDir)}${box('السيد معاون المحافظ للشؤون الفنية',c.asstGov)}${box('السيد نائب المحافظ للشؤون الفنية',c.deputy)}</div>${foot(3,3)}</div>`;
   return p1+p2+p3;}
 function fitSheets(root){root.querySelectorAll('.sheet').forEach(sh=>{let k=1;sh.style.setProperty('--fsScale',k);const H=sh.clientHeight;for(let n=0;n<30&&sh.scrollHeight>H+1&&k>0.7;n++){k-=0.02;sh.style.setProperty('--fsScale',k.toFixed(2));}});}
 function certPreview(p){const d=document.createElement('div');d.className='modal';d.innerHTML=`<div class="box" style="width:auto;background:#d9dee8"><div class="row" style="margin-bottom:8px"><button class="pri" data-x="print">🖨 طباعة</button>${DESK&&DESK.pdf?'<button data-x="pdf">💾 PDF</button>':''}<button data-x="close">إغلاق</button><span class="hint">ثلاث صفحات: البيانات، تتمة البيانات، التواقيع والمصادقات.</span></div><div id="pvPages" class="certWrap">${certPages(p)}</div></div>`;

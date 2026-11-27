@@ -1,7 +1,7 @@
 {
   "name": "anbar-amana",
   "productName": "مشاريع التنفيذ أمانة",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "مشاريع التنفيذ أمانة — لجان التنفيذ والتسلم، المبالغ، المهندسون، السلف وتدقيقها، الإحداثيات، المخاطبات — محافظة الأنبار",
   "author": "Engineering Affairs Department - Anbar",
   "main": "main.js",

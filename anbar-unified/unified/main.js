@@ -47,10 +47,6 @@ const APPS = {
   /* التقارير الشهرية لدوائر المقيم: يملؤها المقيمون على هواتفهم (تطبيق Google Apps Script) ويصل منها اسم المشروع والشركة والقضاء وملف PDF؛
      تُجلب الى هنا وتُربط برقم الاضبارة من الموقف العام (رقم العقد ثم اسم المشروع). تُحفظ وتُزامن مع لوحة معلومات */
   mr: { title: 'تقارير دوائر المهندس المقيم الشهرية', file: 'app/mr.html', data: 'MonthlyReports-Data.json' },
-  /* مشاريع التنفيذ أمانة: مشاريع تنفذها لجان تنفيذ ولجان تسلّم (لا شركات) — المبالغ لكل مشروع وقضاء وقطاع، المهندسون المضافون في لجان التنفيذ أكثر من 3 مرات في السنة،
-     السلف المصروفة، الإحداثيات، وموقف Excel. مخاطباتها (المطالعة والأمر الإداري) في محرر المخاطبات نفسه بوضع aml وملف بيانات مستقل */
-  am: { title: 'مشاريع التنفيذ أمانة', file: 'app/am.html', data: 'AmanaProjects-Data.json' },
-  aml: { title: 'مخاطبات مشاريع التنفيذ أمانة', file: 'app/lt.html', query: { ltm: 'aml' }, data: 'AmanaLetters-Data.json', parent: 'am' },
   /* اللجنة المركزية للمصادقة: برنامج المدد نفسه بوضع «المركزية» (?zc=1) بملف بيانات وكلمة سر مستقلين — تصله إحالات المدد (تجاوز 25%)
      ومقررها يصدر قرار المركزية ويعيده الى برنامج المدد لإصدار الأمر الإداري */
   zc: { title: 'اللجنة المركزية للمصادقة', file: 'app/du.html', query: { zc: '1' }, data: 'CentralCommittee-Data.json' },
@@ -296,7 +292,7 @@ setInterval(async () => {
 }, +process.env.UNI_AC_POLL_MS || 4000);
 
 /* ---------------- IPC ---------------- */
-const okId = id => ['co', 'du', 'ad', 'in', 'lt', 'fu', 'ar', 'dm', 'cm', 'fv', 'mr', 'zc', 'am', 'aml'].includes(id);
+const okId = id => ['co', 'du', 'ad', 'in', 'lt', 'fu', 'ar', 'dm', 'cm', 'fv', 'mr', 'zc'].includes(id);
 ipcMain.on('data:load', (e, id) => { e.returnValue = okId(id) ? readData(id) : null; });
 ipcMain.on('data:path', (e, id) => { e.returnValue = okId(id) ? dataFile(id) : ''; });
 ipcMain.on('data:dir', e => { e.returnValue = dataDir; });
@@ -1021,7 +1017,7 @@ function external(wc) {
 function ensureView(id) {
   if (views[id]) return views[id];
   const a = APPS[id];
-  const wp = { contextIsolation: true, nodeIntegration: false, sandbox: false, spellcheck: id === 'lt' || id === 'fu' || id === 'dm' || id === 'cm' || id === 'aml' };
+  const wp = { contextIsolation: true, nodeIntegration: false, sandbox: false, spellcheck: id === 'lt' || id === 'fu' || id === 'dm' || id === 'cm' };
   if (a.file) { wp.preload = path.join(__dirname, 'preload.js'); wp.additionalArguments = ['--app-id=' + id]; }
   else if (id === 'ac') wp.preload = path.join(__dirname, 'preload-ac.js');
   const v = new BrowserView({ webPreferences: wp });
@@ -1036,7 +1032,7 @@ function ensureView(id) {
   /* كاتب Excel المشترك لأوامر التغيير («⬇ حفظ المراجعة (Excel)») */
   if (id === 'co') v.webContents.on('did-finish-load', () => { try { v.webContents.executeJavaScript(fs.readFileSync(path.join(__dirname, 'shell', 'xlwriter.js'), 'utf8') + ';1').catch(e => logError('xlw-co', String(e && e.message || e))); } catch (_) {} });
   /* «☁ إصدار ورفع إلى Drive» في المخاطبات والمطالعات والسلف والمدد وتقارير الزيارة (gdissue.js) */
-  if (['lt', 'dm', 'cm', 'co', 'ad', 'du', 'fv', 'zc', 'aml'].includes(id)) v.webContents.on('did-finish-load', () => { try { const js = fs.readFileSync(path.join(__dirname, 'gdissue.js'), 'utf8').replace("'__SYS__'", JSON.stringify(id)); v.webContents.executeJavaScript(js).catch(e => logError('gdissue-' + id, String(e && e.message || e))); } catch (_) {} });
+  if (['lt', 'dm', 'cm', 'co', 'ad', 'du', 'fv', 'zc'].includes(id)) v.webContents.on('did-finish-load', () => { try { const js = fs.readFileSync(path.join(__dirname, 'gdissue.js'), 'utf8').replace("'__SYS__'", JSON.stringify(id)); v.webContents.executeJavaScript(js).catch(e => logError('gdissue-' + id, String(e && e.message || e))); } catch (_) {} });
   /* نظام الاستلام: لقطة الشهادات للوحة + تنبيه رمز QR عند الإصدار (acaddon.js) — يُحقن في كل صفحة من صفحاته */
   if (id === 'ac') v.webContents.on('did-finish-load', () => { try { const js = fs.readFileSync(path.join(__dirname, 'acaddon.js'), 'utf8'); v.webContents.executeJavaScript(js).catch(e => logError('acaddon', String(e && e.message || e))); } catch (_) {} });
   v.webContents.on('before-input-event', touchActivity);
@@ -1095,7 +1091,7 @@ async function go(id, fileNo) {
    ويُعاد تحميله من ملف بياناته عند الرجوع إليه (أقل من ثانية). لا يشمل النظام المعروض، ولا الاستلام، ولا نظاماً يكتب الآن.
    الحفظ قبل التفريغ بالمسار نفسه الذي يحفظ به كل نظام عند إغلاق البرنامج (beforeunload ← حفظ متزامن). */
 const UNLOAD_MS = +process.env.UNI_UNLOAD_MS || 15 * 60 * 1000;
-const UNLOADABLE = new Set(['co', 'du', 'ad', 'in', 'lt', 'fu', 'ar', 'dm', 'cm', 'fv', 'mr', 'zc', 'am', 'aml']);
+const UNLOADABLE = new Set(['co', 'du', 'ad', 'in', 'lt', 'fu', 'ar', 'dm', 'cm', 'fv', 'mr', 'zc']);
 const viewLeft = {};
 const unloadOn = () => !prefs().unloadOff;
 /* ---------------- ملخص الموقف من السلف وأوامر التغيير ----------------
@@ -1155,7 +1151,7 @@ async function acEval(code) {
 }
 function appliedHook(ds) {
   try {
-    if (['co', 'du', 'ad', 'in', 'lt', 'fu', 'ar', 'dm', 'cm', 'fv', 'mr', 'zc', 'am', 'aml'].includes(ds) && views[ds]) views[ds].webContents.executeJavaScript('window.__syncReload&&window.__syncReload()').catch(() => {});
+    if (['co', 'du', 'ad', 'in', 'lt', 'fu', 'ar', 'dm', 'cm', 'fv', 'mr', 'zc'].includes(ds) && views[ds]) views[ds].webContents.executeJavaScript('window.__syncReload&&window.__syncReload()').catch(() => {});
     if (LINK_SYS.includes(ds) && !views[ds]) refreshLinksSoon(ds);   /* بيانات وصلت والنظام غير محمّل: يُحدَّث ملخص الموقف في الخلفية */
     if (ds === 'ac' && views.ac && current !== 'ac') views.ac.webContents.reload();
     if (ds === 'arf' && views.ar) views.ar.webContents.executeJavaScript('window.__filesArrived&&window.__filesArrived()').catch(() => {});
@@ -1425,7 +1421,7 @@ function viewerStart() {
 
 /* الأنظمة التي تُصدر مستنداتها مع رفع PDF إلى Drive (مجلد لكل نظام) */
 const GD_SYS = { ac: 'شهادات الاستلام — قسم الشؤون الهندسية', lt: 'المخاطبات والمطالعات — قسم الشؤون الهندسية', dm: 'مطالعات لجنة المدد — قسم الشؤون الهندسية', cm: 'مطالعات لجنة أوامر التغيير — قسم الشؤون الهندسية',
-  co: 'لجنة أوامر التغيير — قسم الشؤون الهندسية', du: 'المدد والتوقف — قسم الشؤون الهندسية', ad: 'لجنة تدقيق السلف — قسم الشؤون الهندسية', fv: 'تقارير زيارة مشاريع التنفيذ أمانة — قسم الشؤون الهندسية', zc: 'قرارات اللجنة المركزية للمصادقة — قسم الشؤون الهندسية', aml: 'مخاطبات مشاريع التنفيذ أمانة — قسم الشؤون الهندسية' };
+  co: 'لجنة أوامر التغيير — قسم الشؤون الهندسية', du: 'المدد والتوقف — قسم الشؤون الهندسية', ad: 'لجنة تدقيق السلف — قسم الشؤون الهندسية', fv: 'تقارير زيارة مشاريع التنفيذ أمانة — قسم الشؤون الهندسية', zc: 'قرارات اللجنة المركزية للمصادقة — قسم الشؤون الهندسية' };
 const gdSys = e => (ZCAPP ? (win && e.sender === win.webContents && unlocked.has('zc') ? 'zc' : '') : Object.keys(GD_SYS).find(id => views[id] && e.sender === views[id].webContents && isOpen(id)) || '');
 const gdFrom = e => !!gdSys(e) || (win && e.sender === win.webContents && (!ZCAPP || unlocked.has('zc'))) || (!ZCAPP && !!views.zc && e.sender === views.zc.webContents && isOpen('zc'));
 ipcMain.handle('gd:status', e => (gdFrom(e) ? gdEnsure().status() : null));
@@ -1511,7 +1507,7 @@ const uiTheme = () => { const t = prefs().uiTheme; return t === 'classic' ? 'cla
 ipcMain.on('ui:theme', e => { e.returnValue = uiTheme(); });
 function setUiTheme(t) { try { const p = prefs(); p.uiTheme = t; atomicWrite(prefsFile(), JSON.stringify(p)); } catch (_) {} try { if (win && !win.isDestroyed()) win.webContents.executeJavaScript(`window.SoftUi&&SoftUi.set(${JSON.stringify(t)})`).catch(() => {}); } catch (_) {} }
 /* المظهر الزجاجي الخفيف (shell/glass.css) بدل الخلفية الصفراء: للواجهة والأنظمة ذات الخلفية الصفراء فقط (لا الاستلام ولا الأرشيف) */
-const GLASS_IDS = new Set(['co', 'du', 'ad', 'in', 'lt', 'fu', 'dm', 'cm', 'zc', 'aml']);
+const GLASS_IDS = new Set(['co', 'du', 'ad', 'in', 'lt', 'fu', 'dm', 'cm', 'zc']);
 let GLASS_CSS = null; const glassOn = () => !prefs().glassOff;
 function applyGlass(wc, force) { try { if (!wc || wc.isDestroyed()) return;
   if (GLASS_CSS == null) { try { GLASS_CSS = fs.readFileSync(path.join(__dirname, 'shell', 'glass.css'), 'utf8'); } catch (_) { GLASS_CSS = ''; } }

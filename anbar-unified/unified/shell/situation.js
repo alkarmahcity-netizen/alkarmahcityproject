@@ -116,6 +116,35 @@ const ov=p=>{try{p=window.PlanLink?PlanLink.apply(p):p;}catch(_){}try{p=window.F
   /* نسب الإنجاز المعتمدة من التقرير الشهري (قرار القسم في بطاقة المشروع) — تبقى حتى يُستورد ملف موقف أحدث منها */
   try{const m=p&&AnbarReg.getMeta(p.fileNo);if(m&&+m.mrPctAt>(+AnbarReg.state().projectsAt||0)){const o={_mrPct:m.mrPctMonth||'1'};if(has(m.mrAct))o.actualPct=m.mrAct;if(has(m.mrPlan))o.planPct=m.mrPlan;p=Object.assign({},p,o);}}catch(_){}
   return p;};
+/* ===== المشاريع المتلكئة — حسب تعليمات تنفيذ العقود العامة رقم (1) لسنة 2025 وضوابطها وضوابط تنفيذ العقود الحكومية رقم (2) لسنة 2014 =====
+   متلكئ: الانحراف (المخطط − الفعلي) أكثر من 20% و: المصروف يساوي المرفوع، أو لم تُرفع سلفة (المرفوع صفر).
+   لا يُعدّ متلكئاً: عدم تسليم الموقع، إشغال الموقع من جهة أخرى، تأخر إصدار أمر تغيير، تأخر صرف المستحقات (ومنه: مرفوع غير مصروف).
+   الأسباب تُقرأ من الحالة والإجراءات القانونية والملاحظات، أو يختارها القسم في بطاقة المشروع (meta.tlkEx). */
+const TLK_EX={site:'عدم تسليم الموقع',occ:'إشغال الموقع من جهة أخرى',co:'تأخر إصدار أمر تغيير',dues:'تأخر صرف المستحقات'};
+const TLK_RX=[['site',/(عدم|لم\s*يتم|لم\s*ي?سلم|بانتظار|تأخر|تاخر)\s*(استلام|تسليم)\s*(ال)?موقع|الموقع\s*غير\s*مسلم/],['occ',/[اإ]شغال\s*(ال)?موقع|الموقع\s*مشغول|شغل\s*(ال)?موقع|تجاوز(ات)?\s*على\s*(ال)?موقع/],
+  ['co',/(تأخر|تاخر|انتظار|بانتظار|عدم)\s*(اصدار|إصدار|صدور|المصادقة\s*على)?\s*(امر|أمر|اوامر|أوامر)\s*(ال)?(تغيير|غيار)/],['dues',/(عدم|تأخر|تاخر|بانتظار|لعدم)\s*صرف\s*(ال)?(مستحقات|سلف)|مستحقات\s*(ال)?شركة\s*غير\s*مصروفة/]];
+function tlkOf(p){if(!p||!has(p.actualPct)||!has(p.planPct))return null;const lag=num(p.planPct)-num(p.actualPct);if(!(lag>20))return null;
+  if(stKind(p.status)==='ok'||num(p.actualPct)>=100||/سحب\s*العمل|مسحوب/.test(String(p.status||'')))return null;
+  const raised=num(p.advRaised),paid=num(p.advPaid),tol=Math.max(1000,Math.abs(raised)*0.001),o={lag,raised,paid,on:false,rule:'',ex:'',exBy:''};
+  if(raised>0&&paid<raised-tol){o.ex='dues';o.exBy='auto';o.note='مرفوع غير مصروف '+money(raised-paid);return o;}   // تأخر صرف المستحقات
+  o.rule=raised<=0?'zero':'equal';
+  let m={};try{m=AnbarReg.getMeta(p.fileNo)||{};}catch(_){}
+  if(m.tlkEx&&TLK_EX[m.tlkEx]){o.ex=m.tlkEx;o.exBy='manual';return o;}
+  const txt=[p.status,p.legal,p.notes,...Object.values(p.more||{})].map(x=>String(x==null?'':x)).join(' ');
+  for(const [k,rx] of TLK_RX)if(rx.test(txt)){o.ex=k;o.exBy='auto';return o;}
+  o.on=true;return o;}
+const tlkOn=p=>{const t=tlkOf(p);return !!(t&&t.on);};
+function tlkBox(p){const t=tlkOf(p);if(!t)return '';const fn=esc(String(p.fileNo)),why=`الانحراف ${pc(t.lag)}% (المخطط ${pc(p.planPct)}% — الفعلي ${pc(p.actualPct)}%)`;
+  const REF='حسب تعليمات تنفيذ العقود العامة رقم (1) لسنة 2025 وضوابطها وضوابط تنفيذ العقود الحكومية رقم (2) لسنة 2014';
+  if(t.on)return `<div class="tlkbox"><b>⚠ مشروع متلكئ **</b> — ${REF}: ${why} أكثر من 20%، و${t.rule==='zero'?'لم تُرفع سلفة للمشروع (المرفوع صفر)':'المصروف يساوي المرفوع'}.
+    <div class="tlkact"><b>يجب إكمال الإجراءات القانونية بحق الشركة.</b>${p.legal&&p.legal!=='-'?` <span class="co">الإجراءات المسجلة في الموقف: ${esc(p.legal)}</span>`:''}</div>
+    <div class="tlkex"><span class="co">لا يُعدّ متلكئاً إن كان السبب:</span> ${Object.entries(TLK_EX).filter(([k])=>k!=='dues'||t.rule==='zero'||true).map(([k,l])=>`<button class="btn sm" data-tlkex="${k}" data-fn="${fn}">${l}</button>`).join('')}</div></div>`;
+  return `<div class="tlkno">ℹ ${why} أكثر من 20% — <b>لا يُعدّ متلكئاً</b>: ${esc(TLK_EX[t.ex]||'')}${t.note?' ('+esc(t.note)+')':''}${t.exBy==='manual'?' — باختيار القسم <button class="btn sm" data-tlkex="-" data-fn="'+fn+'">إلغاء</button>':t.exBy==='auto'&&t.ex!=='dues'?' — من نص الحالة/الملاحظات':''}.</div>`;}
+document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-tlkex]');if(!b)return;const fn=b.dataset.fn,k=b.dataset.tlkex;
+  if(k!=='-'&&!confirm(`تسجيل أن المشروع لا يُعدّ متلكئاً بسبب: «${TLK_EX[k]}»؟`))return;
+  try{AnbarReg.setMeta(fn,{tlkEx:k,tlkExAt:Date.now()});window.desktop&&window.desktop.auditNote&&window.desktop.auditNote('sit','tlk',k==='-'?`إلغاء استثناء التلكؤ لمشروع الاضبارة ${fn}`:`مشروع الاضبارة ${fn} لا يُعدّ متلكئاً: ${TLK_EX[k]}`);}catch(err){flash('تعذّر الحفظ: '+(err.message||err),true);return;}
+  try{if(typeof render==='function')render();}catch(_){}try{drawer(fn);}catch(_){}});
+{const st=document.createElement('style');st.textContent='.tlkbox{margin:8px 0;padding:9px 11px;border:1.5px solid #b42318;background:#fdecea;border-radius:9px;color:#7a1a12}.tlkbox .tlkact{margin-top:5px}.tlkbox .tlkex{margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}.tlkno{margin:8px 0;padding:7px 10px;border:1px dashed #8a968f;border-radius:8px;color:#4b5550;background:#f6f8f7}.chip.tlk{background:#b42318;color:#fff;margin-inline-start:4px}';document.head.appendChild(st);}
 function rows(){const S=AnbarReg.state();return S.projects.filter(inCom).map(p0=>{const p=ov(p0);const L=S.links[p.fileNo]||{};
   const total=num(p.total)||num(p.orig),dev=has(p.actualPct)&&has(p.planPct)?num(p.actualPct)-num(p.planPct):null;
   const sys=[];
@@ -160,6 +189,7 @@ function kpis(R,S){const P=R.map(r=>r.p),n=P.length,FV=finVis();
   return [k('مشروع في الموقف',n,brkHtml),
     kf('مبالغ أوامر التغيير (دينار)',`<span title="${money(chg)}">${compact(chg)}</span>`,`${P.filter(p=>num(p.changeCost)).length} مشروع بأوامر تغيير — ${num(sum(p=>p.orig))?pc(chg/num(sum(p=>p.orig))*100):0}% من الكلفة الأصلية`,'warn'),
     kf('إجمالي كلفة العقود (دينار)',`<span title="${money(totalCost)}">${compact(totalCost)}</span>`,`أوامر التغيير: ${chg>=0?'+':''}${money(chg)}`,'gold'),
+    (()=>{const nt=P.filter(tlkOn).length;return `<div class="kpi ${nt?'bad':''}" data-kfx="tlk" style="cursor:pointer" title="عرض المشاريع المتلكئة"><span>متلكئة حسب الضوابط</span><b>${nt}</b><small>انحراف أكثر من 20% مع صرف كل المرفوع أو بلا سلفة — اضغط للعرض</small></div>`;})(),
     k('متوسط الانجاز الفعلي',pc(avgAct)+'%',`المخطط ${pc(avgPl)}% — الفرق ${pc(avgAct-avgPl)}%`,avgAct<avgPl?'warn':'blue'),
     kf('السلف المرفوعة (دينار)',`<span title="${money(raised)}">${compact(raised)}</span>`,`${money(raised)} — ${P.filter(p=>num(p.advRaised)>0).length} مشروع (من الموقف)`,'blue'),
     kf('السلف المصروفة (دينار)',`<span title="${money(paid)}">${compact(paid)}</span>`,`${money(paid)}${raised?` — ${pc(paid/raised*100)}% من المرفوعة`:''}`,'ok'),
@@ -181,7 +211,7 @@ function filtered(R){const q=($q('q').value||'').trim().toLowerCase(),fs=$q('fs'
   const EV=engVis();let f=R.filter(r=>{const p=r.p;if(q&&![p.fileNo,p.name,p.contractor,p.contractNo,EV?p.resident:'',p.residentOffice,p.status,EV?AnbarReg.supText(p.fileNo):''].join(' ').toLowerCase().includes(q))return false;
     if(fs&&p.status!==fs)return false;if(ff&&fundGroup(p.fund)!==ff)return false;if(fz&&sectorOf(p)!==fz)return false;
     if(fx==='co'&&!r.L.co)return false;if(fx==='du'&&!r.L.du)return false;if(fx==='ad'&&!r.L.ad)return false;if(fx==='ac'&&!(r.L.ac&&r.L.ac.records))return false;
-    if(fx==='bad'&&!r.bad)return false;if(fx==='mis'&&!r.iss.length)return false;if(fx==='none'&&r.sys.length)return false;return true;});
+    if(fx==='tlk'&&!tlkOn(p))return false;if(fx==='bad'&&!r.bad)return false;if(fx==='mis'&&!r.iss.length)return false;if(fx==='none'&&r.sys.length)return false;return true;});
   const cmp={fileNo:(a,b)=>num(a.p.fileNo)-num(b.p.fileNo),name:(a,b)=>String(a.p.name).localeCompare(String(b.p.name),'ar'),cost:(a,b)=>b.total-a.total,
     act:(a,b)=>(has(a.p.actualPct)?num(a.p.actualPct):999)-(has(b.p.actualPct)?num(b.p.actualPct):999),late:(a,b)=>{const x=planDays(a.p),y=planDays(b.p);return (y==null?-1e9:y)-(x==null?-1e9:x);},dev:(a,b)=>(a.dev==null?999:a.dev)-(b.dev==null?999:b.dev)}[so];
   if(cmp)f=f.slice().sort(cmp);return f;}
@@ -194,7 +224,7 @@ function table(f){
     <td><div class="pn">${esc(p.name)}</div><div class="co">${esc(p.contractor||'')}${p.contractNo?' — عقد '+esc(p.contractNo)+(p.year?'/'+esc(p.year):''):''}${p.sector?' — القطاع: '+esc(p.sector):''}${p.district?' — '+esc(p.district)+(p.sub?' / '+esc(p.sub):''):''}</div></td>
     <td class="n"><b>${money(r.total)}</b>${num(p.changeCost)?`<br><span class="co">أوامر التغيير ${num(p.changeCost)>0?'+':''}${money(p.changeCost)}</span>`:''}</td>
     <td style="min-width:130px">${progress(p)}${p.planEnd?`<div class="pdays${planDays(p)>0&&stKind(p.status)!=='ok'?' late':''}" title="تاريخ الإنجاز المخطط ${esc(planDate(p))}">المخطط ${esc(planDate(p))}${planDays(p)!=null?' — '+planDaysTxt(p,1):''}</div>`:''}</td>
-    <td><span class="chip ${stKind(p.status)}">${esc(p.status||'—')}</span>${p.legal&&p.legal!=='-'?`<div class="co">${esc(p.legal)}</div>`:''}</td>
+    <td><span class="chip ${stKind(p.status)}">${esc(p.status||'—')}</span>${tlkOn(p)?'<span class="chip tlk" title="متلكئ حسب الضوابط: الانحراف أكثر من 20% — يجب إكمال الإجراءات القانونية بحق الشركة">متلكئ **</span>':''}${p.legal&&p.legal!=='-'?`<div class="co">${esc(p.legal)}</div>`:''}</td>
     <td class="n">${num(p.advRaised)||num(p.advPaid)?`مرفوعة ${money(p.advRaised)}<br>مصروفة ${money(p.advPaid)}${num(p.advRaised)?` <span class="co">(${pc(num(p.advPaid)/num(p.advRaised)*100)}%)</span>`:''}${finDiff(p)?`<br><span class="co" style="color:#b45309">المالية: ${p._finXl.raised!=null&&Math.round(p._finXl.raised)!==Math.round(num(p.advRaised))?'مرفوعة '+money(p._finXl.raised)+' ':''}${p._finXl.paid!=null&&Math.round(p._finXl.paid)!==Math.round(num(p.advPaid))?'مصروفة '+money(p._finXl.paid):''}</span>`:''}`:finCell(p)}</td>
     <td>${EVt?`<div>${esc(p.resident||'—')}</div>`:`<div class="co" data-finshow="1" style="cursor:pointer" title="كلمة سر المدير">🔒 مخفي</div>`}<div class="co">${esc(p.residentOffice||'')}</div>${EVt&&AnbarReg.supText(p.fileNo)?`<div class="co">المشرفون: ${esc(AnbarReg.supText(p.fileNo))}</div>`:''}</td>
     <td>${r.sys.length?r.sys.map(([a,t,k])=>`<span class="pill ${k}" data-app="${a}">${esc(t)}</span>`).join(''):'<span class="co">لا سجل</span>'}</td></tr>`;}).join('')}</tbody></table>`;}
@@ -229,6 +259,7 @@ function drawer0(fn){const S=AnbarReg.state(),p=ov(S.projects.find(x=>String(x.f
   const el=$q('drawer');
   el.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px"><div><h2>${esc(p.name)}</h2><div class="co">اضبارة ${esc(p.fileNo)} — ${esc(p.contractor||'')}</div></div><div class="dact"><button class="btn sm" data-dp="print" title="طباعة موقف هذا المشروع">🖨 طباعة</button><button class="btn sm" data-dp="pdf" title="حفظ موقف هذا المشروع PDF">📄 PDF</button><button class="btn sm" data-dp="copy" title="نسخ موقف المشروع نصاً للصقه في واتساب أو Word">📋 نسخ</button><button class="btn sm" data-dp="pick" title="إضافة المشروع إلى المشاريع المحددة (لطباعة عدة مشاريع معاً)">${picked.has(String(fn))?'☑ محدد':'☐ تحديد'}</button><button class="btn sm" id="dClose">✕ إغلاق</button></div></div>
    ${(()=>{const PD=[],AK=[],I=issuesOf(p,L,total,PD,AK);return (AK.length?`<div class="issbox" style="border-color:#8a968f;background:rgba(138,150,143,.07)"><b style="color:#5b6660">✔ فروقات تحققتَ منها — لا تُعدّ خللاً (${AK.length})</b><ul>${AK.map(x=>`<li style="color:#5b6660">${esc(x[1])} <button class="btn sm" data-unack="${esc(p.fileNo)}" data-h="${issH(x)}">إلغاء</button></li>`).join('')}</ul></div>`:'')+(PD.length?`<div class="issbox" style="border-color:#1f4fa0;background:rgba(31,79,160,.06)"><b style="color:#1f4fa0">⏳ قيد الإنجاز — ليس خللاً (${PD.length})</b><ul>${PD.map(x=>`<li>${esc(x[1])}</li>`).join('')}</ul></div>`:'')+(I.length?`<div class="issbox"><b>⚠ خلل بين الموقف والأنظمة (${I.length})</b><ul>${I.map(x=>`<li>${esc(x[1])} <button class="btn sm" data-ack="${esc(p.fileNo)}" data-h="${issH(x)}" title="تحققتَ من الموقف والنظام ووجدت الرقمين صحيحين: يُخفى هذا الفرق لهذا المشروع، ويعود إن تغيّر أي رقم فيه">✔ تحققتُ — تجاهل هذا الفرق</button></li>`).join('')}</ul></div>`:`<div class="issok">✔ الموقف مطابق لما في لجنة السلف وأوامر التغيير والمدد والاستلام</div>`);})()}
+   ${tlkBox(p)}
    ${photosSec(p)}${mrPhSec(p)}
    <h5 class="vwsys">ملخص الأنظمة</h5><div class="dg vwsys">${d('سلف لجنة التدقيق',L.ad?L.ad.count+' سلفة — التراكمي '+money(L.ad.cumulative)+(((L.ad.files||[]).length>1)?` — ⚠ للمشروع ${(L.ad.files||[]).length} ملفات: `+(L.ad.files||[]).map(f=>`${f.count} سلفة آخر تراكمي ${money(f.cumulative)}${f.legacy?' (مستورد)':''}`).join('، '):''):(num(p.advRaised)>0?'لا ملف في لجنة التدقيق (لا يمكن مطابقة السلف المرفوعة)':'لا ملف'))}${L.ad?adSrc(fn,p):''}${d(p._finXl?'السلف المرفوعة / المصروفة (مصححة من ملف المالية)':'السلف المرفوعة / المصروفة (الموقف)',money(p.advRaised)+' / '+money(p.advPaid))}${d('أوامر التغيير',L.co?L.co.orders+' أمر — صافي '+money(L.co.changeCost)+((L.co.alts||[]).length?` — ⚠ للمشروع ${(L.co.alts||[]).length+1} ملفات: `+(L.co.alts||[]).map(a=>`${a.orders} أمر بصافي ${money(a.changeCost)}${a.legacy?' (مستورد)':''}`).join('، '):''):'لا ملف')}${d('المدد والتوقف',L.du?(DU_L[L.du.status]||L.du.status||'')+(L.du.ext?' — '+money(L.du.ext)+' يوم':''):'لا ملف')}${d('الاستلام',L.ac&&L.ac.records&&L.ac.records.length?L.ac.records.map(r=>r.typeLabel).join('، '):'لا محاضر')}${d('إطلاق التأمينات',L.in?(L.in.done?'صادرة':'مسودة'):'لا استمارة')}</div>
    <h5>بيانات المشروع والعقد</h5><div class="dg">${d('الشركة المنفذة',esc(p.contractor))}${d('برنامج التمويل',esc(p.fund))}${d('رقم العقد',esc(p.contractNo)+(p.year?' / '+esc(p.year):''))}${d('الجهة المستفيدة (القطاع)',esc(p.sector))}${d('القضاء / الناحية',esc([p.district,p.sub].filter(Boolean).join(' / ')))}${d('الحالة',`<span class="chip ${stKind(p.status)}">${esc(p.status||'—')}</span>`)}${d('الإجراءات القانونية',esc(p.legal))}${d('الاحداثيات',has(p.lat)&&has(p.lng)?`<a href="https://www.google.com/maps?q=${encodeURIComponent(p.lat+','+p.lng)}" target="_blank" rel="noopener">${esc(p.lat)} , ${esc(p.lng)}</a>${routeBtn(p)}`:'')}</div>
@@ -834,7 +865,7 @@ function projText(r){const p=r.p,L=r.L||{},ln=['📌 '+p.name,`الاضبارة:
   ln.push(`الكلفة الكلية: ${money(r.total)} د.ع${num(p.changeCost)?' (منها أوامر التغيير '+money(p.changeCost)+')':''}`);
   if(p.start||p.planEnd)ln.push(`المباشرة: ${DMY(p.start)||'—'} — الإنجاز المخطط: ${planDate(p)||'—'}${planDays(p)!=null?' ('+planDaysTxt(p,1)+')':''}${p.totalDays?' — المدة الكلية '+p.totalDays+' يوم':''}`);
   ln.push(`نسبة الإنجاز: المخطط ${has(p.planPct)?pc(p.planPct)+'%':'—'} — الفعلي ${has(p.actualPct)?pc(p.actualPct)+'%':'—'}`);
-  ln.push('الحالة: '+(p.status||'—')+(p.legal&&p.legal!=='-'?' — '+p.legal:''));
+  ln.push('الحالة: '+(p.status||'—')+(tlkOn(p)?' — متلكئ ** (يجب إكمال الإجراءات القانونية بحق الشركة)':'')+(p.legal&&p.legal!=='-'?' — '+p.legal:''));
   if(num(p.advRaised)||num(p.advPaid))ln.push(`السلف: المرفوعة ${money(p.advRaised)} — المصروفة ${money(p.advPaid)} — المتبقي ${money(num(p.advRaised)-num(p.advPaid))}`);
   if(L.ad)ln.push(`لجنة تدقيق السلف: ${L.ad.count} سلفة — التراكمي ${money(L.ad.cumulative)}`);
   if(L.co)ln.push(`أوامر التغيير: ${L.co.orders} أمر — الصافي ${money(L.co.changeCost)}${num(L.co.extraDays)?' — مدد '+L.co.extraDays+' يوم':''}`);
@@ -897,4 +928,6 @@ document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest
   if(!confirm('إزالة ملخص السلف من الموقف لهذه الاضبارة؟\nلا يوجد ملف سلف يقابله في لجنة التدقيق على هذه الحاسبة. إن كانت السلفة حقيقية على حاسبة أخرى فسيعود الملخص عند تحديث تلك الحاسبة.'))return;
   try{const a=(AnbarReg.links(fn)||{}).ad;AnbarReg.setMeta(fn,{linkDrop_ad:(a&&a.at)||new Date().toISOString()});AnbarReg.dropLink('ad',fn);}catch(err){flash('تعذّر: '+err.message,true);return;}
   flash('أُزيل ملخص السلف للاضبارة '+fn);try{drawer(fn);}catch(_){}try{window.SitRender&&window.SitRender();}catch(_){}});
+document.addEventListener('click',e=>{const k=e.target.closest&&e.target.closest('[data-kfx]');if(!k)return;const fx=$q('fx');if(!fx)return;fx.value=k.dataset.kfx;try{render();}catch(_){}try{(document.getElementById('tbl')||{}).scrollIntoView&&document.getElementById('tbl').scrollIntoView({behavior:'smooth'});}catch(_){}});
 })();
+

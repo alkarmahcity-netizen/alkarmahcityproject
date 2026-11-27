@@ -661,9 +661,9 @@ function parseAlloc(sh){const f=findCols(sh.rows,['رقم الصادر','اسم 
 /* ملف الموقف المصدَّر من البرنامج نفسه (ورقة «الموقف» وورقة «السلف»): يُعدَّل في Excel ثم يُستورد فيحدّث البرنامج.
    الربط بعمود «المعرّف» (ثم السنة ورقم الأمر)؛ الخلية الفارغة لا تمسح قيمة موجودة؛ الصف الجديد بلا معرّف = مشروع جديد. */
 function parseSit(sh){const f=findCols(sh.rows,['عدد الأمر الإداري','اسم المشروع','خط العرض']);if(!f)return null;const r=f.r,C={};
-  [['id','المعرّف'],['year','السنة'],['no','عدد الأمر الإداري'],['date','تاريخه'],['name','اسم المشروع'],['dist','القضاء'],['sec','القطاع'],['ben','الجهة المستفيدة'],['amt','مبلغ الأمر الإداري'],['raised','المبلغ المرفوع'],['paid','المبلغ المصروف'],['prog','نسبة الإنجاز الفعلي %'],['lat','خط العرض'],['lng','خط الطول'],['link','رابط الموقع'],['st','الحالة'],['ex','لجنة التنفيذ'],['rc','لجنة التسلم'],['note','ملاحظات']].forEach(([k,h])=>{C[k]=r.findIndex(c=>c===h);});
+  [['id','المعرّف'],['year','السنة'],['no','عدد الأمر الإداري'],['date','تاريخه'],['name','اسم المشروع'],['dist','القضاء'],['sec','القطاع'],['ben','الجهة المستفيدة'],['amt','مبلغ الأمر الإداري'],['raised','المبلغ المرفوع'],['paid','المبلغ المصروف'],['prog','نسبة الإنجاز الفعلي %'],['lat','خط العرض'],['lng','خط الطول'],['link','رابط الموقع'],['st','الحالة'],['ex','لجنة التنفيذ'],['rc','لجنة التسلم'],['note','ملاحظات'],...EXH.map((h,i)=>['ex'+i,h]),...RCH.map((h,i)=>['rc'+i,h])].forEach(([k,h])=>{C[k]=r.findIndex(c=>c===h);});
   const out=[];for(let i=f.hdr+1;i<sh.rows.length;i++){const x=sh.rows[i]||[],g=k=>C[k]>=0?x[C[k]]:'';if(/^المجموع/.test(hn(x[0])))continue;const name=hn(g('name')),no=hn(g('no')),id=hn(g('id'));if(!name&&!id)continue;
-    out.push({id,year:num(g('year')),orderNo:no.replace(/\.0$/,''),orderDate:xDate(g('date')),name,district:hn(g('dist')),sector:hn(g('sec')),beneficiary:hn(g('ben')),amount:g('amt'),raised:g('raised'),paid:g('paid'),progress:g('prog'),lat:g('lat'),lng:g('lng'),link:hn(g('link')),status:hn(g('st')),exec:hn(g('ex')),recv:hn(g('rc')),notes:hn(g('note'))});}
+    out.push({id,year:num(g('year')),orderNo:no.replace(/\.0$/,''),orderDate:xDate(g('date')),name,district:hn(g('dist')),sector:hn(g('sec')),beneficiary:hn(g('ben')),amount:g('amt'),raised:g('raised'),paid:g('paid'),progress:g('prog'),lat:g('lat'),lng:g('lng'),link:hn(g('link')),status:hn(g('st')),exec:C.ex0>=0?[0,1,2].map(i=>hn(g('ex'+i))):[hn(g('ex'))],recv:C.rc0>=0?[0,1,2].map(i=>hn(g('rc'+i))):[hn(g('rc'))],notes:hn(g('note'))});}
   return out;}
 function parseAdvX(sh){const f=findCols(sh.rows,['رقم السلفة','المبلغ المصروف','معرّف السلفة']);if(!f)return null;const r=f.r,C={};
   [['pid','معرّف المشروع'],['aid','معرّف السلفة'],['no','رقم السلفة'],['date','التاريخ'],['raised','المبلغ المرفوع'],['paid','المبلغ المصروف'],['chq','رقم الصك'],['note','ملاحظات'],['ono','عدد الأمر'],['name','المشروع']].forEach(([k,h])=>{C[k]=r.findIndex(c=>c===h);});
@@ -680,7 +680,7 @@ function applySit(sit,advx){const now=Date.now(),byId=new Map(P().map(p=>[p.id,p
     let lat=num(it.lat),lng=num(it.lng);if(!(lat&&lng)&&it.link){const ll=parseLL(it.link);if(ll){lat=ll.lat;lng=ll.lng;}}
     if(lat&&lng){if(String(lat)!==String(p.lat)||String(lng)!==String(p.lng))st.ll++;p.lat=lat;p.lng=lng;}
     if(it.status&&STATUS_BY_LABEL[it.status])p.status=STATUS_BY_LABEL[it.status];
-    if(it.exec)p.exec=splitMembers(it.exec);if(it.recv)p.recv=splitMembers(it.recv);if(has(it.notes))p.notes=it.notes;
+    {const E=comFrom(it.exec||[]),Rc=comFrom(it.recv||[]);if(E.length)p.exec=E;if(Rc.length)p.recv=Rc;}if(has(it.notes))p.notes=it.notes;
     if(!advx.length){const rs=num(it.raised),pd=num(it.paid),c=calc(p);
       if((rs||pd)&&!(p.advances||[]).length){p.advances=[{id:uid(),no:'1',date:'',raised:rs||pd,paid:pd,cheque:'',note:'من ملف الموقف'}];st.advAdd++;}
       else if((rs||pd)&&(Math.round(rs)!==Math.round(c.raised)||Math.round(pd)!==Math.round(c.paid)))st.diff++;}
@@ -700,7 +700,7 @@ async function importFiles(files){const reg=[],alc=[],seen=[],sit=[],advx=[],fil
       const a=parseRegister(sh);if(a){reg.push(...a);seen.push(`${file.name} ← «${sh.name}»: ${a.length} أمر إداري`);continue;}const b=parseAlloc(sh);if(b){alc.push(...b);seen.push(`${file.name} ← «${sh.name}»: ${b.length} مشروع تنفيذ أمانة (تخصيصات وسلف)`);}}}
   if(fil.length){const st=applyFill(fil);dedupe();cleanAdvDups();persist(true);render();
     const d=document.createElement('div');d.className='modal';d.innerHTML=`<div class="box" style="width:min(720px,100%)"><h3>✔ أُكملت البيانات من استمارة اللجان</h3>${seen.map(s=>`<div class="sub">• ${esc(s)}</div>`).join('')}
-     <p>مشاريع تغيّرت: <b>${st.upd}</b> — إحداثيات: <b>${st.ll}</b> — نسب إنجاز: <b>${st.prog}</b> — تواريخ: <b>${st.dates}</b> — أقضية وجهات مستفيدة: <b>${st.ben}</b> — لجان تسلم: <b>${st.recv}</b> — سلف أُضيفت: <b>${st.adv}</b> — ملاحظات: <b>${st.notes}</b></p>
+     <p>مشاريع تغيّرت: <b>${st.upd}</b> — إحداثيات: <b>${st.ll}</b> — نسب إنجاز: <b>${st.prog}</b> — تواريخ: <b>${st.dates}</b> — أقضية وجهات مستفيدة: <b>${st.ben}</b> — لجان تنفيذ وتسلم: <b>${st.recv}</b> — سلف أُضيفت: <b>${st.adv}</b> — ملاحظات: <b>${st.notes}</b></p>
      ${st.low?`<p class="warn">⚠ ${st.low} مشروع كتبت فيه اللجنة مبلغاً تراكمياً أقل من مجموع سلفه في البرنامج — لم يُغيَّر (يُراجع في بطاقة المشروع).</p>`:''}${st.none?`<p class="warn">⚠ ${st.none} سطر لم يُعثر على مشروعه.</p>`:''}
      <p class="hint">بقي ${st.miss} مشروع فيه نواقص — «📝 استمارة إكمال النواقص» ← «الناقصة فقط» لإخراجها مرة أخرى.</p><button class="pri" data-x="1">موافق</button></div>`;
     document.body.appendChild(d);d.addEventListener('click',e=>{if(e.target.closest('[data-x]'))d.remove();});if(!reg.length&&!alc.length&&!sit.length&&!advx.length)return;}
@@ -731,16 +731,17 @@ function exportXlsx(){if(!window.XLW)return flash('كاتب Excel غير متا�
   const ttl=YEAR==='all'?'كل السنوات':'لعام '+YEAR,pm=people(),ov=overSet(pm),ps=P().filter(p=>inYear(p)&&isProj(p)).sort((a,b)=>yearOf(a)-yearOf(b)||(a.orderDate||'').localeCompare(b.orderDate||''));
   /* ورقة «الموقف» بمعادلات: المرفوع والمصروف وعدد السلف تُجمع من ورقة «السلف» بمعرّف المشروع (SUMIFS)، والمتبقي ونسبة الصرف والمجاميع معادلات —
      أي تعديل أو إضافة سلفة في ورقة «السلف» يُحدّث الموقف فوراً في Excel، ثم «📥 استيراد Excel» بالملف نفسه يحدّث البرنامج. */
-  const hd=['ت','السنة','عدد الأمر الإداري','تاريخه','اسم المشروع','القضاء','الجهة المستفيدة','مبلغ الأمر الإداري','المبلغ المرفوع','المبلغ المصروف','المتبقي','نسبة الصرف %','نسبة الإنجاز الفعلي %','خط العرض','خط الطول','رابط الموقع','الحالة','عدد السلف','لجنة التنفيذ','لجنة التسلم','ملاحظات','تنبيهات البرنامج','المعرّف'];
+  const hd=['ت','السنة','عدد الأمر الإداري','تاريخه','اسم المشروع','القضاء','الجهة المستفيدة','مبلغ الأمر الإداري','المبلغ المرفوع','المبلغ المصروف','المتبقي','نسبة الصرف %','نسبة الإنجاز الفعلي %','خط العرض','خط الطول','رابط الموقع','الحالة','عدد السلف',...EXH,...RCH,'ملاحظات','تنبيهات البرنامج','المعرّف'];
+  const IDC=XLW.colL(hd.indexOf('المعرّف'));
   const L=XLW.colL(hd.length-1),R0=5,Rn=R0+ps.length-1,ADV="'السلف'";let t={a:0,r:0,p:0};
   const Y=v=>({v:v?+v:'',s:X.txt});
   const rows=[[{v:'موقف مشاريع التنفيذ أمانة — '+ttl,s:X.title}],[{v:'قسم الشؤون الهندسية — محافظة الأنبار — '+dmy(today())+' — السلف تُدخل في ورقة «السلف» (سطر لكل سلفة) فيُحسب المرفوع والمصروف والمتبقي هنا تلقائياً؛ عدّل الإحداثيات ونسب الإنجاز ثم «📥 استيراد Excel» بالملف نفسه (لا تغيّر عمود «المعرّف»)',s:X.sub}],[],hd.map(H)];
   ps.forEach((p,i)=>{const c=calc(p),r=R0+i;t.a+=c.amt;t.r+=c.raised;t.p+=c.paid;
     rows.push([I(i+1),Y(yearOf(p)),T(p.orderNo),T(dmy(p.orderDate)),W(p.name),T(p.district),T(benOf(p)),I(c.amt),
-      {v:Math.round(c.raised),s:X.int,f:`SUMIFS(${ADV}!$G:$G,${ADV}!$K:$K,$W${r})`},{v:Math.round(c.paid),s:X.int,f:`SUMIFS(${ADV}!$H:$H,${ADV}!$K:$K,$W${r})`},
+      {v:Math.round(c.raised),s:X.int,f:`SUMIFS(${ADV}!$G:$G,${ADV}!$K:$K,$${IDC}${r})`},{v:Math.round(c.paid),s:X.int,f:`SUMIFS(${ADV}!$H:$H,${ADV}!$K:$K,$${IDC}${r})`},
       {v:Math.round(c.rem),s:X.int,f:`H${r}-J${r}`},{v:Math.round(c.fin*10)/10,s:X.pct,f:`IF(H${r}>0,ROUND(J${r}/H${r}*100,1),0)`},Pp(c.prog),
-      p.lat?{v:+p.lat,s:X.num1}:T(''),p.lng?{v:+p.lng,s:X.num1}:T(''),T(p.lat&&p.lng?gmaps(p):''),T(STATUS[p.status||'new'][0]),{v:c.n,s:X.int,f:`COUNTIFS(${ADV}!$K:$K,$W${r})`},
-      W((p.exec||[]).join(' / ')),W((p.recv||[]).join(' / ')),W(p.notes||''),W(projFlags(p,ov).join(' — ')),T(p.id)]);});
+      p.lat?{v:+p.lat,s:X.num1}:T(''),p.lng?{v:+p.lng,s:X.num1}:T(''),T(p.lat&&p.lng?gmaps(p):''),T(STATUS[p.status||'new'][0]),{v:c.n,s:X.int,f:`COUNTIFS(${ADV}!$K:$K,$${IDC}${r})`},
+      ...COM3(p.exec).map(W),...COM3(p.recv).map(W),W(p.notes||''),W(projFlags(p,ov).join(' — ')),T(p.id)]);});
   const sm=col=>({s:X.gtI,v:0,f:ps.length?`SUM(${col}${R0}:${col}${Rn})`:'0'});const RT=Rn+1;
   rows.push([{v:'المجموع',s:X.gtT},null,null,null,null,{v:'—',s:X.gtT},{v:'—',s:X.gtT},Object.assign(sm('H'),{v:t.a}),Object.assign(sm('I'),{v:t.r}),Object.assign(sm('J'),{v:t.p}),Object.assign(sm('K'),{v:t.a-t.p}),{v:t.a?Math.round(t.p/t.a*1000)/10:0,s:X.gtP,f:`IF(H${RT}>0,ROUND(J${RT}/H${RT}*100,1),0)`},{v:'',s:X.gtP,f:ps.length?`IFERROR(ROUND(AVERAGE(M${R0}:M${Rn}),1),0)`:'0'}]);
   /* أوراق التجميع: معادلات على ورقة «الموقف» (العمود F القضاء، G الجهة المستفيدة) */
@@ -762,7 +763,7 @@ function exportXlsx(){if(!window.XLW)return flash('كاتب Excel غير متا�
   P().filter(inYear).forEach(p=>(p.advances||[]).forEach(a=>{const au=a.audit;if(!au)return;au.receipts.forEach(r=>rr.push([W(p.name),T(p.orderNo),T(a.no),T(au.serial),T(r.no),T(dmy(r.date)),T(r.vendor),W(r.item),T(CATS[r.cat||'mat']),I(r.amount),T(r.pay),T(DEC[r.dec||'pend'][0]),I(recAcc(r)),W(r.note)]));}));
   const cr=[[{v:'شهادات إنجاز العمل — '+ttl,s:X.title}],[],['المشروع','عدد الأمر','القضاء','رقم المحضر','الحالة','تاريخ الإنجاز','تاريخ التسلم','العدد','التاريخ'].map(H)];
   P().filter(p=>inYear(p)&&p.cert).forEach(p=>{const c=p.cert;cr.push([W(p.name),T(p.orderNo),T(p.district),T(c.serial),T(c.status==='issued'?'صادرة':'مسودة'),T(dmy(p.doneDate)),T(dmy(c.recvDate)),T(c.outNo),T(dmy(c.outDate))]);});
-  const buf=XLW.book([{name:'الموقف',cols:[5,7,10,11,46,12,12,20,16,16,16,16,10,11,11,11,30,12,7,40,40,34,40,16],rows,merges:[`A1:${L}1`,`A2:${L}2`],freeze:4,titles:4,filter:`A4:${L}4`,heights:{1:30,4:30},zoom:90},
+  const buf=XLW.book([{name:'الموقف',cols:[5,7,10,11,46,12,20,16,16,16,16,10,11,11,11,30,12,7,24,24,24,24,24,24,34,40,16],rows,merges:[`A1:${L}1`,`A2:${L}2`],freeze:4,titles:4,filter:`A4:${L}4`,heights:{1:30,4:30},zoom:90},
     grp('حسب القضاء',groupBy(ps,p=>p.district),'القضاء','F'),grp('حسب الجهة المستفيدة',groupBy(ps,p=>benOf(p)),'الجهة المستفيدة','G'),
     {name:'المهندسون',cols:[30,10,8,12,12,14,90],rows:er,merges:['A1:G1','A2:G2'],freeze:3,titles:3,filter:`A3:G3`},{name:'السلف',cols:[46,10,12,12,9,11,16,16,14,34,16,16],rows:ar,merges:['A1:L1','A2:L2'],freeze:3,titles:3,filter:'A3:L3'},{name:'تدقيق الوصولات',cols:[40,10,7,9,10,11,22,30,12,15,7,12,15,30],rows:rr,merges:['A1:N1'],freeze:3,titles:3,filter:'A3:N3'},{name:'شهادات الإنجاز',cols:[44,10,12,16,10,12,12,10,12],rows:cr,merges:['A1:I1'],freeze:3,titles:3,filter:'A3:I3'}],{title:'موقف مشاريع التنفيذ أمانة',author:'قسم الشؤون الهندسية — محافظة الأنبار'});
   saveFile(`موقف-مشاريع-التنفيذ-أمانة_${YEAR==='all'?'كل-السنوات':YEAR}_${today()}.xlsx`,buf);}
@@ -1053,8 +1054,14 @@ function missingOf(p){const m=[],c=calc(p);
   if(!p.district)m.push('القضاء');if(!(p.lat&&p.lng))m.push('الإحداثيات');if(!benOf(p))m.push('الجهة المستفيدة');if(!p.startDate)m.push('تاريخ المباشرة');
   if(!num(p.progress))m.push('نسبة الإنجاز');if(!c.n)m.push('المبالغ المرفوعة والمصروفة');if(num(p.progress)>=100&&!p.doneDate)m.push('تاريخ الإنجاز');
   if(!(p.recv||[]).length)m.push('لجنة التسلم');if(!(p.exec||[]).length)m.push('لجنة التنفيذ');return m;}
-const FILL_H=['ت','السنة','عدد الأمر الإداري','تاريخه','اسم المشروع','القضاء','مبلغ الأمر الإداري','رئيس لجنة التنفيذ','النواقص',
-  'الجهة المستفيدة','خط العرض','خط الطول','رابط الموقع أو الإحداثيات','تاريخ المباشرة','تاريخ الإنجاز','نسبة الإنجاز الفعلي %','الحالة','المبلغ المرفوع (التراكمي)','المبلغ المصروف (التراكمي)','أسماء لجنة التسلم','ملاحظات اللجنة','المعرّف'];
+/* اللجنة في Excel: الرئيس | العضو الأول | العضو الثاني (الأعضاء الزائدون يُضافون في خانة العضو الثاني مفصولين بـ « / ») */
+const COM3=L=>{L=(L||[]).slice();return [L[0]||'',L[1]||'',L.slice(2).join(' / ')];};
+const comFrom=cells=>{const out=[];cells.forEach(c=>{if(String(c||'').trim())out.push(...splitMembers(c));});return out;};
+const EXH=['لجنة التنفيذ — الرئيس','لجنة التنفيذ — العضو الأول','لجنة التنفيذ — العضو الثاني'],RCH=['لجنة التسلم — الرئيس','لجنة التسلم — العضو الأول','لجنة التسلم — العضو الثاني'];
+const FILL_H=['ت','السنة','عدد الأمر الإداري','تاريخه','اسم المشروع','القضاء','مبلغ الأمر الإداري','النواقص',
+  'الجهة المستفيدة','خط العرض','خط الطول','رابط الموقع أو الإحداثيات','تاريخ المباشرة','تاريخ الإنجاز','نسبة الإنجاز الفعلي %','الحالة','المبلغ المرفوع (التراكمي)','المبلغ المصروف (التراكمي)',...EXH,...RCH,'ملاحظات اللجنة','المعرّف'];
+const FILL_IN=new Set(['القضاء','الجهة المستفيدة','خط العرض','خط الطول','رابط الموقع أو الإحداثيات','تاريخ المباشرة','تاريخ الإنجاز','نسبة الإنجاز الفعلي %','الحالة','المبلغ المرفوع (التراكمي)','المبلغ المصروف (التراكمي)',...EXH,...RCH,'ملاحظات اللجنة']);
+const FC=h=>XLW.colL(FILL_H.indexOf(h));
 function fillDialog(){const all=P().filter(p=>inYear(p)&&isProj(p)),dists=uniq(all.map(p=>p.district));const nMiss=all.filter(p=>missingOf(p).length).length;
   const d=document.createElement('div');d.className='modal';d.innerHTML=`<div class="box" style="width:min(640px,100%)"><h3>📝 استمارة إكمال النواقص (للجان)</h3>
    <p>ملف Excel لكل مشروع: بياناته من البرنامج، وخانات <b style="background:#fff2cc;padding:0 6px">صفراء</b> تملؤها اللجنة، وعمود «النواقص». ${YEAR==='all'?'كل السنوات':'سنة '+YEAR} — ${all.length} مشروع، منها ${nMiss} ناقص.</p>
@@ -1072,27 +1079,28 @@ function exportFill(scope,dist){if(!window.XLW)return flash('كاتب Excel غي
   const R0=5,Rn=R0+ps.length-1,L=XLW.colL(FILL_H.length-1);
   const ttl='استمارة إكمال النواقص — مشاريع التنفيذ أمانة — '+(YEAR==='all'?'كل السنوات':'سنة '+YEAR)+(dist?' — قضاء '+dist:'');
   const rows=[[{v:ttl,s:X.title}],[{v:'تملأ اللجنة الخانات الصفراء فقط (الأعمدة من «الجهة المستفيدة» الى «ملاحظات اللجنة»)؛ التاريخ يوم/شهر/سنة؛ المبالغ تراكمية بالدينار؛ الإحداثيات: خط العرض (29–38) وخط الطول (38–49) أو لصق رابط خرائط Google. لا تغيّر عمود «المعرّف». ثم يُعاد الملف الى القسم.',s:X.sub}],[],
-    FILL_H.map((h,i)=>({v:h,s:(i>=9&&i<=20)||i===5?X.inH:X.head}))];
+    FILL_H.map(h=>({v:h,s:FILL_IN.has(h)?X.inH:X.head}))];
   ps.forEach((p,i)=>{const c=calc(p),ex=(p.exec||[]).map(r=>memberInfo(r).name);
-    rows.push([I(i+1),{v:yearOf(p)||'',s:X.txt},T(p.orderNo),T(dmy(p.orderDate)),W(p.name),iT(p.district),I(p.amount),T(ex[0]||''),{v:missingOf(p).join('، ')||'✓ مكتمل',s:X.wrap},
-      iT(benOf(p)),iG(p.lat||''),iG(p.lng||''),iT(p.lat&&p.lng?gmaps(p):''),iT(dmy(p.startDate)),iT(dmy(p.doneDate)),iP(p.progress),iT(STATUS[p.status||'new'][0]),iI(c.raised),iI(c.paid),iT((p.recv||[]).join(' / ')),iT(''),T(p.id)]);});
+    rows.push([I(i+1),{v:yearOf(p)||'',s:X.txt},T(p.orderNo),T(dmy(p.orderDate)),W(p.name),iT(p.district),I(p.amount),{v:missingOf(p).join('، ')||'✓ مكتمل',s:X.wrap},
+      iT(benOf(p)),iG(p.lat||''),iG(p.lng||''),iT(p.lat&&p.lng?gmaps(p):''),iT(dmy(p.startDate)),iT(dmy(p.doneDate)),iP(p.progress),iT(STATUS[p.status||'new'][0]),iI(c.raised),iI(c.paid),
+      ...COM3(p.exec).map(iT),...COM3(p.recv).map(iT),iT(''),T(p.id)]);});
   const help=[[{v:'طريقة ملء استمارة إكمال النواقص',s:X.title}],[],
     ...[['الخانات الصفراء (والقضاء)','تملؤها اللجنة؛ الخانة المملوءة سابقاً تُصحَّح إن كانت خاطئة، والفارغة تبقى كما هي في البرنامج.'],
       ['الإحداثيات','خط العرض مثل 33.4215 وخط الطول مثل 43.3021، أو لصق رابط الموقع من خرائط Google في عمود «رابط الموقع أو الإحداثيات».'],
       ['التواريخ','يوم/شهر/سنة، مثل 15/3/2026.'],['نسبة الإنجاز الفعلي','رقم من 0 الى 100.'],['الحالة','تُختار من القائمة: '+Object.values(STATUS).map(v=>v[0]).join('، ')+'.'],
       ['المبالغ','المبلغ المرفوع والمصروف التراكميان (كل ما صُرف للمشروع حتى الآن). إن زادا عن مجموع السلف في البرنامج يُضاف الفرق سلفةً جديدة؛ وإن نقصا لا يُغيَّر شيء ويُنبَّه.'],
-      ['أسماء لجنة التسلم','تُكتب الأسماء مفصولة بـ « / » وتبدأ بـ «م.» للمهندس.'],['المعرّف','لا يُغيَّر؛ به يُطابق البرنامج كل سطر بمشروعه.'],
+      ['لجنة التنفيذ ولجنة التسلم','لكل لجنة ثلاث خانات: الرئيس، العضو الأول، العضو الثاني؛ يُكتب «م.» قبل اسم المهندس و«السيد» قبل اسم الموظف. تُصحَّح الأسماء إن كانت خاطئة، وتُكمَل الفارغة.'],['المعرّف','لا يُغيَّر؛ به يُطابق البرنامج كل سطر بمشروعه.'],
       ['الإرجاع','يُعاد الملف الى القسم فيُستورد في البرنامج بـ «📥 استيراد Excel».']].map(([a,b])=>[{v:a,s:X.head},{v:b,s:X.wrap}])];
-  const buf=XLW.book([{name:'إكمال النواقص',cols:[5,7,10,11,44,12,15,22,30,22,11,11,26,12,12,11,14,15,15,34,30,15],rows,merges:[`A1:${L}1`,`A2:${L}2`],freeze:4,titles:4,filter:`A4:${L}4`,heights:{1:30,2:34,4:44},zoom:90,first:true,
-      lists:[{ref:`Q${R0}:Q${Rn}`,items:Object.values(STATUS).map(v=>v[0]),title:'الحالة',prompt:'اختر من القائمة'}],
-      nums:[{ref:`K${R0}:K${Rn}`,min:29,max:38,dec:true,title:'خط العرض',prompt:'مثل 33.4215',error:'خط العرض في الأنبار بين 29 و38'},{ref:`L${R0}:L${Rn}`,min:38,max:49,dec:true,title:'خط الطول',prompt:'مثل 43.3021',error:'خط الطول في الأنبار بين 38 و49'},
-        {ref:`P${R0}:P${Rn}`,min:0,max:100,dec:true,title:'نسبة الإنجاز',prompt:'من 0 الى 100',error:'النسبة بين 0 و100'},{ref:`R${R0}:S${Rn}`,min:0,max:1000000000000,title:'المبلغ',prompt:'المبلغ التراكمي بالدينار'}]},
+  const buf=XLW.book([{name:'إكمال النواقص',cols:[5,7,10,11,44,12,15,30,22,11,11,26,12,12,11,14,15,15,24,24,24,24,24,24,30,15],rows,merges:[`A1:${L}1`,`A2:${L}2`],freeze:4,titles:4,filter:`A4:${L}4`,heights:{1:30,2:34,4:44},zoom:90,first:true,
+      lists:[{ref:`${FC('الحالة')}${R0}:${FC('الحالة')}${Rn}`,items:Object.values(STATUS).map(v=>v[0]),title:'الحالة',prompt:'اختر من القائمة'}],
+      nums:[{ref:`${FC('خط العرض')}${R0}:${FC('خط العرض')}${Rn}`,min:29,max:38,dec:true,title:'خط العرض',prompt:'مثل 33.4215',error:'خط العرض في الأنبار بين 29 و38'},{ref:`${FC('خط الطول')}${R0}:${FC('خط الطول')}${Rn}`,min:38,max:49,dec:true,title:'خط الطول',prompt:'مثل 43.3021',error:'خط الطول في الأنبار بين 38 و49'},
+        {ref:`${FC('نسبة الإنجاز الفعلي %')}${R0}:${FC('نسبة الإنجاز الفعلي %')}${Rn}`,min:0,max:100,dec:true,title:'نسبة الإنجاز',prompt:'من 0 الى 100',error:'النسبة بين 0 و100'},{ref:`${FC('المبلغ المرفوع (التراكمي)')}${R0}:${FC('المبلغ المصروف (التراكمي)')}${Rn}`,min:0,max:1000000000000,title:'المبلغ',prompt:'المبلغ التراكمي بالدينار'}]},
     {name:'طريقة الملء',cols:[24,100],rows:help,merges:['A1:B1'],portrait:true}],{title:ttl,author:'قسم الشؤون الهندسية — محافظة الأنبار'});
   saveFile(`استمارة-إكمال-النواقص_${dist||'كل-الأقضية'}_${YEAR==='all'?'كل-السنوات':YEAR}_${today()}.xlsx`,buf);}
-function parseFill(sh){const f=findCols(sh.rows,['النواقص','المعرّف','خط العرض']);if(!f)return null;const r=f.r,C={};FILL_H.forEach(h=>{C[h]=r.findIndex(c=>c===h);});
+function parseFill(sh){const f=findCols(sh.rows,['النواقص','المعرّف','خط العرض']);if(!f)return null;const r=f.r,C={};[...FILL_H,'أسماء لجنة التسلم'].forEach(h=>{C[h]=r.findIndex(c=>c===h);});
   const out=[];for(let i=f.hdr+1;i<sh.rows.length;i++){const x=sh.rows[i]||[],g=h=>C[h]>=0?x[C[h]]:'';const id=hn(g('المعرّف')),no=hn(g('عدد الأمر الإداري'));if(!id&&!no)continue;
     out.push({id,orderNo:no.replace(/\.0$/,''),year:num(g('السنة')),dist:hn(g('القضاء')),ben:hn(g('الجهة المستفيدة')),lat:g('خط العرض'),lng:g('خط الطول'),link:hn(g('رابط الموقع أو الإحداثيات')),start:xDate(g('تاريخ المباشرة')),done:xDate(g('تاريخ الإنجاز')),
-      prog:g('نسبة الإنجاز الفعلي %'),st:hn(g('الحالة')),raised:g('المبلغ المرفوع (التراكمي)'),paid:g('المبلغ المصروف (التراكمي)'),recv:hn(g('أسماء لجنة التسلم')),note:hn(g('ملاحظات اللجنة'))});}
+      prog:g('نسبة الإنجاز الفعلي %'),st:hn(g('الحالة')),raised:g('المبلغ المرفوع (التراكمي)'),paid:g('المبلغ المصروف (التراكمي)'),exec:EXH.map(h=>hn(g(h))),recv:C[RCH[0]]>=0?RCH.map(h=>hn(g(h))):[hn(g('أسماء لجنة التسلم'))],note:hn(g('ملاحظات اللجنة'))});}
   return out;}
 function applyFill(list){const st={upd:0,ll:0,prog:0,dates:0,ben:0,adv:0,low:0,miss:0,recv:0,notes:0,none:0},has=v=>v!==''&&v!=null,key=(y,n)=>y+'|'+String(n).replace(/\D/g,'');
   const byId=new Map(P().map(p=>[p.id,p])),byKey=new Map(P().filter(p=>p.orderNo&&isProj(p)).map(p=>[key(yearOf(p),p.orderNo),p]));
@@ -1105,7 +1113,8 @@ function applyFill(list){const st={upd:0,ll:0,prog:0,dates:0,ben:0,adv:0,low:0,m
     if(has(it.prog)){const v=Math.max(0,Math.min(100,num(it.prog)));if(v!==num(p.progress)){p.progress=v;st.prog++;}}
     /* الحالة: تُؤخذ إن غيّرتها اللجنة؛ وإن بقيت كما هي تتبع نسبة الإنجاز (أكثر من صفر = قيد التنفيذ، 100 = منجز) */
     if(it.st&&STATUS_BY_LABEL[it.st]&&STATUS_BY_LABEL[it.st]!==(p.status||'new'))p.status=STATUS_BY_LABEL[it.st];else if(num(p.progress)>=100&&['new','run'].includes(p.status||'new'))p.status='done';else if(num(p.progress)>0&&(p.status||'new')==='new')p.status='run';
-    if(it.recv&&it.recv!==(p.recv||[]).join(' / ')){p.recv=splitMembers(it.recv);st.recv++;}
+    /* اللجنتان: تُستبدل الأسماء إن كتبت اللجنة شيئاً واختلف عمّا في البرنامج (يُقارن بعد توحيد الإملاء) */
+    for(const [k,cells] of [['exec',it.exec],['recv',it.recv]]){const L=comFrom(cells||[]);if(!L.length)continue;const a=L.map(x=>memberInfo(x).key).join('|'),b=(p[k]||[]).map(x=>memberInfo(x).key).join('|');if(a!==b){p[k]=L;st.recv++;}}
     if(it.note&&!(p.notes||'').includes(it.note)){p.notes=[p.notes,'ملاحظات اللجنة: '+it.note].filter(Boolean).join(' — ');st.notes++;}
     const R=num(it.raised),Pd=num(it.paid),c=calc(p);p.advances=p.advances||[];
     if((R||Pd)&&!c.n){p.advances.push({id:uid(),no:'1',date:'',raised:R||Pd,paid:Pd,cheque:'',note:'من استمارة إكمال النواقص'});st.adv++;}

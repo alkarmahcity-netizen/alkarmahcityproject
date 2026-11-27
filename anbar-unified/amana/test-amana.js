@@ -10,7 +10,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms)); const R = []; const ok 
   let pg = await shellPg(app); await sleep(3000);
   ok('window has the two tabs', await pg.evaluate(() => document.querySelectorAll('[data-go]').length === 2));
   const am = c => app.evaluate(async (_, c) => global.__amana.views.am.webContents.executeJavaScript(c), c);
-  ok('projects page loads with window.desktop', await am(`!!window.desktop&&typeof XLW==='object'&&!!window.ANBAR_GEO&&document.querySelectorAll('#tabs button').length===8`));
+  ok('projects page loads with window.desktop', await am(`!!window.desktop&&typeof XLW==='object'&&!!window.ANBAR_GEO&&document.querySelectorAll('#tabs button').length===9`));
   await am(`(()=>{DB.records.push({id:'p1',type:'p',kind:'p',year:2026,orderNo:'12696',orderDate:'2026-03-08',name:'تعريض واكساء طريق',district:'الكرمة',amount:244495000,exec:['م.أ أ أ','م.ب ب ب','السيد ج ج ج'],recv:['م.د د د','م.هـ هـ هـ','م.و و و'],advances:[{id:'a1',no:'1',paid:50000000}],progress:40,status:'run',updated:Date.now()});persist();render();return 1})()`);
   await sleep(200);
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].close()); await sleep(2500);
@@ -33,6 +33,11 @@ const sleep = ms => new Promise(r => setTimeout(r, ms)); const R = []; const ok 
   const j3 = JSON.parse(fs.readFileSync(lf, 'utf8')), o2 = j3.records.filter(r => r.type === 'order').pop();
   ok('«+ أمر إداري» Amana template filled from the chosen project (name, amount in words, committee tables)', o2 && /تعريض واكساء طريق/.test(o2.body) && /مائتان وأربعة وأربعون مليون/.test(o2.body) && o2.tables[0].rows[0][0] === 'المهندس/ أ أ أ' && o2.tables[1].rows.length === 3, o2 && o2.body.slice(0, 80));
   await pg.evaluate(() => document.querySelector('[data-go=am]').click()); await sleep(500);
+  await am(`(()=>{const p=P().find(x=>x.id==='p1');p.doneDate='2026-09-01';p.status='done';TAB='cert';CERT.pid='p1';render();certAct('start');return 1})()`); await sleep(300);
+  await am(`(()=>{const p=P().find(x=>x.id==='p1');p.cert.recvDate='2026-10-01';certInput({dataset:{cf:'status'},value:'issued'});persist(true);return 1})()`); await sleep(1200);
+  const j4 = JSON.parse(fs.readFileSync(f, 'utf8')), p4 = j4.records.find(r => r.id === 'p1');
+  ok('work-completion certificate saved with a serial; issuing marks the project received', p4.cert && /^AM-\d{4}-0001$/.test(p4.cert.serial) && p4.status === 'recv' && p4.recvDate === '2026-10-01', p4.cert && p4.cert.serial);
+  ok('certificate prints as 3 pages with the division letterhead', await am(`(()=>{const h=certPages(P().find(x=>x.id==='p1'));return (h.match(/class="sheet"/g)||[]).length===3&&h.includes(IMG_AMH.slice(0,60))&&/شهادة إنجاز العمل لمشروع/.test(h)})()`));
   ok('daily backup created', fs.existsSync(path.join(D, 'نسخ-احتياطية')));
   await app.close();
   console.log(R.map(r => r.join('  ')).join('\n')); const n = R.filter(r => r[0] === 'FAIL').length; console.log(n ? n + ' FAILED' : 'ALL PASS'); process.exit(n ? 1 : 0);

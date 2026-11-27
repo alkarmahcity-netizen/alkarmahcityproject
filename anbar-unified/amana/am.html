@@ -78,8 +78,53 @@ svg.map circle{stroke:#fff;stroke-width:.8;cursor:pointer}
 .doc .cc{margin-top:20px;font-size:12pt}.doc .cc ul{margin:2px 0;padding-inline-start:22px}
 .doc p{margin:0 0 4px;text-align:justify;white-space:pre-wrap}
 @media print{body{background:#fff}body>*:not(#printArea){display:none!important}#printArea{display:block!important}#printArea .doc{border:none;padding:14mm 14mm;width:auto;min-height:0;page-break-before:always}#printArea .doc:first-child{page-break-before:auto}@page{size:A4;margin:0}
+  #printArea .sheet{margin:0!important;box-shadow:none;width:210mm;height:296.5mm;min-height:0;overflow:hidden;page-break-after:always}#printArea .sheet:last-child{page-break-after:auto}
   #printArea .pg{margin:0;box-shadow:none;page-break-after:always;break-after:page;-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 #printArea{display:none}
+/* ===== شهادة إنجاز العمل — من تصميم محضر وشهادة الاستلام الأولي في نظام الاستلام ===== */
+.sheet{--navy:#1F3864;--navy2:#2E5597;--tint:#E8EEF7;--paper:#fff;--fieldLH:1.15;--fieldPad:0.3mm;--fsScale:1;--sigGap:7mm;--fieldFont:"DocNaskh","Times New Roman","Traditional Arabic",serif}
+.sheet{width:210mm;min-height:297mm;margin:0 auto;background:var(--paper);box-shadow:0 2px 12px rgba(0,0,0,.18);padding:10mm 11mm 28mm;font-family:"DocNaskh","Times New Roman","Traditional Arabic",serif;font-size:calc(12pt * var(--fsScale));line-height:1.45;color:#000;position:relative;display:flex;flex-direction:column}
+.sheet .hd{margin:-10mm -11mm 0;position:relative}.sheet .hd img.banner{width:100%;display:block}.sheet .hd .meta{position:absolute;right:11mm;top:calc(100% + 1mm);font-size:calc(11pt * var(--fsScale));line-height:1.5}.sheet .hd .meta span{display:block}.sheet .hd .pname{position:absolute;left:40mm;right:58mm;top:calc(100% + 1.4mm);font-weight:700;color:var(--navy);text-align:center;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sheet .hdsp{height:14mm;flex:none}.sheet+.sheet .sigTitle{margin:var(--sigGap) 0 0.3mm}.sheet .ok{font-size:calc(11pt * var(--fsScale));padding:0.3mm}.sheet .hd,.sheet table,.sheet .appr,.sheet .ok,.sheet .sigTitle,.sheet p{flex:none}.sheet .wm{position:absolute;left:50%;top:38%;width:95mm;transform:translate(-50%,-50%);opacity:.13;pointer-events:none;z-index:0}.sheet>*{position:relative;z-index:1}.sheet .strip{position:absolute!important;left:0;right:0;bottom:0;width:100%;display:block;z-index:1}
+.sheet .to{text-align:center;font-weight:700;font-size:calc(15pt * var(--fsScale));margin:0}
+.sheet .subj{text-align:center;font-weight:700;font-size:calc(13pt * var(--fsScale));margin:1mm 0 2mm}
+.sheet .intro{text-align:justify;line-height:1.75;margin:0 0 3mm}
+.sheet table.d{width:100%;border-collapse:collapse;table-layout:fixed}
+.sheet table.d td{border:1px solid var(--navy);padding:1.2mm 2mm;vertical-align:middle;word-wrap:break-word}
+.sheet table.d td.k{background:var(--tint);font-weight:700;width:23%;font-size:calc(13pt * var(--fsScale));color:var(--navy)}
+.sheet table.d td.k2{background:var(--tint);font-weight:700;width:18%;font-size:calc(13pt * var(--fsScale));color:var(--navy)}
+.sheet table.d td.c{text-align:center}
+.sheet table.d td.tall{vertical-align:top}
+.sheet .fill{color:#000}
+.sheet .blank{color:#888;letter-spacing:1px}
+.sheet .ok{display:block;text-align:center;font-weight:700;color:var(--navy);font-size:calc(12pt * var(--fsScale));background:var(--tint);border:1px solid var(--navy);border-top:0;padding:0.5mm}
+.sheet .sigTitle{text-align:center;font-weight:700;color:var(--navy);margin:var(--sigGap) 0 0.5mm;font-size:calc(9pt * var(--fsScale))}
+.sheet table.s{width:100%;border-collapse:collapse;table-layout:fixed}
+.sheet table.s td{text-align:center;vertical-align:top;padding:0.5mm;font-size:calc(10.5pt * var(--fsScale))}
+.sheet table.s td b{display:block;font-size:calc(10.5pt * var(--fsScale));margin-bottom:0.5mm}
+.sheet table.s td .nm{display:block;min-height:4mm;font-weight:700;color:#000}
+.sheet table.s td .ln{display:block;color:#444;margin-top:0.5mm}
+.sheet .appr{display:grid;grid-template-columns:1fr 1fr;gap:5mm;margin-top:1.2mm}
+.sheet .appr div{border:1px solid var(--navy);padding:0.5mm 3mm;min-height:0;font-size:calc(9.5pt * var(--fsScale))}.sheet .appr div .tl{display:flex;justify-content:space-between;margin:0}.sheet .appr.big{margin-top:8mm;gap:8mm}.sheet .appr.big div{min-height:42mm;font-size:calc(11pt * var(--fsScale));padding:2mm 4mm;display:flex;flex-direction:column}.sheet .appr.big div b{font-size:calc(12pt * var(--fsScale));margin-bottom:3mm}.sheet .appr.big div .tl{margin-top:auto}.sheet table.s.big td{font-size:calc(11.5pt * var(--fsScale));padding:1mm}.sheet table.s.big td b{font-size:calc(11.5pt * var(--fsScale))}.sheet table.s.big td .nm{min-height:7mm}.sheet .appr div .tl span{margin:0}
+.sheet .appr.big.compact{margin-top:3mm;gap:3mm}
+.sheet .appr.big.compact div{min-height:40mm;padding:1.5mm 4mm;line-height:1.3;display:flex;flex-direction:column}
+.sheet .appr.big.compact div b{margin-bottom:1.5mm;font-size:calc(11pt * var(--fsScale))}
+.sheet .appr.big.compact div span{margin-bottom:0;font-size:calc(10.5pt * var(--fsScale))}
+.sheet .appr.big.compact div .tl{margin-top:auto}
+.sheet table.s.big.compact td .nm{min-height:4mm}
+.sheet table.s.big.compact td b{font-size:calc(10.5pt * var(--fsScale))}
+.sheet table.s.big.compact td{padding:0.3mm}
+.sheet .appr div b{display:block;text-align:center;color:var(--navy);margin-bottom:0.3mm}
+.sheet .appr div span{display:block;margin-bottom:0.5mm;color:#444}.sheet .appr4{grid-template-columns:repeat(4,1fr);gap:3mm;margin-top:3mm}.sheet .appr4 div{min-height:16mm;padding:1mm 2mm;font-size:calc(10pt * var(--fsScale))}.sheet .appr4 div b{font-size:calc(10.5pt * var(--fsScale));min-height:9mm}
+.sheet table.d td{font-size:calc(12pt * var(--fsScale));line-height:var(--fieldLH);padding:var(--fieldPad) 2mm;font-family:var(--fieldFont,inherit)}.sheet .foot{position:absolute!important;left:11mm;right:11mm;bottom:4mm;margin:0;padding-top:0.5mm;font-size:calc(7pt * var(--fsScale));line-height:1.25;display:flex;justify-content:space-between;align-items:flex-start;color:#333;background:#fff;z-index:2}.sheet .foot>div:first-child{border-top:1px solid var(--navy);padding-top:1mm;flex:1;margin-left:4mm}.sheet .foot{flex:none}
+.sheet .foot .qr{text-align:center;font-size:calc(8.5pt * var(--fsScale));line-height:1.2}
+.sheet .foot .qr svg{display:block;margin:0 auto 1mm}
+.sheet .serial{position:absolute;top:50mm;left:11mm;z-index:2;font-size:calc(9.5pt * var(--fsScale));color:#444;direction:ltr}
+.sheet .stamp{text-align:center;font-size:calc(8.5pt * var(--fsScale));color:#444;margin-top:1mm}
+
+.sheet .dt{display:block;text-align:center;direction:ltr;unicode-bidi:embed;font-size:calc(10.5pt * var(--fsScale));color:#222;margin-top:0.6mm;line-height:1.1}
+
+.sheet{margin-bottom:12px;height:297mm;overflow:hidden}.sheet table.d td,.sheet table.s td{position:static;background-clip:padding-box}.sheet table.d td:not(.k):not(.k2){background:none}.sheet .hd .pname{font-size:10pt}
+
 /* ===== استمارة قرار لجنة تدقيق السلف — منقولة من استمارة السلف في برنامج القسم الهندسي (ad.html) ===== */
 .pg{--g:#1f6b3a;--g2:#e9f4ec;--au:#b08a2e;--bl:#2563a8;--ink:#14201a;--mu:#5a6b61;width:210mm;height:297mm;background:#fff;color:var(--ink);margin:0 auto 14px;position:relative;padding:8mm 11mm 13mm;box-shadow:0 3px 18px rgba(10,30,20,.25);font-family:var(--ff,Arial,'Helvetica Neue',sans-serif);font-size:calc(12.5px*var(--k,1)*var(--fz,1));line-height:calc(1.5*var(--lh,1));overflow:hidden;display:flex;flex-direction:column;gap:1.1mm}
 .pg .wm{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:0}.pg .wm img{width:125mm;opacity:.06}
@@ -193,6 +238,7 @@ details summary{cursor:pointer;font-weight:700;color:#6a430f}
   <button data-t="eng">👷 المهندسون واللجان</button>
   <button data-t="adv">💰 السلف المصروفة</button>
   <button data-t="aud">🧾 تدقيق السلف</button>
+  <button data-t="cert">🏁 شهادة الإنجاز</button>
   <button data-t="map">🗺️ الخريطة والإحداثيات</button>
   <button data-t="let">✉️ المخاطبات</button>
   <button data-t="set">⚙ الإعدادات والبيانات</button>
@@ -227,7 +273,7 @@ const today=()=>new Date().toISOString().slice(0,10);
 const STATUS={new:['لم يباشر','p-new'],run:['قيد التنفيذ','p-run'],done:['منجز','p-done'],recv:['مستلم (صدرت شهادة الإنجاز)','p-recv'],stop:['متوقف / متلكئ','p-stop']};
 const DEF_SET={id:'am-settings',type:'s',maxCom:3,ceiling:500000000,advMax:100000000,recvMonths:3,
   memoTo:'السيد نائب المحافظ للشؤون الفنية المحترم',orderSign:{hon:'المهندس',name:'عمر مشعان دبوس',title:'محافظ الأنبار'},memoSign:{hon:'المهندس',name:'',title:'مدير قسم الشؤون الهندسية'},
-  sectors:[],audSerial:0,audOrder:{no:'',date:''},
+  sectors:[],audSerial:0,certSerial:0,audOrder:{no:'',date:''},
   audCom:[{hon:'المهندس',name:'',role:'عضواً'},{hon:'المهندس',name:'',role:'عضواً'},{hon:'المهندس',name:'',role:'رئيس اللجنة'}],
   audApp:[{mark:'دققت /',name:'',title:'قسم الرقابة والتدقيق الداخلي'},{mark:'',name:'',title:'مدير قسم الشؤون الهندسية'},{mark:'اصادق',name:'',title:'نائب المحافظ للشؤون الفنية'}]};
 let DB={version:1,records:[]};
@@ -299,7 +345,7 @@ function tafqit(n){n=Math.round(num(n));if(!n)return 'صفر';
 /* ---------- العرض ---------- */
 function render(){const ys=years();$('#fYear').innerHTML=`<option value="all">كل السنوات</option>`+ys.map(y=>`<option${String(y)===String(YEAR)?' selected':''}>${y}</option>`).join('');
   document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===TAB));
-  const fn={dash:rDash,proj:rProj,eng:rEng,adv:rAdv,aud:rAud,map:rMap,let:rLet,set:rSet}[TAB];$('#main').innerHTML=fn();if(TAB==='aud')audRefresh();info();}
+  const fn={dash:rDash,proj:rProj,eng:rEng,adv:rAdv,aud:rAud,cert:rCert,map:rMap,let:rLet,set:rSet}[TAB];$('#main').innerHTML=fn();if(TAB==='aud')audRefresh();info();}
 function groupBy(list,keyf){const m=new Map();list.forEach(p=>{const k=keyf(p)||'غير محدد';const c=calc(p);const g=m.get(k)||{k,n:0,amt:0,raised:0,paid:0,prog:0,eng:new Set()};g.n++;g.amt+=c.amt;g.raised+=c.raised;g.paid+=c.paid;g.prog+=c.prog;
   (p.exec||[]).forEach(r=>{const mi=memberInfo(r);if(mi.role!=='staff'&&mi.role!=='tech')g.eng.add(mi.key);});m.set(k,g);});return [...m.values()].sort((a,b)=>b.amt-a.amt);}
 function grpTable(title,rows,label){const t=rows.reduce((a,g)=>({n:a.n+g.n,amt:a.amt+g.amt,raised:a.raised+g.raised,paid:a.paid+g.paid}),{n:0,amt:0,raised:0,paid:0});const mx=Math.max(1,...rows.map(g=>g.amt));
@@ -654,9 +700,11 @@ function exportXlsx(){if(!window.XLW)return flash('كاتب Excel غير متا�
   P().filter(inYear).forEach(p=>(p.advances||[]).forEach(a=>ar.push([W(p.name),T(p.orderNo),T(p.district),T(p.sector),T(a.no),T(dmy(a.date)),I(a.raised),I(a.paid),T(a.cheque),T(a.note),T(p.id),T(a.id)])));
   const rr=[[{v:'تدقيق السلف — الوصولات — '+ttl,s:X.title}],[],['المشروع','عدد الأمر','السلفة','رقم الاستمارة','رقم الوصل','التاريخ','المجهز','المادة / العمل','الصنف','المبلغ','التسديد','القرار','المقبول','الملاحظة'].map(H)];
   P().filter(inYear).forEach(p=>(p.advances||[]).forEach(a=>{const au=a.audit;if(!au)return;au.receipts.forEach(r=>rr.push([W(p.name),T(p.orderNo),T(a.no),T(au.serial),T(r.no),T(dmy(r.date)),T(r.vendor),W(r.item),T(CATS[r.cat||'mat']),I(r.amount),T(r.pay),T(DEC[r.dec||'pend'][0]),I(recAcc(r)),W(r.note)]));}));
+  const cr=[[{v:'شهادات إنجاز العمل — '+ttl,s:X.title}],[],['المشروع','عدد الأمر','القضاء','رقم المحضر','الحالة','تاريخ الإنجاز','تاريخ التسلم','العدد','التاريخ'].map(H)];
+  P().filter(p=>inYear(p)&&p.cert).forEach(p=>{const c=p.cert;cr.push([W(p.name),T(p.orderNo),T(p.district),T(c.serial),T(c.status==='issued'?'صادرة':'مسودة'),T(dmy(p.doneDate)),T(dmy(c.recvDate)),T(c.outNo),T(dmy(c.outDate))]);});
   const buf=XLW.book([{name:'الموقف',cols:[5,7,10,11,46,12,12,20,16,16,16,16,10,11,11,11,30,12,7,40,40,34,40,16],rows,merges:[`A1:${L}1`,`A2:${L}2`],freeze:4,titles:4,filter:`A4:${L}4`,heights:{1:30,4:30},zoom:90},
     grp('حسب القضاء',groupBy(ps,p=>p.district),'القضاء'),grp('حسب القطاع',groupBy(ps,p=>p.sector),'القطاع'),
-    {name:'المهندسون',cols:[30,10,8,12,12,14,90],rows:er,merges:['A1:G1','A2:G2'],freeze:3,titles:3,filter:`A3:G3`},{name:'السلف',cols:[46,10,12,12,9,11,16,16,14,34,16,16],rows:ar,merges:['A1:L1'],freeze:3,titles:3,filter:'A3:L3'},{name:'تدقيق الوصولات',cols:[40,10,7,9,10,11,22,30,12,15,7,12,15,30],rows:rr,merges:['A1:N1'],freeze:3,titles:3,filter:'A3:N3'}],{title:'موقف مشاريع التنفيذ أمانة',author:'قسم الشؤون الهندسية — محافظة الأنبار'});
+    {name:'المهندسون',cols:[30,10,8,12,12,14,90],rows:er,merges:['A1:G1','A2:G2'],freeze:3,titles:3,filter:`A3:G3`},{name:'السلف',cols:[46,10,12,12,9,11,16,16,14,34,16,16],rows:ar,merges:['A1:L1'],freeze:3,titles:3,filter:'A3:L3'},{name:'تدقيق الوصولات',cols:[40,10,7,9,10,11,22,30,12,15,7,12,15,30],rows:rr,merges:['A1:N1'],freeze:3,titles:3,filter:'A3:N3'},{name:'شهادات الإنجاز',cols:[44,10,12,16,10,12,12,10,12],rows:cr,merges:['A1:I1'],freeze:3,titles:3,filter:'A3:I3'}],{title:'موقف مشاريع التنفيذ أمانة',author:'قسم الشؤون الهندسية — محافظة الأنبار'});
   saveFile(`موقف-مشاريع-التنفيذ-أمانة_${YEAR==='all'?'كل-السنوات':YEAR}_${today()}.xlsx`,buf);}
 
 /* ---------- تدقيق سلف التنفيذ أمانة ----------
@@ -832,6 +880,105 @@ function audAct(k,b){const {p,a}=audFind();if(!p||!a)return;const done=()=>{touc
       au.receipts.push({id:uid(),no:(c[0]||'').trim(),date:xDate(/^\d+(\.\d+)?$/.test((c[1]||'').trim())?+c[1]:c[1]),vendor:(c[2]||'').trim(),item:item.trim(),cat:/عمال|اجور|أجور|عامل/.test(item)?'lab':/ايجار|إيجار|استئجار|شفل|حفارة|كرين|بلدوزر|آلية|الية/.test(item)?'mach':/نقل/.test(item)?'trans':'mat',qty:qty.trim(),unit:(c[5]||'').trim(),price,amount:amt,pay:amt>10e6?'صك':'نقد',chq:'',conf:true,offers:false,gov:false,dec:'pend',accAmt:0,note:''});n++;});
       d.remove();flash(`أُضيف ${n} وصل`);done();}else d.remove();});}}
 
+/* ---------- شهادة إنجاز العمل (التنفيذ أمانة) ----------
+   على تصميم «محضر وشهادة الاستلام الأولي» في نظام الاستلام بالبرنامج الهندسي (جداول زرقاء، ثلاث صفحات A4، تواقيع ومصادقات)،
+   تصدرها لجنة التسلم وفق المادة (2/رابعاً) من تعليمات التنفيذ أمانة: تسلّم العمل خلال 3 أشهر من إنجازه، وإصدار شهادة إنجاز العمل
+   وإرسال نسخة الى القسم المالي للتسوية، وإبراء ذمة لجنة التنفيذ من أموال الدولة من تاريخ التسلم. تُحفظ في المشروع: p.cert */
+const CERT={pid:'',q:'',st:''};
+const CF=[['outNo','العدد (الصادر)'],['outDate','التاريخ','date'],['visitDate','تاريخ زيارة اللجنة','date'],['recvDate','تاريخ التسلم','date'],['location','موقع المشروع'],
+  ['labTests','الفحوصات المختبرية','ta'],['brief','شرح موجز عن المشروع والأعمال المنفذة','ta'],['notes','ملاحظات اللجنة','ta'],['deductions','الأعمال غير المنجزة / الحذف والخصومات'],
+  ['handover','التسليم للجهة المستفيدة','ta'],['rec','توصيات اللجنة','ta'],['benefRep','مصادقة الجهة المستفيدة (الاسم)'],['followRep','ممثل لجنة المتابعة (الاسم)'],['engDir','مصادقة قسم الشؤون الهندسية (الاسم)'],['deputy','مصادقة نائب المحافظ للشؤون الفنية (الاسم)']];
+function certTotals(p){let adv=0,acc=0,tests=[];(p.advances||[]).forEach(a=>{adv+=advAmt(a);(a.audit&&a.audit.receipts||[]).forEach(r=>{acc+=recAcc(r);});(a.audit&&a.audit.tests||[]).forEach(t=>tests.push(t));});
+  const audited=(p.advances||[]).some(a=>a.audit);return {adv,acc,bal:adv-acc,audited,tests};}
+function certDefaults(p){const t=certTotals(p),BEN=p.beneficiary||'الجهة المستفيدة';
+  const tl=t.tests.length?`قُدِّمت (${t.tests.length}) فحوصات مختبرية: ${t.tests.filter(x=>x.result==='pass').length} مطابقة للمواصفات${t.tests.some(x=>x.result==='fail')?`، و${t.tests.filter(x=>x.result==='fail').length} غير مطابقة`:''} (${[...new Set(t.tests.map(x=>x.name).filter(Boolean))].join('، ')}).`:'';
+  return {location:[p.district,p.sector].filter(Boolean).join(' / '),labTests:tl,
+    handover:`سُلِّم المشروع الى ${BEN} بكافة مرفقاته وحسب الكشف المصادق والأعمال المنفذة فعلاً.`,
+    rec:`توصي اللجنة بتسلم العمل المنفذ بأسلوب التنفيذ أمانة وإصدار شهادة إنجاز العمل وإرسال نسخة منها الى قسم الشؤون المالية لتسوية حساب السلف، وإبراء ذمة لجنة تنفيذ العمل من أموال الدولة اعتباراً من تاريخ التسلم.`};}
+function certObj(p){if(!p.cert){const s=DB.records.find(r=>r.id==='am-settings');s.certSerial=(+s.certSerial||0)+1;s.updated=Date.now();p.cert=Object.assign({serial:'AM-'+new Date().getFullYear()+'-'+String(s.certSerial).padStart(4,'0'),status:'draft',outNo:'',outDate:'',visitDate:'',recvDate:'',deductions:'لا يوجد',brief:'',notes:'',benefRep:'',followRep:'',engDir:'',deputy:''},certDefaults(p));}return p.cert;}
+function certFlags(p){const c=p.cert||{},t=certTotals(p),f=[];
+  if(!p.doneDate)f.push('أدخل تاريخ الإنجاز في بطاقة المشروع');
+  if(p.doneDate&&c.recvDate){const d=(new Date(c.recvDate)-new Date(p.doneDate))/864e5;if(d>S().recvMonths*30.4)f.push(`التسلم بعد ${Math.round(d)} يوماً من الإنجاز — التعليمات: خلال ${S().recvMonths} أشهر (م2/رابعاً/ج)`);if(d<0)f.push('تاريخ التسلم قبل تاريخ الإنجاز');}
+  if(!(p.recv||[]).length)f.push('لا توجد أسماء لجنة التسلم');
+  if(t.adv&&!t.audited)f.push('لم تُدقَّق سلف المشروع بعد (تبويب «تدقيق السلف»)');
+  if(t.audited&&t.bal>0)f.push(`بذمة لجنة التنفيذ ${fm(t.bal)} دينار غير معزَّز — يُسوّى أو يُعاد قبل إبراء الذمة`);
+  if(num(p.progress)<100)f.push(`نسبة الإنجاز الفعلي ${pc(p.progress)}`);
+  return f;}
+function rCert(){const q=nk(CERT.q),ps=P().filter(p=>inYear(p)&&isProj(p)&&(!q||nk(p.name+' '+p.orderNo).includes(q))&&(!CERT.st||(CERT.st==='none'?!p.cert:CERT.st==='done'?['done','recv'].includes(p.status):p.cert&&p.cert.status===CERT.st)))
+  .sort((a,b)=>(b.cert?1:0)-(a.cert?1:0)||(['done','recv'].includes(b.status)?1:0)-(['done','recv'].includes(a.status)?1:0)||(b.orderDate||'').localeCompare(a.orderDate||''));
+  const all=P().filter(p=>inYear(p)&&isProj(p)),nC=all.filter(p=>p.cert).length,nI=all.filter(p=>p.cert&&p.cert.status==='issued').length,nD=all.filter(p=>['done','recv'].includes(p.status)&&!p.cert).length;
+  const p=P().find(x=>x.id===CERT.pid);
+  return `<div class="kpis"><div class="kpi"><b>${nC}</b><span>شهادة إنجاز (${nI} صادرة)</span></div><div class="kpi${nD?' bad':''}"><b>${nD}</b><span>مشروع منجز بلا شهادة</span></div></div>
+  <div class="card"><div class="row"><input id="cq" placeholder="بحث: المشروع أو رقم الأمر" value="${esc(CERT.q)}" style="flex:1;min-width:220px">
+   <select id="cSt"><option value="">كل المشاريع</option><option value="done"${CERT.st==='done'?' selected':''}>المنجزة والمستلمة</option><option value="none"${CERT.st==='none'?' selected':''}>بلا شهادة</option><option value="draft"${CERT.st==='draft'?' selected':''}>شهادة مسودة</option><option value="issued"${CERT.st==='issued'?' selected':''}>شهادة صادرة</option></select>
+   <span class="hint">لجنة التسلم تصدر شهادة إنجاز العمل خلال ${S().recvMonths} أشهر من الإنجاز، وتُرسل نسخة الى القسم المالي للتسوية، وتُبرأ ذمة لجنة التنفيذ من تاريخ التسلم (م2/رابعاً).</span></div>
+   <div class="tw" style="max-height:${p?'24vh':'60vh'};margin-top:8px"><table><thead><tr><th class="n">ت</th><th>المشروع</th><th>القضاء</th><th>حالة المشروع</th><th>تاريخ الإنجاز</th><th class="n">الإنجاز</th><th>الشهادة</th></tr></thead><tbody>
+   ${ps.slice(0,500).map((x,i)=>`<tr class="clk${x.id===CERT.pid?' flag':''}" data-cert="${x.id}"><td class="n">${i+1}</td><td>${esc(x.name)}<div class="sub">أمر ${esc(x.orderNo)} — ${dmy(x.orderDate)}</div></td><td>${esc(x.district)}</td><td><span class="pill ${STATUS[x.status||'new'][1]}">${STATUS[x.status||'new'][0]}</span></td><td class="n">${dmy(x.doneDate)}</td><td class="n">${pc(x.progress)}</td>
+    <td>${x.cert?`<span class="pill ${x.cert.status==='issued'?'p-done':'p-new'}">${x.cert.status==='issued'?'صادرة':'مسودة'}</span> <span class="sub">${esc(x.cert.serial)}</span>`:'<span class="sub">—</span>'}</td></tr>`).join('')||'<tr><td colspan="7" class="empty">لا مشاريع</td></tr>'}</tbody></table></div></div>
+  ${p?certEditor(p):''}`;}
+function certEditor(p){const c=p.cert;
+  if(!c)return `<div class="card"><h4>${esc(p.name)}</h4><p>الحالة: ${STATUS[p.status||'new'][0]} — تاريخ الإنجاز: ${dmy(p.doneDate)||'—'} — الإنجاز الفعلي: ${pc(p.progress)}</p><button class="pri" data-ce="start">🏁 إنشاء شهادة إنجاز العمل</button></div>`;
+  const t=certTotals(p),fl=certFlags(p);
+  return `<div class="card" id="certEd"><div class="row" style="justify-content:space-between"><h4 style="margin:0">🏁 شهادة إنجاز العمل — ${esc(p.name)} <span class="sub">(رقم المحضر ${esc(c.serial)})</span></h4>
+   <div class="row"><label>الحالة <select data-cf="status"><option value="draft"${c.status!=='issued'?' selected':''}>مسودة</option><option value="issued"${c.status==='issued'?' selected':''}>صادرة</option></select></label>
+   <button class="pri" data-ce="pv">👁 معاينة وطباعة</button><button data-ce="def" title="يعيد الموقع والفحوصات والتسليم والتوصيات الى النص المقترح من بيانات المشروع">↺ النصوص المقترحة</button><button class="dng" data-ce="drop">🗑 حذف الشهادة</button></div></div>
+   ${fl.length?`<div class="sub warn" style="margin:6px 0">${fl.map(x=>'⚠ '+esc(x)).join('<br>')}</div>`:''}
+   <p class="sub">من بيانات المشروع: الأمر ${esc(p.orderNo)} في ${dmy(p.orderDate)} — المبلغ ${fm(p.amount)} — السلف ${fm(t.adv)} — المعزَّز بالمستندات ${t.audited?fm(t.acc):'(لم تُدقَّق)'} — لجنة التسلم: ${(p.recv||[]).map(r=>esc(memberInfo(r).name)).join('، ')||'—'}. تُعدَّل في بطاقة المشروع.</p>
+   <div class="fg">${CF.map(([k,l,ty])=>ty==='ta'?`<label class="w3">${l}<textarea data-cf="${k}" rows="${k==='notes'||k==='brief'?3:2}">${esc(c[k]||'')}</textarea></label>`:`<label>${l}<input data-cf="${k}"${ty==='date'?' type="date"':''} value="${esc(c[k]||'')}"></label>`).join('')}</div>
+   <label class="sub" style="display:block;margin-top:6px"><input type="checkbox" data-cf="setRecv"${c.setRecv!==false?' checked':''}> عند «صادرة»: تحديث حالة المشروع الى «مستلم (صدرت شهادة الإنجاز)» وتاريخ تسلمه</label></div>`;}
+/* الصفحات المطبوعة */
+function certPages(p){const c=p.cert,t=certTotals(p),B='.........................',v=(x,w)=>String(x||'').trim()?esc(x):`<span class="blank">${'.'.repeat(w||20)}</span>`,dv=d=>d?`<span dir="ltr">${dmy(d)}</span>`:'<span class="blank">&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;</span>',nl=x=>esc(x).replace(/\n/g,'<br>');
+  const ex=(p.exec||[]).map(r=>memberInfo(r)),rc=(p.recv||[]).map(r=>memberInfo(r));
+  const members=[...rc.map((m,i)=>[i===0?'رئيس لجنة التسلم':'عضو لجنة التسلم',m.name])];if(ex[0])members.push(['رئيس لجنة التنفيذ',ex[0].name]);while(members.length<4)members.push(['عضو','']);
+  const sigRow=(big)=>`<div class="sigTitle">توقيع أعضاء لجنة التسلم${ex[0]?' ورئيس لجنة التنفيذ (المسلِّم)':''}</div><table class="s${big?' big compact':''}"><tr>${[...members].reverse().map(([r,n])=>`<td><b>${esc(r)}</b><span class="nm">${esc(n)}</span><span class="dt">&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;/ ${new Date().getFullYear()}</span><span class="ln"${big?' style="margin-top:22mm"':''}>&nbsp;</span></td>`).join('')}</tr></table>`;
+  const hd=`<div class="hd"><img class="banner" src="${IMG_AMH}" alt=""><div class="meta"><span>العدد : ${esc(c.outNo)||'&nbsp;'.repeat(10)}</span><span>التاريخ : ${c.outDate?dmy(c.outDate):'&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/ '+new Date().getFullYear()}</span></div><div class="pname">المشروع: ${esc(p.name)}</div></div><div class="hdsp"></div>`;
+  const foot=(pg,n)=>`<div class="foot"><div>قسم الشؤون الهندسية — شعبة تنفيذ العمل أمانة — ${new Date().getFullYear()} &nbsp;|&nbsp; صفحة ${pg} من ${n} &nbsp;|&nbsp; رقم المحضر: <span dir="ltr">${esc(c.serial)}</span></div></div><img class="strip" src="${IMG_LHB}" alt="">`;
+  const rows1=[`<tr><td class="k">اسم المشروع:-</td><td colspan="3">${v(p.name,40)}</td></tr>`,
+    `<tr><td class="k">عدد الأمر الإداري:-</td><td class="c">${v(p.orderNo,10)}</td><td class="k2">تاريخ الأمر:-</td><td class="c">${dv(p.orderDate)}</td></tr>`,
+    `<tr><td class="k">أسلوب التنفيذ:-</td><td colspan="3">تنفيذ أمانة — تعليمات تنفيذ الأعمال بأسلوب التنفيذ أمانة رقم (1) لسنة 2018 المعدلة بالتعليمات رقم (3) لسنة 2022</td></tr>`,
+    `<tr><td class="k">لجنة تنفيذ العمل:-</td><td colspan="3" style="font-size:calc(11pt * var(--fsScale))">${ex.length?ex.map((m,i)=>esc(m.name)+(i===0?' (رئيساً)':'')).join(' / '):v('',30)}</td></tr>`,
+    `<tr><td class="k">لجنة التسلم:-</td><td colspan="3" style="font-size:calc(11pt * var(--fsScale))">${rc.length?rc.map((m,i)=>esc(m.name)+(i===0?' (رئيساً)':'')).join(' / '):v('',30)}</td></tr>`,
+    `<tr><td class="k">الجهة المستفيدة:-</td><td colspan="3">${v(p.beneficiary,30)}</td></tr>`,
+    `<tr><td class="k">موقع المشروع:-</td><td>${v(c.location,20)}</td><td class="k2">الإحداثيات:-</td><td class="c" style="direction:ltr;font-size:calc(10.5pt * var(--fsScale))">${p.lat&&p.lng?esc(p.lat)+' , '+esc(p.lng):v('',12)}</td></tr>`,
+    `<tr><td class="k">مبلغ الأمر الإداري:-</td><td class="c">${num(p.amount)?fm(p.amount)+' د.ع':v('',14)}</td><td class="k2">مجموع السلف المصروفة:-</td><td class="c">${fm(t.adv)} د.ع</td></tr>`,
+    `<tr><td class="k">المعزَّز بالمستندات:-</td><td class="c">${t.audited?fm(t.acc)+' د.ع':v('',14)}</td><td class="k2">بذمة لجنة التنفيذ:-</td><td class="c">${t.audited?fm(Math.max(0,t.bal))+' د.ع':v('',12)}</td></tr>`,
+    `<tr><td class="k">تاريخ المباشرة:-</td><td class="c">${dv(p.startDate)}</td><td class="k2">تاريخ الإنجاز الفعلي:-</td><td class="c">${dv(p.doneDate)}</td></tr>`,
+    `<tr><td class="k">نسبة الإنجاز الفعلي:-</td><td class="c">${pc(p.progress)}</td><td class="k2">عدد السلف:-</td><td class="c">${(p.advances||[]).length}</td></tr>`];
+  const rows2=[`<tr><td class="k">الفحوصات المختبرية:-</td><td colspan="3" style="font-size:calc(10.5pt * var(--fsScale))">${v(c.labTests,40)}</td></tr>`,
+    `<tr><td class="k">شرح موجز عن المشروع:-</td><td colspan="3" class="tall" style="text-align:justify;font-size:calc(11pt * var(--fsScale))">${c.brief?nl(c.brief):v('',50)}</td></tr>`,
+    `<tr><td class="k">ملاحظات اللجنة:-</td><td colspan="3" class="tall" style="text-align:justify;font-size:calc(10.5pt * var(--fsScale));line-height:1.4">${c.notes?nl(c.notes):v('',25)}</td></tr>`,
+    `<tr><td class="k">الأعمال غير المنجزة / الحذف والخصومات:-</td><td colspan="3">${v(c.deductions,20)}</td></tr>`,
+    `<tr><td class="k">التسليم للجهة المستفيدة:-</td><td colspan="3" style="text-align:justify;font-size:calc(11pt * var(--fsScale))">${c.handover?nl(c.handover):v('',40)}</td></tr>`,
+    `<tr><td class="k">إبراء ذمة لجنة التنفيذ:-</td><td colspan="3" style="font-size:calc(11pt * var(--fsScale))">تُبرأ ذمة لجنة تنفيذ العمل من أموال الدولة اعتباراً من تاريخ التسلم ( ${dv(c.recvDate)} ) — المادة (2/رابعاً/د)${t.audited&&t.bal>0?` بعد تسوية المبلغ المتبقي بذمتها البالغ ( ${fm(t.bal)} ) دينار`:''}</td></tr>`,
+    `<tr><td class="k">توصيات اللجنة:-</td><td colspan="3" style="text-align:justify;line-height:1.6;font-size:calc(11pt * var(--fsScale))">${c.rec?nl(c.rec):v('',25)}</td></tr>`,
+    `<tr><td class="k">تاريخ التسلم:-</td><td class="c">${dv(c.recvDate)}</td><td class="k2">نسخة منها الى:-</td><td class="c" style="font-size:calc(10.5pt * var(--fsScale))">قسم الشؤون المالية / للتسوية</td></tr>`];
+  const box=(tt,n,sub)=>`<div><b>${tt}${sub?` <small style="font-weight:400;color:#333">(${sub})</small>`:''}</b><span>الاسم: <strong style="color:#000">${esc(n)||'&nbsp;'}</strong></span><span class="tl"><span>التاريخ: &nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;/ ${new Date().getFullYear()}</span></span></div>`;
+  const okLine=`<span class="ok">وختم المحضر بتاريخ &nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;</span>`;
+  const p1=`<div class="sheet">${hd}<div class="serial">No. ${esc(c.serial)}</div>
+    <p class="subj" style="font-size:calc(15pt * var(--fsScale));margin-top:1mm">شهادة إنجاز العمل لمشروع ( ${v(p.name,40)} )</p>
+    <p class="intro">قامت لجنة التسلم المشكّلة بموجب الأمر الإداري الصادر من محافظة الأنبار / قسم الشؤون الهندسية / شعبة تنفيذ العمل أمانة بالعدد ( ${v(p.orderNo,12)} ) في ( ${dv(p.orderDate)} ) بزيارة المشروع بتاريخ ( ${dv(c.visitDate)} ) وتبين ما يلي:-</p>
+    <table class="d">${rows1.join('')}</table>${sigRow(false)}${foot(1,3)}</div>`;
+  const p2=`<div class="sheet">${hd}<p class="subj" style="font-size:calc(11pt * var(--fsScale));margin:0 0 2mm;color:var(--navy2)">تتمة بيانات المحضر (من الصفحة 1):-</p><table class="d">${rows2.join('')}</table>${okLine}${sigRow(false)}${foot(2,3)}</div>`;
+  const p3=`<div class="sheet">${hd}<p class="subj" style="font-size:calc(12.5pt * var(--fsScale));margin:0 0 3mm">تواقيع لجنة التسلم والمصادقات — مشروع ( ${v(p.name,30)} )</p>${sigRow(true)}
+    <div class="appr big compact">${box('مصادقة الجهة المستفيدة من المشروع',c.benefRep,'اسم مدير الدائرة وتوقيعه')}${box('ممثل لجنة المتابعة',c.followRep)}</div>
+    <div class="appr big compact">${box('مصادقة قسم الشؤون الهندسية في ديوان محافظة الأنبار',c.engDir)}${box('مصادقة السيد نائب المحافظ للشؤون الفنية',c.deputy)}</div>${foot(3,3)}</div>`;
+  return p1+p2+p3;}
+function fitSheets(root){root.querySelectorAll('.sheet').forEach(sh=>{let k=1;sh.style.setProperty('--fsScale',k);const H=sh.clientHeight;for(let n=0;n<30&&sh.scrollHeight>H+1&&k>0.7;n++){k-=0.02;sh.style.setProperty('--fsScale',k.toFixed(2));}});}
+function certPreview(p){const d=document.createElement('div');d.className='modal';d.innerHTML=`<div class="box" style="width:auto;background:#d9dee8"><div class="row" style="margin-bottom:8px"><button class="pri" data-x="print">🖨 طباعة</button>${DESK&&DESK.pdf?'<button data-x="pdf">💾 PDF</button>':''}<button data-x="close">إغلاق</button><span class="hint">ثلاث صفحات: البيانات، تتمة البيانات، التواقيع والمصادقات.</span></div><div id="pvPages" class="certWrap">${certPages(p)}</div></div>`;
+  document.body.appendChild(d);fitSheets(d);
+  d.addEventListener('click',async e=>{const b=e.target.closest('[data-x]');if(!b)return;const x=b.dataset.x;if(x==='close'){d.remove();return;}
+    $('#printArea').innerHTML=`<div class="certWrap">${d.querySelector('#pvPages').innerHTML}</div>`;
+    if(x==='print')window.print();else{const r=await DESK.pdf(`شهادة-إنجاز-العمل-${String(p.orderNo||p.cert.serial)}.pdf`);if(r==='ok')flash('حُفظ ملف PDF');else if(r==='error')flash('تعذّر حفظ PDF',true);}});}
+function certAct(k){const p=P().find(x=>x.id===CERT.pid);if(!p)return;
+  if(k==='start'){certObj(p);touch(p);persist();render();}
+  else if(k==='pv')certPreview(p);
+  else if(k==='def'){Object.assign(p.cert,certDefaults(p));touch(p);persist();render();flash('أُعيدت النصوص المقترحة');}
+  else if(k==='drop'){if(confirm('حذف شهادة الإنجاز لهذا المشروع؟')){delete p.cert;touch(p);persist();render();}}}
+function certInput(t){const p=P().find(x=>x.id===CERT.pid);if(!p||!p.cert)return;const k=t.dataset.cf;const c=p.cert;
+  if(k==='setRecv')c.setRecv=t.checked;else c[k]=t.value;
+  if((k==='status'&&t.value==='issued'||k==='recvDate')&&c.status==='issued'&&c.setRecv!==false){p.status='recv';if(c.recvDate)p.recvDate=c.recvDate;}
+  touch(p);persist();if(k==='status'||k==='recvDate')render();}
+
 /* ---------- الإعدادات ---------- */
 function rSet(){const s=S();return `<div class="grid2"><div class="card"><h4>الحدود (تعليمات التنفيذ أمانة 1/2018 المعدلة 3/2022)</h4><div class="fg">
   <label>أقصى عدد لجان تنفيذ للشخص في السنة<input type="number" data-s="maxCom" value="${s.maxCom}"></label>
@@ -873,6 +1020,8 @@ $('#main').addEventListener('click',e=>{const o=e.target.closest('[data-open]');
     else if(k==='wipe'){if(!confirm('حذف كل المشاريع؟ لا يمكن التراجع.'))return;P().forEach(p=>{try{DESK&&DESK.tomb&&DESK.tomb(p.id);}catch(_){}});DB.records=DB.records.filter(r=>r.type!=='p');persist(true);render();}return;}
   const ad=e.target.closest('[data-aud]');if(ad){[AUD.pid,AUD.aid]=ad.dataset.aud.split('|');render();setTimeout(()=>{const x=$('#audEd')||$('#main .card:last-child');if(x)x.scrollIntoView({behavior:'smooth',block:'start'});},50);return;}
   const au=e.target.closest('[data-au]');if(au){audAct(au.dataset.au,au);return;}
+  const ct=e.target.closest('[data-cert]');if(ct){CERT.pid=ct.dataset.cert;render();setTimeout(()=>{const x=$('#certEd')||$('#main .card:last-child');if(x)x.scrollIntoView({behavior:'smooth',block:'start'});},50);return;}
+  const ce=e.target.closest('[data-ce]');if(ce){certAct(ce.dataset.ce);return;}
   const lp=e.target.closest('[data-lp]');if(lp){LET.pid=lp.dataset.lp;render();return;}const l=e.target.closest('[data-l]');if(l)letAct(l.dataset.l);});
 let qT=0;$('#main').addEventListener('input',e=>{const id=e.target.id;
   if(['fq','eq','lq'].includes(id)){clearTimeout(qT);qT=setTimeout(()=>{if(id==='fq')F.q=e.target.value;else if(id==='eq')ENG.q=e.target.value;else LET.q=e.target.value;const pos=e.target.selectionStart;render();const n=$('#'+id);if(n){n.focus();try{n.setSelectionRange(pos,pos);}catch(_){}}},250);}
@@ -880,8 +1029,10 @@ let qT=0;$('#main').addEventListener('input',e=>{const id=e.target.id;
   if(e.target.dataset.sl){const k=e.target.dataset.sl,f=k==='audCom'?['hon','name','role']:['mark','name','title'];setS({[k]:e.target.value.split('\n').filter(l=>l.trim()).map(l=>{const c=l.split('|').map(x=>x.trim());const o={};f.forEach((n,i)=>{o[n]=c[i]||'';});return o;})});}
   if(e.target.id==='aq'){clearTimeout(qT);qT=setTimeout(()=>{AUD.q=e.target.value;render();const n=$('#aq');if(n){n.focus();n.setSelectionRange(n.value.length,n.value.length);}},250);}
   if(e.target.dataset.rf||e.target.dataset.tf||e.target.dataset.af2)audInput(e.target,false);
+  if(e.target.dataset.cf&&e.target.type!=='checkbox'&&e.target.tagName!=='SELECT'&&e.target.type!=='date')certInput(e.target);
+  if(e.target.id==='cq'){clearTimeout(qT);qT=setTimeout(()=>{CERT.q=e.target.value;render();const n=$('#cq');if(n){n.focus();n.setSelectionRange(n.value.length,n.value.length);}},250);}
   const sk=e.target.dataset.s,ss=e.target.dataset.ss;if(sk){setS({[sk]:['memoTo'].includes(sk)?e.target.value:num(e.target.value)});}if(ss){const [a,b]=ss.split('.');const cur=Object.assign({},S()[a]);cur[b]=e.target.value;setS({[a]:cur});}});
-$('#main').addEventListener('change',e=>{const id=e.target.id;if(e.target.dataset.rf||e.target.dataset.tf||e.target.dataset.af2||e.target.dataset.ck){audInput(e.target,true);return;}if(id==='aSt'){AUD.st=e.target.value;render();return;}if(id==='fDist')F.dist=e.target.value;else if(id==='fSector')F.sector=e.target.value;else if(id==='fStatus')F.status=e.target.value;else if(id==='fKind')F.kind=e.target.value;else if(id==='fFlag')F.flag=e.target.checked;
+$('#main').addEventListener('change',e=>{const id=e.target.id;if(e.target.dataset.rf||e.target.dataset.tf||e.target.dataset.af2||e.target.dataset.ck){audInput(e.target,true);return;}if(id==='aSt'){AUD.st=e.target.value;render();return;}if(id==='cSt'){CERT.st=e.target.value;render();return;}if(e.target.dataset.cf&&(e.target.type==='checkbox'||e.target.tagName==='SELECT'||e.target.type==='date')){certInput(e.target);return;}if(id==='fDist')F.dist=e.target.value;else if(id==='fSector')F.sector=e.target.value;else if(id==='fStatus')F.status=e.target.value;else if(id==='fKind')F.kind=e.target.value;else if(id==='fFlag')F.flag=e.target.checked;
   else if(id==='eOnly')ENG.only=e.target.checked;else if(id==='eOver')ENG.over=e.target.checked;else if(e.target.name==='lk'){LET.kind=e.target.value;return;}else return;render();});
 $('#main').addEventListener('keydown',e=>{const t=e.target;if(t.dataset&&t.dataset.ll&&e.key==='Enter'){const ll=parseLL(t.value);if(!ll)return flash('صيغة الإحداثيات غير مفهومة',true);const p=P().find(x=>x.id===t.dataset.ll);if(p){p.lat=ll.lat;p.lng=ll.lng;touch(p);persist();render();flash('حُفظت الإحداثيات');}}});
 /* من نظام آخر: فتح مشروع برقم أمره الإداري */

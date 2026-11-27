@@ -68,7 +68,7 @@ details summary{cursor:pointer;font-weight:700;color:#0e5a70}
       <div class="cfg">
         <label for="cUrl">رابط التطبيق</label><input id="cUrl" dir="ltr" placeholder="https://script.google.com/macros/s/.../exec">
         <label for="cCode">رمز لوحة القسم</label><input id="cCode" type="password" dir="ltr" autocomplete="off">
-        <span></span><div class="row"><button class="pri" id="cSave">حفظ الإعداد</button><span class="sub">الرمز نفسه DASH_CODE في السكربت. يُحفظ على هذه الحاسبة فقط ولا يُزامَن.</span></div>
+        <span></span><div class="row"><button class="pri" id="cSave">حفظ الإعداد</button><button id="cShare" hidden></button><span class="sub" id="cNote">الرمز نفسه DASH_CODE في السكربت.</span></div>
       </div>
     </details>
   </div>
@@ -241,11 +241,20 @@ $('bPull').onclick = async () => {
   try {
     const r = await D.mrPull(); if (!r || r.error) throw new Error((r && r.error) || 'تعذر الجلب');
     const m = mergeRecords(DB.records, r.records); DB.records = m.records; DB.lastPull = Date.now(); FILES = Object.assign(FILES, r.files || {}); persist(); redraw();
-    msg('تم الجلب: ' + ar(m.added) + ' جديد، ' + ar(m.changed) + ' محدَّث' + (r.downloaded ? '، نُزِّل ' + ar(r.downloaded) + ' ملف PDF' : '') + (r.failed ? ' — تعذر تنزيل ' + ar(r.failed) + ' ملف (أعد الجلب)' : '') + '.');
+    msg('تم الجلب: ' + ar(m.added) + ' جديد، ' + ar(m.changed) + ' محدَّث' + (r.downloaded ? '، نُزِّل ' + ar(r.downloaded) + ' ملف PDF' : '') + (r.photos ? '، و' + ar(r.photos) + ' صورة موقع لبطاقات المشاريع' : '') + (r.cards ? '، وأُضيفت صور ' + ar(r.cards) + ' مشروع الى بطاقاتها في الموقف العام (تصل كل الحاسبات بالمزامنة)' : '') + (r.failed ? ' — تعذر تنزيل ' + ar(r.failed) + ' ملف (أعد الجلب)' : '') + '.');
   } catch (e) { msg(e.message, true); } finally { $('bPull').disabled = false; }
 };
+/* مشاركة الرابط والرمز مع بقية الحاسبات عبر المزامنة (من حاسبة القسم، بكلمة سر المدير) */
+function shareUI(c){ const b = $('cShare'), n = $('cNote'); if (!c) return;
+  b.hidden = !(c.server && D.mrShare); b.dataset.on = c.share ? '1' : ''; b.textContent = c.share ? '⏹ إيقاف المشاركة مع الحاسبات' : '🔗 مشاركة الرابط والرمز مع الحاسبات';
+  n.textContent = 'الرمز نفسه DASH_CODE في السكربت. ' + (c.share ? 'يُشارَك الآن مع حاسبات المزامنة (مشفّراً) فتجلب كلها التقارير وتفتحها.' : c.shared ? 'وصل الى هذه الحاسبة من حاسبة القسم عبر المزامنة.' : c.server ? 'يُحفظ على هذه الحاسبة فقط حتى تفعّل المشاركة.' : 'يُحفظ على هذه الحاسبة؛ ويصل تلقائياً بالمزامنة إن فعّلت حاسبة القسم المشاركة.'); }
+$('cShare').onclick = async () => { const on = $('cShare').dataset.on !== '1';
+  if (on && !confirm('مشاركة رابط السكربت ورمز لوحة القسم مع كل حاسبات المزامنة؟\nيُرسلان مشفّرين، وكل حاسبة ليس فيها الإعداد تأخذه تلقائياً فتجلب التقارير وصورها.')) return;
+  const pw = prompt('كلمة سر المدير:'); if (pw == null) return;
+  const r = await D.mrShare(on, pw); if (!r || r.error) return msg((r && r.error) || 'تعذر', true);
+  shareUI(await D.mrCfg()); msg(on ? 'فُعّلت المشاركة — تصل الى الحاسبات في جولة المزامنة القادمة' : 'أُوقفت المشاركة'); };
 $('cSave').onclick = async () => {
-  try { const c = await D.mrCfg({ url: $('cUrl').value, code: $('cCode').value }); $('cCode').value = ''; $('cCode').placeholder = c && c.hasCode ? '•••• محفوظ' : ''; msg('حُفظ الإعداد'); } catch (e) { msg('تعذر الحفظ', true); }
+  try { const c = await D.mrCfg({ url: $('cUrl').value, code: $('cCode').value }); $('cCode').value = ''; $('cCode').placeholder = c && c.hasCode ? '•••• محفوظ' : ''; msg('حُفظ الإعداد'); shareUI(c); } catch (e) { msg('تعذر الحفظ', true); }
 };
 document.addEventListener('click', async e => {
   const b = e.target.closest && e.target.closest('[data-open],[data-show],[data-link],[data-unlink],[data-del]'); if (!b) return;
@@ -269,7 +278,7 @@ window.__syncReload = function(){ loadDB(); loadReg(); refreshLocal().then(redra
 /* ---------- الإقلاع ---------- */
 (async function(){
   loadDB(); loadReg();
-  try { const c = D && D.mrCfg ? await D.mrCfg() : null; if (c) { $('cUrl').value = c.url || ''; $('cCode').placeholder = c.hasCode ? '•••• محفوظ' : ''; if (!c.url || !c.hasCode) $('cfg').open = true; } else { $('cfgCard').hidden = true; $('bPull').hidden = true; } } catch (_) {}
+  try { const c = D && D.mrCfg ? await D.mrCfg() : null; if (c) { shareUI(c); $('cUrl').value = c.url || ''; $('cCode').placeholder = c.hasCode ? '•••• محفوظ' : ''; if (!c.url || !c.hasCode) $('cfg').open = true; } else { $('cfgCard').hidden = true; $('bPull').hidden = true; } } catch (_) {}
   await refreshLocal(); setMode(MODE === 'l' ? 'l' : 'p'); redraw();
   window.MR = { contractKey, normName, regKeys, matchProject, mergeRecords, db: () => DB };
 })();

@@ -286,9 +286,10 @@ module.exports = function createSync(ctx) {
         { const um = req.method === 'GET' && String(req.url || '').match(/^\/sync\/update\/(info|file)$/);   // التحديث من حاسبة القسم
           if (um) { if (cfg.mode === 'server' && ctx.updater) return ctx.updater.serve(um[1], res); return send(404, { error: 'none' }); } }
         notePeer(req);
-        const m = req.url.match(/^\/sync\/(ping|gd|(co|du|ad|in|lt|fu|dm|cm|zc|fv|mr|ar|arf|reg|pph|ac|wf|pl|wfa)\/(digest|push))$/);
+        const m = req.url.match(/^\/sync\/(ping|gd|mrc|(co|du|ad|in|lt|fu|dm|cm|zc|fv|mr|ar|arf|reg|pph|ac|wf|pl|wfa)\/(digest|push))$/);
         if (!m) return send(404, { error: 'nf' });
-        if (m[1] === 'ping') return send(200, { ok: true, time: Date.now(), name: cfg.name || os.hostname(), sets: ALL, ver: String(ctx.version || ''), gd: !!(ctx.gdOffer && ctx.gdOffer(true)) });
+        if (m[1] === 'ping') return send(200, { ok: true, time: Date.now(), name: cfg.name || os.hostname(), sets: ALL, ver: String(ctx.version || ''), gd: !!(ctx.gdOffer && ctx.gdOffer(true)), mrc: (ctx.mrOffer && ctx.mrOffer(true)) || 0 });
+        if (m[1] === 'mrc') { const o = ctx.mrOffer ? ctx.mrOffer(false) : null; if (!o) return send(404, { error: 'none' }); return send(200, { v: gdSeal(o) }); }   // رابط ورمز التقارير الشهرية (إن فعّل المدير مشاركتهما)
         if (m[1] === 'gd') { const o = ctx.gdOffer ? await ctx.gdOffer(false) : null; if (!o) return send(404, { error: 'none' }); return send(200, { v: gdSeal(o) }); }
         const ds = m[2], act = m[3];
         const chunks = []; let size = 0;
@@ -340,6 +341,9 @@ module.exports = function createSync(ctx) {
   function gdSeal(o) { const iv = crypto.randomBytes(12), c = crypto.createCipheriv('aes-256-gcm', gdKey(), iv); const ct = Buffer.concat([c.update(JSON.stringify(o), 'utf8'), c.final()]); return { iv: iv.toString('base64'), ct: ct.toString('base64'), tag: c.getAuthTag().toString('base64') }; }
   function gdOpen(v) { const d = crypto.createDecipheriv('aes-256-gcm', gdKey(), Buffer.from(v.iv, 'base64')); d.setAuthTag(Buffer.from(v.tag, 'base64')); return JSON.parse(Buffer.concat([d.update(Buffer.from(v.ct, 'base64')), d.final()]).toString('utf8')); }
   let gdTried = 0;
+  let mrTried = 0;
+  async function mrPull(ping) { if (!ping || !ping.mrc || !ctx.mrWant || !ctx.mrTake || !ctx.mrWant(ping.mrc) || Date.now() - mrTried < 10 * 60 * 1000) return; mrTried = Date.now();
+    try { const r = await call('/sync/mrc', {}); if (r && r.v) { const ok = await ctx.mrTake(gdOpen(r.v)); if (ok) mrTried = 0; } } catch (e) { ctx.log && ctx.log('mr-share: ' + (e.message || e)); } }
   async function gdPull(ping) { if (!ping || !ping.gd || !ctx.gdWant || !ctx.gdTake || !ctx.gdWant() || Date.now() - gdTried < 10 * 60 * 1000) return; gdTried = Date.now();
     try { const r = await call('/sync/gd', {}); if (r && r.v) { const ok = await ctx.gdTake(gdOpen(r.v)); if (ok) gdTried = 0; } } catch (e) { ctx.log && ctx.log('gd-share: ' + (e.message || e)); } }
   let encKey = null;
@@ -431,6 +435,7 @@ module.exports = function createSync(ctx) {
       let ping; const t0 = Date.now();
       try { ping = await call('/sync/ping', {}); } catch (e) { if (!isAuto() || /مفتاح/.test(e.message)) throw e; if (!(await ensureFound(true))) throw new Error('لم يُعثر على حاسبة القسم في الشبكة — تأكد أنها مشغّلة وأن رمز القسم نفسه'); ping = await call('/sync/ping', {}); } state.skew = Math.round((ping.time - Date.now() + (Date.now() - t0) / 2) / 1000); state.peers = 1; state.serverVer = String(ping.ver || ''); state.serverName = String(ping.name || '');
       try { await gdPull(ping); } catch (_) {}
+      try { await mrPull(ping); } catch (_) {}
       let dsErr = null;   /* خطأ في مجموعة واحدة لا يوقف مزامنة باقي المجموعات (كان يوقف الجولة كلها) */
       for (const ds of ALL) { try {
         if (ds === 'ac' && !ctx.acAvailable()) continue;

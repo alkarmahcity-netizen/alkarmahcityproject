@@ -818,14 +818,93 @@ async function mrFetchPdf(r) {
   fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, Buffer.from(String(j.b64 || ''), 'base64')); return f;
 }
 ipcMain.handle('mr:cfg', (e, set) => { if (!mrFromView(e)) return null; const p = prefs();
-  if (set && typeof set === 'object') { if (typeof set.url === 'string') p.mrUrl = set.url.trim(); if (typeof set.code === 'string' && set.code) p.mrCode = set.code; atomicWrite(prefsFile(), JSON.stringify(p)); }
-  return { url: p.mrUrl || '', hasCode: !!p.mrCode }; });
+  if (set && typeof set === 'object') { if (typeof set.url === 'string') p.mrUrl = set.url.trim(); if (typeof set.code === 'string' && set.code) p.mrCode = set.code; if (p.mrShare) p.mrShareAt = Date.now(); delete p.mrSharedAt; atomicWrite(prefsFile(), JSON.stringify(p)); }
+  return { url: p.mrUrl || '', hasCode: !!p.mrCode, share: !!p.mrShare, server: !!(sync && sync.state && sync.state().mode === 'server'), shared: !!p.mrSharedAt }; });
+/* مشاركة الرابط والرمز مع بقية الحاسبات عبر المزامنة (مشفّرين بمفتاح رمز القسم) — من حاسبة القسم وبكلمة سر المدير */
+ipcMain.handle('mr:share', (e, on, masterPw) => { if (!mrFromView(e)) return { error: 'غير مسموح' }; const r = checkMaster(masterPw); if (r !== true) return { error: r === 'wait' ? 'محاولات كثيرة — انتظر دقيقة' : 'كلمة سر المدير غير صحيحة' };
+  if (on && !(sync && sync.state && sync.state().mode === 'server')) return { error: 'المشاركة تُفعَّل من حاسبة القسم (خادم المزامنة) فقط' };
+  const p = prefs(); if (on && !(p.mrUrl && p.mrCode)) return { error: 'احفظ الرابط والرمز في هذه الحاسبة أولاً' };
+  p.mrShare = !!on; if (on) p.mrShareAt = Date.now(); atomicWrite(prefsFile(), JSON.stringify(p));
+  audit.note('mr', 'share', on ? 'تفعيل مشاركة رابط ورمز التقارير الشهرية مع الحاسبات عبر المزامنة' : 'إيقاف مشاركة رابط ورمز التقارير الشهرية').catch(() => {}); return { ok: true, on: !!on }; });
 ipcMain.handle('mr:pull', async e => { if (!mrFromView(e)) return { error: 'غير مسموح' };
   try { const j = await mrCall({ action: 'list' }), records = Array.isArray(j.records) ? j.records : [], files = {}; let got = 0, failed = 0;
     for (const r of records) { if (!r || !r.id || !r.pdfId) continue; const f = mrPath(r); if (fs.existsSync(f)) { files[r.id] = f; continue; }
       if (got >= 40) continue; try { files[r.id] = await mrFetchPdf(r); got++; } catch (_) { failed++; } }   // أول جلب كبير يُنزَّل على دفعات (40 ملفاً)
-    return { ok: true, records, saved: j.saved || '', files, downloaded: got, failed }; }
+    let phGot = 0, cards = 0; for (const r of mrLatestPh(records)) for (let k = 0; k < Math.min(4, r.photoIds.length) && phGot < 60; k++) { if (fs.existsSync(mrPhPath(r, k))) continue; try { await mrFetchPhoto(r, k); phGot++; } catch (_) {} }   // صور آخر تقرير لكل مشروع (لبطاقة المشروع)
+    try { const loc = {}; try { (JSON.parse(readData('mr') || '{}').records || []).forEach(x => { if (x && x.id) loc[x.id] = x; }); } catch (_) {}   // الربط اليدوي بالاضبارة والحذف محفوظان هنا لا في السكربت
+      cards = await mrToCards(records.filter(r => r && r.id).map(r => Object.assign({}, r, { fileNo: (loc[r.id] && loc[r.id].fileNo) || r.fileNo || '', deleted: loc[r.id] && loc[r.id].deleted })).filter(r => !r.deleted), true); } catch (_) {}
+    return { ok: true, records, saved: j.saved || '', files, downloaded: got, failed, photos: phGot, cards }; }
   catch (err) { return { error: err.message }; } });
+/* صور الموقع من التقرير الشهري → بطاقة المشروع في «الموقف العام» (قسم مستقل؛ صور المشروع الثلاث التي يضيفها القسم لا تُمس).
+   تُنزَّل مع الجلب لآخر تقرير لكل مشروع، وتُقرأ للبطاقة من «تقارير-المقيمين». الربط بالمشروع بقاعدة تبويب التقارير نفسها. */
+const mrPhPath = (r, k) => path.join(dataDir, 'تقارير-المقيمين', mrSafe(r.project), mrSafe(r.month) + '-' + mrSafe(r.resident) + '-صورة' + (k + 1) + '.jpg');
+async function mrFetchPhoto(r, k) {
+  const f = mrPhPath(r, k); if (fs.existsSync(f)) return f;
+  const j = await mrCall({ action: 'photo', id: r.photoIds[k] }), b = Buffer.from(String(j.b64 || ''), 'base64');
+  if (!(b[0] === 0xff && b[1] === 0xd8) || b.length > 600 * 1024) throw new Error('صورة غير صالحة');
+  fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, b); return f;
+}
+const mrHasPh = r => r && !r.deleted && Array.isArray(r.photoIds) && r.photoIds.length > 0;
+function mrLatestPh(records) { const L = {}; (records || []).forEach(r => { if (!mrHasPh(r)) return; const k = r.projectKey || r.project; if (!L[k] || String(r.month) > String(L[k].month)) L[k] = r; }); return Object.values(L); }
+const MRK = (() => {   // نفس قاعدة الربط في app/mr.html
+  const AR = '٠١٢٣٤٥٦٧٨٩', lat = s => String(s == null ? '' : s).replace(/[٠-٩]/g, d => AR.indexOf(d)).replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d));
+  const ck = s => { const m = /(\d+)\s*(?:\/|\\|-|لسنة|لسنه|بتاريخ|ل)\s*(\d{4})/.exec(lat(s)); return m ? String(parseInt(m[1], 10)) + '/' + m[2] : ''; };
+  const nn = s => lat(s).replace(/[ً-ٰٟـ]/g, '').replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/[^ء-يa-zA-Z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+  const rk = p => { const o = new Set(), k = ck(p.contractNo); if (k) o.add(k); const n = lat(p.contractNo).replace(/\D/g, '').replace(/^0+/, ''), y = lat(p.year).replace(/\D/g, ''); if (n && /^\d{4}$/.test(y)) o.add(n + '/' + y); return o; };
+  const w = s => new Set(nn(s).split(' ').filter(x => x.length > 1));
+  const jc = (a, b) => { if (!a.size || !b.size) return 0; let i = 0; a.forEach(x => { if (b.has(x)) i++; }); return i / (a.size + b.size - i); };
+  return function match(r, P) {
+    if (r.fileNo) return P.find(x => String(x.fileNo).trim() === String(r.fileNo).trim()) || null;
+    const k = ck(r.contractNo), rn = nn(r.project);
+    if (k) { let c = P.filter(p => rk(p).has(k)); if (c.length > 1) { const e = c.filter(p => nn(p.name) === rn); c = e.length ? e : c.filter(p => jc(w(p.name), w(r.project)) >= .5); } if (c.length === 1) return c[0]; }
+    const eq = P.filter(p => nn(p.name) === rn); if (eq.length === 1) return eq[0];
+    const rw = w(r.project); let best = null, bs = 0, tie = false;
+    P.forEach(p => { const s = jc(w(p.name), rw); if (s > bs) { bs = s; best = p; tie = false; } else if (s === bs && s > 0) tie = true; });
+    return bs >= .85 && !tie ? best : null;
+  };
+})();
+/* صور التقرير تُنسخ الى مخزن صور المشاريع (المُزامَن) ويُكتب اسمها في سجل المشاريع (meta.mrPh) فتصل البطاقة في كل الحاسبات
+   دون حاجة الى رابط السكربت ورمزه فيها. تُجرى على الحاسبة التي جلبت التقارير (أو فتحت البطاقة وعندها الصور). */
+const mrKey = r => r.id + '|' + (r.srcUpdated || r.updated || '');
+async function mrToCards(records, fetch) {
+  let reg; try { reg = JSON.parse(fs.readFileSync(regFile(), 'utf8')); } catch (_) { return 0; }
+  const P = reg.projects || []; reg.meta = reg.meta || {}; reg.metaAt = reg.metaAt || {}; let n = 0;
+  for (const r of mrLatestPh(records)) {
+    const p = MRK(r, P); if (!p) continue; const fn = String(p.fileNo), m = reg.meta[fn] || {}, key = mrKey(r); if (m.mrPhKey === key) continue;
+    const names = [];
+    for (let k = 0; k < Math.min(4, r.photoIds.length); k++) {
+      let f = mrPhPath(r, k); if (!fs.existsSync(f)) { if (!fetch) continue; try { f = await mrFetchPhoto(r, k); } catch (_) { continue; } }
+      try { const x = PHS().save(fn, 'data:image/jpeg;base64,' + fs.readFileSync(f).toString('base64')); if (x.ok) names.push(x.name); } catch (_) {}
+    }
+    if (!names.length) continue;
+    reg.meta[fn] = Object.assign({}, m, { mrPh: names.join(';'), mrPhKey: key, mrPhMonth: String(r.month || ''), mrPhRes: String(r.resident || '') }); reg.metaAt[fn] = Date.now(); n++;
+  }
+  if (n) { atomicWrite(regFile(), JSON.stringify(reg)); regVer++; if (sync) sync.changed(); }
+  return n;
+}
+ipcMain.handle('mr:card', async (e, fn) => {
+  if (!win || e.sender !== win.webContents || fn == null) return null;
+  try {
+    const d = JSON.parse(readData('mr') || '{}'), recs = (d.records || []).filter(r => r && !r.deleted); if (!recs.length) return null;
+    let P = []; try { P = (JSON.parse(fs.readFileSync(regFile(), 'utf8')).projects) || []; } catch (_) {}
+    const mine = recs.filter(r => { const p = MRK(r, P); return p && String(p.fileNo).trim() === String(fn).trim(); }).sort((a, b) => String(b.month).localeCompare(String(a.month)));
+    if (!mine.length) return null;
+    const L = mine[0], rep = { id: L.id, key: L.id + '|' + (L.srcUpdated || L.updated || ''), month: L.month || '', resident: L.resident || '', actualPct: String(L.actualPct ?? ''), plannedPct: String(L.plannedPct ?? ''), safeStatus: L.safeStatus || '', status: L.status || '' };
+    const r = mine.find(mrHasPh); if (!r) return { rep, ph: null };
+    try { if (fs.existsSync(mrPhPath(r, 0))) await mrToCards([r], false); } catch (_) {}
+    let meta = {}; try { meta = (JSON.parse(fs.readFileSync(regFile(), 'utf8')).meta || {})[String(fn)] || {}; } catch (_) {}
+    if (meta.mrPhKey === mrKey(r) && meta.mrPh) {   // من مخزن صور المشاريع المُزامَن
+      const L = String(meta.mrPh).split(';').filter(Boolean), photos = L.map(nm => PHS().read(String(fn), nm)).filter(Boolean);
+      return { rep, ph: { month: r.month || '', resident: r.resident || '', photos, missing: L.length - photos.length, sync: L.length - photos.length } };
+    }
+    const photos = []; let missing = 0;
+    for (let k = 0; k < Math.min(4, r.photoIds.length); k++) {
+      let f = mrPhPath(r, k); if (!fs.existsSync(f)) { try { f = await mrFetchPhoto(r, k); } catch (_) { missing++; continue; } }
+      try { photos.push('data:image/jpeg;base64,' + fs.readFileSync(f).toString('base64')); } catch (_) { missing++; }
+    }
+    return { rep, ph: { month: r.month || '', resident: r.resident || '', photos, missing } };
+  } catch (_) { return null; }
+});
 ipcMain.handle('mr:pdf', async (e, r) => { if (!mrFromView(e) || !r || !r.pdfId) return { error: 'غير مسموح' };
   try { return { ok: true, path: await mrFetchPdf(r) }; } catch (err) { return { error: err.message }; } });
 ipcMain.handle('mr:local', (e, list) => { if (!mrFromView(e) || !Array.isArray(list)) return {}; const o = {};
@@ -1481,6 +1560,11 @@ function startSync() {
     gdOffer: quick => { if (!prefs().gdShare) return quick ? false : null; try { if (!gdEnsure().status().connected) return quick ? false : null; } catch (_) { return quick ? false : null; } return quick ? true : gdEnsure().shareOut(); },
     gdWant: () => { try { return !gdEnsure().status().connected; } catch (_) { return false; } },
     gdTake: o => { const ok = gdEnsure().shareIn(o); if (ok) audit.note('', 'gdrive', 'ربط Google Drive وصل من حاسبة القسم عبر المزامنة: ' + (o.email || '')).catch(() => {}); return ok; },
+    /* رابط ورمز التقارير الشهرية: حاسبة القسم تعرضهما (إن فعّل المدير المشاركة)، والحاسبة التي ليس فيها إعداد — أو أخذته سابقاً بالمشاركة وتغيّر — تأخذهما */
+    mrOffer: quick => { const p = prefs(); if (!p.mrShare || !p.mrUrl || !p.mrCode) return quick ? 0 : null; return quick ? (+p.mrShareAt || 1) : { url: p.mrUrl, code: p.mrCode, at: +p.mrShareAt || 1 }; },
+    mrWant: at => { const p = prefs(); return !(p.mrUrl && p.mrCode) || (!!p.mrSharedAt && +p.mrSharedAt < +at); },
+    mrTake: o => { if (!o || !/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(String(o.url || '')) || !o.code) return false; const p = prefs(); p.mrUrl = String(o.url); p.mrCode = String(o.code); p.mrSharedAt = +o.at || Date.now(); atomicWrite(prefsFile(), JSON.stringify(p));
+      audit.note('mr', 'share', 'وصل رابط ورمز التقارير الشهرية من حاسبة القسم عبر المزامنة').catch(() => {}); return true; },
     log: m => logError('sync', m)
   });
   sync.init();

@@ -2380,6 +2380,11 @@ textarea{min-height:58px;resize:vertical}
 .gbar{position:absolute!important;left:10mm;right:10mm;bottom:7mm;z-index:1;background:#2f6b34;color:#fff;border-radius:12px;padding:2px 16px;display:flex;justify-content:space-between;font-family:'Times New Roman',serif;font-weight:700;font-size:13px;direction:ltr}
 /* الترويسة العليا والسفلى الرسمية (نموذج القسم الهندسي) */
 .hd.lhd{display:block;height:auto;--hH:auto}.hd.lhd img.lh{display:block;aspect-ratio:2445/580;width:calc(100%*var(--hs,1));max-width:100%;height:auto;margin:0 auto}
+.page[data-p=c] .hd.lhd img.lh{width:auto;height:calc(40mm*var(--hs,1));max-height:44mm}   /* قرار اللجنة: ارتفاع الترويسة ٤ سم */
+.fmeta.qr-r{grid-template-columns:auto 1fr 1fr}.fmeta.qr-l{grid-template-columns:1fr 1fr auto}
+.page[data-p=c] .fmeta{height:calc(12mm - 2mm*var(--k,1));margin:0;line-height:calc(1.3*var(--lh,1));overflow:visible}   /* قرار اللجنة: ١٫٥ سم بين الترويسة والعنوان */
+.page[data-p=c].qrl .idms{left:28mm}
+.page[data-p=c] .fmeta .qrd .qr{width:15mm;height:15mm}.page[data-p=c] .fmeta .qrd{font-size:8px;line-height:1.1}
 .gbar.lhb{background:none!important;padding:0!important;border-radius:0!important}.gbar.lhb img{display:block;width:100%;height:auto;aspect-ratio:2405/76}
 .fmeta{display:grid;grid-template-columns:1fr auto 1fr;align-items:start;gap:4mm;font-weight:700;font-size:calc(13.5px*var(--k,1));line-height:calc(1.5*var(--lh,1));margin:-1mm 0 0}
 .qrd{display:flex;flex-direction:column;align-items:center;gap:1px;font-size:9px;color:#1f6b45;font-family:var(--ui);font-weight:500}
@@ -2413,7 +2418,7 @@ table.rs td.d{text-align:center;width:28mm}
 .fsig{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:2mm;margin-top:calc(2mm*var(--k,1));text-align:center;font-size:calc(11.5px*var(--k,1));line-height:calc(1.45*var(--lh,1))}
 .fs{padding-top:calc(10mm*var(--k,1));display:flex;flex-direction:column}
 .fs b{font-size:11px}
-.fapp{grid-auto-flow:row;grid-template-columns:repeat(3,1fr);font-size:calc(12.5px*var(--k,1));margin-top:0}
+.fapp{grid-auto-flow:row;grid-template-columns:repeat(3,1fr);font-size:calc(14.5px*var(--k,1));margin-top:0}.fapp .ok2{font-size:calc(15.5px*var(--k,1))}
 .fapp b{font-size:12.5px}
 .fdt{direction:ltr;font-size:10px}
 .ok2{color:#1f4fa0;font-weight:700;font-size:calc(14px*var(--k,1))}
@@ -2975,6 +2980,8 @@ table.rs td.d{text-align:center;width:28mm}
       <label class="chk full"><input type="checkbox" id="s_trio"> إظهار توقيعات المهندس المشرف والمهندس المقيم والجهة المستفيدة</label>
       <label class="chk full"><input type="checkbox" id="s_boxes"> إظهار المستطيلات الملونة في قرار اللجنة</label>
       <label class="full">ارتفاع مساحة هذه التواقيع <span id="s_trioHv"></span><input type="range" id="s_trioH" min="15" max="70" step="5"></label>
+      <label class="full">حجم خط قرار اللجنة <span id="s_cfsv"></span><input type="range" id="s_cfs" min="100" max="130" step="2"></label>
+      <label class="full">موضع رمز QR في قرار اللجنة<select id="s_qrPos"><option value="r">يمين</option><option value="c">وسط</option><option value="l">يسار</option></select></label>
     </div></details>
   </div>
 </div>
@@ -4122,6 +4129,8 @@ function bindSimple(){
   try{mpoUI();mpoBind();}catch(_){}
   $('s_boxes').checked=S.s.boxes!==false;$('s_boxes').onchange=e=>{S.s.boxes=e.target.checked;upd()};
   $('s_trio').checked=S.s.trio!==false;$('s_trio').onchange=e=>{S.s.trio=e.target.checked;upd()};
+  if(!S.s.cfs)S.s.cfs=112;if(S.s.qrV!==2){S.s.qrPos='l';S.s.qrV=2}   // رمز QR في قرار اللجنة يساراً (طلب المستخدم)
+  $('s_cfs').value=S.s.cfs;$('s_cfsv').textContent=S.s.cfs+'%';$('s_cfs').oninput=e=>{S.s.cfs=+e.target.value;$('s_cfsv').textContent=S.s.cfs+'%';upd()};$('s_qrPos').value=S.s.qrPos;$('s_qrPos').onchange=e=>{S.s.qrPos=e.target.value;upd()};
   $('s_trioH').value=S.s.trioH;$('s_trioHv').textContent=S.s.trioH/10+' سم';$('s_trioH').oninput=e=>{S.s.trioH=+e.target.value;$('s_trioHv').textContent=S.s.trioH/10+' سم';upd()};
   const T=()=>{S.s.ff=S.s.ff||'Arial';S.s.tf=S.s.tf||'inherit';$('s_tf').value=S.s.tf;S.s.fs=S.s.fs||100;S.s.lh=S.s.lh||100;if(S.s.fit===undefined)S.s.fit=true;
     $('s_ff').value=S.s.ff;$('s_fs').value=S.s.fs;$('s_lh').value=S.s.lh;$('s_fit').checked=S.s.fit;$('s_fsv').textContent=S.s.fs+'%';$('s_lhv').textContent=(S.s.lh/100).toFixed(2)};
@@ -4319,6 +4328,7 @@ function sigRow(list){
 function honDef(a){return (/معاون المحافظ/.test(a.title||'')||(/مدير/.test(a.title||'')&&!/رقابة/.test(a.title||'')))?'المهندس':''}
 function hon(a){return a.hon===undefined?honDef(a):a.hon}
 function appRow(list){
+  list=list.filter(a=>!/رقابة|تدقيق/.test(a.title||''));   // توقيع «دُقق» للرقابة الداخلية لا يُطبع (يبقى في البيانات)
   return `<div class="fsig fapp" style="grid-template-columns:repeat(${Math.min(Math.max(list.length,1),4)},1fr)">${list.map(a=>`<div class="fs">${a.mark?`<span class="ok2${a.mark==='اصادق'?'':' aud'}">${esc(a.mark)}</span>`:'<span>&nbsp;</span>'}${hon(a)?'<span>'+esc(hon(a))+'</span>':''}<b>${dots(a.name,14)}</b><span>${esc(a.title)}</span><span class="fdt">${blankDate()}</span></div>`).join('')}</div>`;
 }
 function qrBlock(id,label){return `<div class="qrd"><div class="qr" id="${id}"></div>${label}</div>`}
@@ -4404,8 +4414,9 @@ function pageCommittee(c){
   else if(k==='ext')five=`${box('قرار اللجنة بتاريخ',bxd(e.date),'#e3f2d4','#eef7e6')}${box(c.needCentral?'المدة الموصى بها':'المدة الممنوحة بهذا القرار',ar(gr)+' يوم','#d6e6f7','#cfe1f5')}${box('المدد الإضافية التراكمية',ar(c.cum)+' يوم','#c9bde6','#ddd5f0')}${box('نسبة المدد من مدة العقد',ar(c.pct.toFixed(2))+'%','#f3dfb8',pctCol)}${box(c.needCentral?'يحال الى':'تاريخ الانتهاء بعد التمديد',c.needCentral?'<span>اللجنة المركزية</span>':bxd(c.newEnd),'#d8e8b8','#e0453a;color:#fff')}`;
   else if(k==='fine')five=`${box('قرار اللجنة بتاريخ',bxd(e.date),'#e3f2d4','#eef7e6')}${box('مدة الإعفاء من الغرامات',ar(gr)+' يوم','#d6e6f7','#cfe1f5')}${box('الفترة من',bxd(c.pFrom),'#c9bde6','#ddd5f0')}${box('ولغاية',bxd(c.pTo),'#f3dfb8','#fbf0da')}${box('تاريخ الإنجاز','<span>لا يتغير</span> '+bxd(c.curEnd),'#d8e8b8','#e6f0d0')}`;
   else five=`${box('قرار اللجنة بتاريخ',bxd(e.date),'#e3f2d4','#eef7e6')}${box(k==='partial'?'فترة التوقف الجزئي الممنوحة':'فترة التوقف الممنوحة',ar(gr)+' يوم','#d6e6f7','#cfe1f5')}${box(k==='partial'?'نسبة التوقف الجزئي':'الفترة',k==='partial'?ar(num(e.pct))+'%':per,'#c9bde6','#ddd5f0')}${box(k==='partial'?'الفترة':'فترات التوقف الكلية',k==='partial'?per:ar(c.shift-c.base+gr)+' يوم','#f3dfb8','#fbf0da')}${box('تاريخ الإنجاز بعد التوقف',bxd(c.newEnd),'#d8e8b8','#e0453a;color:#fff')}`;
-  return `<div class="page${S.s.boxes===false?' nobox':''}" data-p="c">${c.stamp?`<div class="stamp">${c.stamp}</div>`:''}${head()}
-  <div class="fmeta"><div>لجنة تدقيق المدد الإضافية<br>لمشاريع ديوان محافظة الانبار<br>رقم الاستمارة ( ${ar(esc(e.formNo))||'&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'} )</div>${qrBlock('qrC',e.qr?'رابط القرار':'بيانات القرار')}<div></div></div>
+  return `<div class="page${S.s.boxes===false?' nobox':''}${(S.s.qrPos||'l')==='l'?' qrl':''}" data-p="c">${c.stamp?`<div class="stamp">${c.stamp}</div>`:''}${head()}
+  ${(()=>{const t=`<div>لجنة تدقيق المدد الإضافية<br>لمشاريع ديوان محافظة الانبار<br>رقم الاستمارة ( ${ar(esc(e.formNo))||'&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'} )</div>`,q=qrBlock('qrC',e.qr?'رابط القرار':'بيانات القرار'),qp=S.s.qrPos||'l';
+    return qp==='c'?`<div class="fmeta">${t}${q}<div></div></div>`:qp==='l'?`<div class="fmeta qr-l">${t}<div></div>${q}</div>`:`<div class="fmeta qr-r">${q}${t}<div></div></div>`})()}
   <div class="ft">${S.s.idms?'<span class="idms">IDMS</span>':''}<span class="t">قرار لجنة ( ${reqName} رقم ${ar(e.no)}${k==='partial'&&num(e.pct)?' بنسبة '+ar(num(e.pct))+'%':''} )</span></div>
   <p class="fp">أقرت لجنة تدقيق المدد الإضافية والمشكلة بموجب الامر الاداري ذي العدد ( ${ar(dots(S.d.orderNo,6))} ) في ${dt(S.d.orderDate)}${S.d.annexNo?` وملحقه ذي العدد ( ${ar(esc(S.d.annexNo))} ) في ${dt(S.d.annexDate)}`:''} <b>( ${reqName} رقم ${ar(e.no)} )</b> الخاص بمشروع :</p>
   <div class="fproj">( ${dots(P.name,40)} )</div>
@@ -4677,7 +4688,7 @@ function fitPages(){
   applyType();
   document.querySelectorAll('#out .page').forEach(p=>{
     const g=p.querySelector('.gbar'),b=p.querySelector('.bottom');if(!g||!b)return;
-    const base=(S.s.fs||100)/100;let k=base;p.style.setProperty('--k',k);p.style.setProperty('--cck',1);
+    const base=((S.s.fs||100)/100)*(p.dataset.p==='c'?(S.s.cfs||112)/100:1);let k=base;p.style.setProperty('--k',k);p.style.setProperty('--cck',1);   // قرار اللجنة: خط أكبر (افتراضياً ١١٢%)
     if(p.classList.contains('pm')||p.classList.contains('po')){
       // stoppage / resumption memo and order: tighten the gaps first, then the text
       p.style.setProperty('--g',1);if(S.s.fit===false)return;

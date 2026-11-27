@@ -27,6 +27,8 @@ module.exports = function createPhotos(ctx) {
   function refs() {
     const out = new Map(); let d = null; try { d = JSON.parse(fs.readFileSync(ctx.regFile(), 'utf8')); } catch (_) { return out; }
     const M = (d && d.meta) || {}; for (const fn of Object.keys(M)) for (const n of listOf(M[fn] && M[fn].photos)) out.set(dirOf(fn) + '/' + n, fn);
+    /* صور الموقع من آخر تقرير شهري للمقيم (meta.mrPh، حتى 4) — تُزامَن بالطريقة نفسها */
+    for (const fn of Object.keys(M)) for (const n of String((M[fn] && M[fn].mrPh) || '').split(';').map(x => x.trim()).filter(okName).slice(0, 4)) out.set(dirOf(fn) + '/' + n, fn);
     return out;
   }
   /* ---- المزامنة (pph) ---- */

@@ -13038,7 +13038,7 @@ table.dt tr.apok td{background:#e3f4df;color:#1f6b25;font-weight:700}
 .fsig{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:2mm;margin-top:3mm;text-align:center;font-family:Arial,sans-serif;font-size:.72em;line-height:calc(1.45 * var(--lh,1))}
 .fs{padding-top:max(4mm,calc(13mm + var(--sgs,0mm)));display:flex;flex-direction:column}
 .fs b{font-weight:700}
-.fapp{grid-auto-columns:1fr;grid-template-columns:repeat(4,1fr);font-size:.82em;margin-top:max(0mm,calc(2mm + var(--sgs,0mm) / 2))}
+.fapp{grid-auto-columns:1fr;grid-template-columns:repeat(3,1fr);font-size:.95em;margin-top:max(0mm,calc(2mm + var(--sgs,0mm) / 2))}
 .fapp .fs{padding-top:max(5mm,calc(15mm + var(--sgs,0mm)))}
 .fapp .fs .ok2{font-weight:700}
 .endrow{display:flex;align-items:flex-start;gap:6mm;margin-top:3mm}
@@ -14493,7 +14493,7 @@ function pageForm(r,c,pi){const P=r.project,o=r.orders[pi],x=c.rows[pi],n=pi+1;
     return box(lab,`<span dir="ltr">${cum<0?'-':''}${fmt(Math.abs(cum))}</span>`,'#f5c9cf','#f0b7bf');})()}${box('كلفة المشروع بعد اوامر التغيير',fmt(x.newValue),'#cfe8b9','#bfe0a3')}</div>${x.exDays?`<div class="dref">يتم احالة المدة الاضافية الى اللجنة المركزية كونها تجاوزت نسبة (${r.capDays}%) من مدة العقد</div>`:''}
   ${noPromo(x)}
   <div class="pin"><div class="fsig">${memO.map(msig).join('')}</div>
-  <div class="fsig fapp">${audSig}${asig(appr[0],true,false)}${asig(appr[1],true,false)}${asig(appr[2],false,true)}</div></div>
+  <div class="fsig fapp">${asig(appr[0],true,false)}${asig(appr[1],true,false)}${asig(appr[2],false,true)}</div></div>
   ${gbar}</div>`;}
 const SIG_EXC=/المهندس المقيم|ممثل الشركة|المتابعة/;
 const isVice=role=>/(معاون|نائب)\s*رئيس/.test(role||''),isChair=role=>/رئيس/.test(role||'')&&!isVice(role);

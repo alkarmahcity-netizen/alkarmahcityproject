@@ -1,0 +1,44 @@
+// صور الموقع من التقرير الشهري تظهر في بطاقة المشروع (الموقف العام) — قسم مستقل، وصور المشروع الثلاث لا تُمس
+const { _electron: electron } = require('playwright'); const fs = require('fs'), path = require('path'), os = require('os');
+const sleep = ms => new Promise(r => setTimeout(r, ms)); const R = []; const ok = (n, c, d = '') => R.push([c ? 'PASS' : 'FAIL', n, d]);
+(async () => { const T = fs.mkdtempSync(path.join(os.tmpdir(), 'mrc-')); const mk = n => { const d = path.join(T, n); fs.mkdirSync(d); return d; };
+  const DD = mk('d'), RG = mk('r');
+  fs.writeFileSync(path.join(RG, 'registry.json'), JSON.stringify({ app: 'anbar-projects-shared', version: 1, projects: [{ fileNo: '900', name: 'انشاء مدرسة نموذجية في الرمادي (مثال)', contractor: 'شركة مثال أ', contractNo: '91', year: '2024', district: 'الرمادي', actualPct: 30, planPct: 40 }, { fileNo: '901', name: 'تأهيل شارع في هيت (مثال)', contractor: 'شركة مثال ب', contractNo: '15', year: '2025', district: 'هيت', actualPct: 20, planPct: 25 }], links: {}, meta: {} }));
+  const rec = (id, m, ph) => ({ id, projectKey: 'c:91/2024', project: 'انشاء مدرسة نموذجية في الرمادي', company: 'شركة مثال أ', contractNo: '91 لسنة 2024', resident: 'مقيم مثال', month: m, pdfId: 'P' + id, photoIds: ph, updated: 1, srcUpdated: 1 });
+  fs.writeFileSync(path.join(DD, 'MonthlyReports-Data.json'), JSON.stringify({ app: 'anbar-monthly-reports', version: 1, records: [rec('a1', '2026-09', ['x1']), Object.assign(rec('a2', '2026-10', ['y1', 'y2']), { actualPct: '48', plannedPct: '50', safeStatus: 'ملتزمة جزئياً', status: 'مستمر' }), { id: 'b1', projectKey: 'c:15/2025', project: 'تأهيل شارع في هيت', contractNo: '15/2025', resident: 'مقيم ب', month: '2026-10', actualPct: '22', plannedPct: '30', safeStatus: 'غير ملتزمة', pdfId: 'Pb', updated: 1, srcUpdated: 1 }, Object.assign(rec('a3', '2026-11', ['z1']), { deleted: 5 })] }));
+  // صور التقرير كما ينزلها الجلب (لا شبكة في الاختبار)
+  const D = path.join(DD, 'تقارير-المقيمين', 'انشاء مدرسة نموذجية في الرمادي'); fs.mkdirSync(D, { recursive: true });
+  const J = Buffer.from('/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=', 'base64');
+  for (const n of ['2026-10-مقيم مثال-صورة1.jpg', '2026-10-مقيم مثال-صورة2.jpg', '2026-09-مقيم مثال-صورة1.jpg']) fs.writeFileSync(path.join(D, n), J);
+  const app = await electron.launch({ executablePath: require('electron'), args: ['--no-sandbox', __dirname], env: { ...process.env, UNI_MULTI: mk('u'), UNI_DATA_DIR: DD, ANBAR_REG_DIR: RG, UNI_AC_PORT: '48583', UNI_NO_JSONSCAN: '1', UNI_NO_LINKREFRESH: '1', UNI_NO_INTRO: '1' } });
+  const pg = await app.firstWindow(); await sleep(1500);
+  const c = await pg.evaluate(async () => window.desktop.mrCard('900'));
+  ok('latest non-deleted report with photos (October, 2 photos) is matched to file 900 by contract number', c && c.ph && c.ph.month === '2026-10' && c.ph.photos.length === 2 && c.ph.missing === 0 && c.rep.actualPct === '48', JSON.stringify(c && { m: c.ph && c.ph.month, n: c.ph && c.ph.photos.length, rep: c.rep }));
+  const c2 = await pg.evaluate(async () => window.desktop.mrCard('901'));
+  ok('another project: its own report data, no photos', c2 && c2.ph === null && c2.rep.plannedPct === '30', JSON.stringify(c2));
+  await pg.evaluate(() => window.desktop.go('sit')); await sleep(2000);
+  await pg.evaluate(() => window.SitOpen('900')); await sleep(1500);
+  const d = await pg.evaluate(() => { const e = document.getElementById('mrPh'); return { h: e && e.querySelector('h5') ? e.querySelector('h5').textContent : '', n: e ? e.querySelectorAll('img').length : -1, own: !!document.querySelector('#drawer .pph.add') }; });
+  ok('project card shows «صور الموقع من آخر تقرير شهري» with the 2 photos, month and resident', d.n === 2 && /آخر تقرير شهري/.test(d.h) && /10\/2026/.test(d.h) && /مقيم مثال/.test(d.h), JSON.stringify(d));
+  ok('the card\'s own photo section (3 photos added by the department) is still there', d.own, JSON.stringify(d));
+  const w = await pg.evaluate(() => { const e = document.getElementById('mrPh'); return { t: e.textContent, warn: !!e.querySelector('.mrwarn'), ok: !!e.querySelector('[data-mrpct=ok]') }; });
+  ok('card shows the report\'s planned/actual % and occupational safety', /50%/.test(w.t) && /48%/.test(w.t) && /ملتزمة جزئياً/.test(w.t) && /السلامة المهنية/.test(w.t), w.t.slice(0, 200));
+  ok('different from the situation → warning with «تُعتمد» / «تحققت — لا تُعتمد»', w.warn && w.ok && /تحققت — لا تُعتمد/.test(w.t) && /الفعلي 30% ← 48%/.test(w.t), w.t.slice(0, 300));
+  await pg.evaluate(() => { window.confirm = () => true; document.querySelector('#mrPh [data-mrpct=ok]').click(); }); await sleep(1500);
+  const a = await pg.evaluate(() => { const e = document.getElementById('mrPh'), dr = document.getElementById('drawer').textContent; return { warn: !!(e && e.querySelector('.mrwarn')), t: e ? e.textContent : '', dr: /الانجاز الفعلي48%/.test(dr.replace(/\s+/g, '')) || /الانجاز الفعلي\s*48%/.test(dr) }; });
+  ok('«تُعتمد»: the project now shows 48% actual / 50% planned, warning gone', !a.warn && a.dr && /معتمدة من تقرير شهر 10\/2026/.test(a.t), JSON.stringify(a).slice(0, 300));
+  await pg.evaluate(() => window.SitOpen('901')); await sleep(1500);
+  await pg.evaluate(() => document.querySelector('#mrPh [data-mrpct=no]').click()); await sleep(1500);
+  const n = await pg.evaluate(() => { const e = document.getElementById('mrPh'); return { warn: !!e.querySelector('.mrwarn'), t: e.textContent, dr: document.getElementById('drawer').textContent.replace(/\s+/g, '') }; });
+  ok('«لا تُعتمد»: warning gone, the situation keeps 20%, a note says it was checked', !n.warn && /لم يعتمدها/.test(n.t) && /الانجازالفعلي20%/.test(n.dr) && /غير ملتزمة/.test(n.t), JSON.stringify(n).slice(0, 300));
+  const rg = JSON.parse(fs.readFileSync(path.join(RG, 'registry.json'), 'utf8')), m9 = (rg.meta || {})['900'] || {}, L9 = String(m9.mrPh || '').split(';').filter(Boolean);
+  const dir9 = require('./photos').dirOf('900');
+  ok('report photos copied to the synced project-photo store (meta.mrPh) so every PC gets them', L9.length === 2 && /^a2\|/.test(m9.mrPhKey || '') && L9.every(n => fs.existsSync(path.join(DD, 'صور-المشاريع', dir9, n))) && +((rg.metaAt || {})['900']) > 0, JSON.stringify(m9));
+  fs.rmSync(path.join(DD, 'تقارير-المقيمين'), { recursive: true, force: true });   // كحاسبة لم تجلب من السكربت: الصور من المخزن المُزامَن فقط
+  const c3 = await pg.evaluate(async () => window.desktop.mrCard('900'));
+  ok('a PC without the script files still shows the photos (from the synced store)', c3 && c3.ph && c3.ph.photos.length === 2 && c3.ph.missing === 0, JSON.stringify(c3 && c3.ph && { n: c3.ph.photos.length, x: c3.ph.missing }));
+  ok('registry photos untouched', !((JSON.parse(fs.readFileSync(path.join(RG, 'registry.json'), 'utf8')).meta || {})['900'] || {}).photos);
+  const e = await app.evaluate(() => (global.__uniErrors || []).slice()); ok('no JavaScript errors', e.length === 0, e.join(' | ').slice(0, 300));
+  await app.close();
+  R.forEach(x => console.log(x[0], x[1], x[2] ? '— ' + String(x[2]).slice(0, 300) : '')); console.log(`${R.filter(x => x[0] === 'PASS').length}/${R.length}`); process.exit(R.every(x => x[0] === 'PASS') ? 0 : 1);
+})().catch(e => { console.error(e); process.exit(1); });

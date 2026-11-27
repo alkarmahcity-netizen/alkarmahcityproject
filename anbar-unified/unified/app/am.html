@@ -677,8 +677,8 @@ function rSet(){const s=S();return `<div class="grid2"><div class="card"><h4>ا�
   <label class="sub">أعضاء اللجنة — سطر لكل عضو: اللقب | الاسم | الصفة<textarea data-sl="audCom" rows="4">${esc((s.audCom||[]).map(m=>[m.hon,m.name,m.role].join(' | ')).join('\n'))}</textarea></label>
   <label class="sub">المصادقات — سطر لكل جهة: العلامة | الاسم | الجهة<textarea data-sl="audApp" rows="4">${esc((s.audApp||[]).map(m=>[m.mark,m.name,m.title].join(' | ')).join('\n'))}</textarea></label>
   <p class="hint">رقم الاستمارة يُعطى تلقائياً عند «بدء التدقيق» (آخر رقم: ${+s.audSerial||0}).</p></div>
-  <div class="card"><h4>البيانات</h4><p class="hint">${DESK?'البيانات في ملف «AmanaProjects-Data.json» في مجلد بيانات البرنامج، وتُزامَن وتُنسخ احتياطياً مع باقي الأنظمة.':'البيانات محفوظة في متصفح هذا الجهاز فقط — احفظ نسخة JSON دورياً.'}</p>
-  <div class="row"><button data-a="jsonOut">⬇ نسخة JSON</button><button data-a="jsonIn">⬆ استعادة من JSON</button><button data-a="import">📥 استيراد Excel</button><button class="dng" data-a="wipe">🗑 حذف كل المشاريع</button></div></div></div>`;}
+  <div class="card"><h4>البيانات</h4><p class="hint">${DESK?'البيانات في ملف «AmanaProjects-Data.json» في مجلد بيانات البرنامج، مع نسخ احتياطية تلقائية. احفظ نسخة JSON أو انسخ مجلد البيانات دورياً.':'البيانات محفوظة في متصفح هذا الجهاز فقط — احفظ نسخة JSON دورياً.'}</p>
+  <div class="row">${DESK&&DESK.openDataFolder?'<button data-a="folder">📂 فتح مجلد البيانات</button>':''}<button data-a="jsonOut">⬇ نسخة JSON</button><button data-a="jsonIn">⬆ استعادة من JSON</button><button data-a="import">📥 استيراد Excel</button><button class="dng" data-a="wipe">🗑 حذف كل المشاريع</button></div></div></div>`;}
 
 /* تعديل خانات التدقيق: يُحفظ فوراً؛ الإدخال النصي لا يعيد رسم الصفحة (لا يضيع المؤشر)، والقوائم ومربعات الاختيار تعيد الرسم */
 function audInput(t,isChange){const {p,a}=audFind();if(!p||!a||!a.audit)return;const au=a.audit;let full=false;
@@ -701,7 +701,7 @@ $('#jsonIn').addEventListener('change',async e=>{const f=e.target.files[0];e.tar
 $('#main').addEventListener('click',e=>{const o=e.target.closest('[data-open]');if(o&&o.dataset.open){e.preventDefault();openProj(o.dataset.open);return;}
   const a=e.target.closest('[data-a]');if(a){const k=a.dataset.a;
     if(k==='import')$('#fileIn').click();else if(k==='new')openProj('');else if(k==='goOver'){TAB='eng';ENG.over=true;render();}
-    else if(k==='jsonOut')saveFile(`AmanaProjects-نسخة_${today()}.json`,new TextEncoder().encode(JSON.stringify(DB,null,1)));else if(k==='jsonIn')$('#jsonIn').click();
+    else if(k==='jsonOut')saveFile(`AmanaProjects-نسخة_${today()}.json`,new TextEncoder().encode(JSON.stringify(DB,null,1)));else if(k==='jsonIn')$('#jsonIn').click();else if(k==='folder')DESK.openDataFolder();
     else if(k==='wipe'){if(!confirm('حذف كل المشاريع؟ لا يمكن التراجع.'))return;P().forEach(p=>{try{DESK&&DESK.tomb&&DESK.tomb(p.id);}catch(_){}});DB.records=DB.records.filter(r=>r.type!=='p');persist(true);render();}return;}
   const ad=e.target.closest('[data-aud]');if(ad){[AUD.pid,AUD.aid]=ad.dataset.aud.split('|');render();setTimeout(()=>{const x=$('#audEd')||$('#main .card:last-child');if(x)x.scrollIntoView({behavior:'smooth',block:'start'});},50);return;}
   const au=e.target.closest('[data-au]');if(au){audAct(au.dataset.au,au);return;}

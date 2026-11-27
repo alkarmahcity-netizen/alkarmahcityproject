@@ -1,0 +1,26 @@
+{
+  "name": "anbar-amana",
+  "productName": "مشاريع التنفيذ أمانة",
+  "version": "1.0.0",
+  "description": "مشاريع التنفيذ أمانة — لجان التنفيذ والتسلم، المبالغ، المهندسون، السلف وتدقيقها، الإحداثيات، المخاطبات — محافظة الأنبار",
+  "author": "Engineering Affairs Department - Anbar",
+  "main": "main.js",
+  "scripts": {
+    "prepare-files": "node prepare.js",
+    "start": "node prepare.js && electron .",
+    "build:win": "node prepare.js && electron-builder --win portable --x64"
+  },
+  "devDependencies": {
+    "electron": "22.3.27",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "iq.anbar.engineering.amana",
+    "directories": { "output": "dist", "buildResources": "buildres" },
+    "files": ["main.js", "preload.js", "shell.html", "app/**", "shell/**", "package.json"],
+    "win": { "target": [{ "target": "portable", "arch": ["x64"] }], "icon": "../unified/build/icon.png", "signAndEditExecutable": false },
+    "portable": { "artifactName": "AmanaProjects-${version}-Windows-x64.exe" },
+    "executableName": "AmanaProjects",
+    "compression": "maximum"
+  }
+}

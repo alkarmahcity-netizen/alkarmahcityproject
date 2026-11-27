@@ -1,0 +1,34 @@
+// اختبار البرنامج المستقل «مشاريع التنفيذ أمانة»: xvfb-run -a node test-amana.js
+const { _electron: electron } = require('playwright');
+const fs = require('fs'), path = require('path'), os = require('os');
+const D = path.join(os.tmpdir(), 'amana-test'); fs.rmSync(D, { recursive: true, force: true }); fs.mkdirSync(D, { recursive: true });
+const shellPg = async app => { for (let i = 0; i < 40; i++) { const w = app.windows().find(w => /shell\.html/.test(w.url())); if (w) return w; await new Promise(r => setTimeout(r, 250)); } throw new Error('no shell'); };
+const sleep = ms => new Promise(r => setTimeout(r, ms)); const R = []; const ok = (n, c, d = '') => R.push([c ? 'PASS' : 'FAIL', n, d]);
+(async () => {
+  const env = { ...process.env, AMANA_DATA_DIR: D };
+  let app = await electron.launch({ executablePath: require('electron'), args: ['--no-sandbox', __dirname], env });
+  let pg = await shellPg(app); await sleep(3000);
+  ok('window has the two tabs', await pg.evaluate(() => document.querySelectorAll('[data-go]').length === 2));
+  const am = c => app.evaluate(async (_, c) => global.__amana.views.am.webContents.executeJavaScript(c), c);
+  ok('projects page loads with window.desktop', await am(`!!window.desktop&&typeof XLW==='object'&&!!window.ANBAR_GEO&&document.querySelectorAll('#tabs button').length===8`));
+  await am(`(()=>{DB.records.push({id:'p1',type:'p',kind:'p',year:2026,orderNo:'12696',orderDate:'2026-03-08',name:'تعريض واكساء طريق',district:'الكرمة',amount:244495000,exec:['م.أ أ أ','م.ب ب ب','السيد ج ج ج'],recv:['م.د د د','م.هـ هـ هـ','م.و و و'],advances:[{id:'a1',no:'1',paid:50000000}],progress:40,status:'run',updated:Date.now()});persist();render();return 1})()`);
+  await sleep(200);
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].close()); await sleep(2500);
+  const f = path.join(D, 'AmanaProjects-Data.json');
+  ok('pending save is flushed on close into the data folder', fs.existsSync(f) && JSON.parse(fs.readFileSync(f, 'utf8')).records.some(r => r.id === 'p1'));
+  app = await electron.launch({ executablePath: require('electron'), args: ['--no-sandbox', __dirname], env });
+  pg = await shellPg(app); await sleep(3000);
+  ok('data is there after reopening', await am(`P().some(p=>p.id==='p1')`));
+  await am(`(()=>{TAB='let';LET.pid='p1';LET.kind='order';render();letAct('lt');return 1})()`); await sleep(3500);
+  ok('the «المخاطبات» tab is active', await pg.evaluate(() => document.querySelector('[data-go=aml]').classList.contains('on')));
+  const lt = c => app.evaluate(async (_, c) => global.__amana.views.aml.webContents.executeJavaScript(c), c);
+  ok('letters editor with the division letterhead', await lt(`IMG_LHT.length>300000&&!!document.querySelector('img.lht')`));
+  await sleep(3500);
+  const lf = path.join(D, 'AmanaLetters-Data.json'), j = fs.existsSync(lf) ? JSON.parse(fs.readFileSync(lf, 'utf8')) : null, o = j && j.records.find(r => r.type === 'order');
+  ok('order saved in AmanaLetters-Data.json', o && o.no === '12696' && o.tables.length === 2);
+  await pg.evaluate(() => document.querySelector('[data-go=am]').click()); await sleep(800);
+  ok('the «المشاريع» tab switches back', await pg.evaluate(() => document.querySelector('[data-go=am]').classList.contains('on')));
+  ok('daily backup created', fs.existsSync(path.join(D, 'نسخ-احتياطية')));
+  await app.close();
+  console.log(R.map(r => r.join('  ')).join('\n')); const n = R.filter(r => r[0] === 'FAIL').length; console.log(n ? n + ' FAILED' : 'ALL PASS'); process.exit(n ? 1 : 0);
+})().catch(e => { console.error(e); process.exit(1); });

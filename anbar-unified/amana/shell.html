@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>مشاريع التنفيذ أمانة</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;height:100%;background:#f1efe9;font:14px Tahoma,'Segoe UI',Arial,sans-serif;overflow:hidden}
+#top{height:46px;display:flex;align-items:center;gap:8px;padding:0 12px;background:#5b3a0c;color:#fff}
+#top b{font-size:15px;margin-inline-end:14px;white-space:nowrap}
+#top button{font:inherit;font-weight:700;cursor:pointer;border:1px solid rgba(255,255,255,.45);background:rgba(255,255,255,.1);color:#fff;border-radius:7px;padding:6px 16px}
+#top button.on{background:#fff;color:#5b3a0c}
+#top .sp{flex:1}#top .s{font-size:12px;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:40vw}
+</style>
+</head>
+<body>
+<div id="top"><b>🏗️ مشاريع التنفيذ أمانة</b>
+  <button data-go="am" class="on">📁 المشاريع</button>
+  <button data-go="aml">✉️ المخاطبات</button>
+  <span class="sp"></span><span class="s" id="inf"></span>
+  <button id="fold" title="فتح مجلد البيانات (انسخه للاحتفاظ بنسخة)">📂 مجلد البيانات</button>
+</div>
+<script>
+const A=window.amana;
+document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>A.go(b.dataset.go));
+A.onState(id=>document.querySelectorAll('[data-go]').forEach(b=>b.classList.toggle('on',b.dataset.go===id)));
+document.getElementById('fold').onclick=()=>A.openDataFolder();
+try{const i=A.info(),e=document.getElementById('inf');e.textContent='الإصدار '+i.ver+' — البيانات: ';const b=document.createElement('bdi');b.dir='ltr';b.textContent=i.dir;e.appendChild(b);e.title=i.dir;}catch(_){}
+</script>
+</body>
+</html>

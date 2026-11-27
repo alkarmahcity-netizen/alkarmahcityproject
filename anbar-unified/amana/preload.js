@@ -23,6 +23,8 @@ if (APP === 'shell') {
     openDataFolder: () => ipcRenderer.invoke('data:openFolder'),
     go: (id, arg) => ipcRenderer.invoke('nav:go', id, arg),
     who: () => { try { return ipcRenderer.sendSync('who:get') || ''; } catch (_) { return ''; } },
-    setWho: n => ipcRenderer.invoke('who:set', n)
+    setWho: n => ipcRenderer.invoke('who:set', n),
+    /* المخاطبات تقرأ مشاريع البرنامج لتملأ الأمر الإداري */
+    amData: () => ipcRenderer.sendSync('data:load', 'am')
   });
 }

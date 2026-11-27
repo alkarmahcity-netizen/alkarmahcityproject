@@ -12769,7 +12769,64 @@ function orderFromTpl(k,f){const B='…………',v=x=>String(f[x]||'').trim()||
   /* تُؤشَّر الجهات الأساسية؛ البقية في القائمة غير مؤشَّرة (تُؤشَّر عند الحاجة) ليبقى الأمر في صفحة واحدة */
   const offK=/معاون المحافظ|قسم التدقيق|تكنولوجيا المعلومات|لجنة المتابعة/;
   return {subject,body,tables,cc,ccOn:t=>!offK.test(t)};}
-function showOrderChooser(){const d=document.createElement('div');d.className='modal';d.id='otModal';
+
+/* ===================== أوامر شعبة تنفيذ العمل أمانة (وضع aml فقط) =====================
+   «+ أمر إداري» في مخاطبات برنامج مشاريع التنفيذ أمانة: نماذج على نسق أوامر الشعبة الصادرة، وتُملأ من مشروع مختار من بيانات البرنامج (desktop.amData)
+   أو يدوياً. كل شيء يُعدَّل بعدها بحرية في المحرر. */
+const AMT={amn:{t:'تشكيل لجنتي تنفيذ وتسلم العمل أمانة',f:['p','d','amt','ref','cancel']},
+  amc:{t:'تعديل لجنة (إعفاء عضو وتكليف بديل)',f:['p','oref','which','old','new','reason']},
+  amx:{t:'إلغاء أمر إداري',f:['p','oref','reason']},
+  ams:{t:'صرف مبلغ (سلفة) للجنة تنفيذ العمل',f:['p','oref','amt','advno']}};
+const AMF={p:['اسم المشروع',''],d:['القضاء',''],amt:['المبلغ (دينار)','مثل: 244,495,000'],ref:['الاستناد (اختياري)','مثل: كتاب مديرية طرق وجسور الانبار ذي العدد 513 في 2026/3/4'],
+  cancel:['إلغاء أمر سابق (اختياري)','مثل: 26418 في 2025/11/2'],oref:['الأمر الإداري الأصلي (العدد والتاريخ)','مثل: 12696 في 2026/3/8'],which:['اللجنة','لجنة تنفيذ العمل'],
+  old:['العضو المعفى',''],new:['العضو البديل',''],reason:['السبب (اختياري)','لمقتضيات مصلحة العمل'],advno:['رقم السلفة','1']};
+function amTafqit(n){n=Math.round(+String(n||0).replace(/[^\d.]/g,'')||0);if(!n)return 'صفر';
+  const o=['','واحد','اثنان','ثلاثة','أربعة','خمسة','ستة','سبعة','ثمانية','تسعة','عشرة','أحد عشر','اثنا عشر','ثلاثة عشر','أربعة عشر','خمسة عشر','ستة عشر','سبعة عشر','ثمانية عشر','تسعة عشر'],
+    t=['','','عشرون','ثلاثون','أربعون','خمسون','ستون','سبعون','ثمانون','تسعون'],h=['','مائة','مائتان','ثلاثمائة','أربعمائة','خمسمائة','ستمائة','سبعمائة','ثمانمائة','تسعمائة'];
+  const tri=x=>{const a=Math.floor(x/100),r=x%100,p=[];if(a)p.push(h[a]);if(r){if(r<20)p.push(o[r]);else{const u=r%10,d=Math.floor(r/10);p.push(u?o[u]+' و'+t[d]:t[d]);}}return p.join(' و');};
+  const sc=[['','',''],['ألف','ألفان','آلاف'],['مليون','مليونان','ملايين'],['مليار','ملياران','مليارات']];const parts=[];let i=0;
+  while(n>0&&i<4){const g=n%1000;if(g){let w;if(i===0)w=tri(g);else if(g===1)w=sc[i][0];else if(g===2)w=sc[i][1];else if(g<=10)w=tri(g)+' '+sc[i][2];else w=tri(g)+' '+sc[i][0];parts.unshift(w);}n=Math.floor(n/1000);i++;}
+  return parts.join(' و');}
+const amFm=v=>{const n=Math.round(+String(v||0).replace(/[^\d.]/g,'')||0);return n?n.toLocaleString('en-US'):'';};
+const amName=raw=>{raw=String(raw||'').replace(/\s+/g,' ').trim();const m=/^(المهندسة?|م\s*[.\/]|السيدة?|الفنية?)[\s.\/]*/.exec(raw),p=m?m[1].replace(/\s/g,''):'',n=raw.replace(/^(المهندسة?|م\s*[.\/]|السيدة?|الفنية?)[\s.\/]*/,'').trim();
+  if(!n)return '';return (/^م[.\/]|المهندس/.test(p)?'المهندس/ ':/السيد/.test(p)?'السيد/ ':/الفني/.test(p)?'الفني/ ':'')+n;};
+const amTable=list=>({id:uid(),cols:['الاسم','الصفة','جهة العمل'],rows:((list&&list.length)?list:['','','']).map((r,i)=>[amName(r),i===0?'رئيس اللجنة':'عضواً','']),serial:true,shade:'FFFFFF',fit:'full',sz:100});
+const AM_CC=['مكتب السيد المحافظ/ للتفضل بالاطلاع ...مع التقدير.','مكتب نائب المحافظ للشؤون الفنية/ للتفضل بالاطلاع ...مع التقدير.','مكتب معاون المحافظ للشؤون الفنية/ للتفضل بالاطلاع ...مع التقدير.','قسم الشؤون المالية/ لاتخاذ ما يلزم ...مع التقدير.','قسم التدقيق والرقابة الداخلية/ للعلم ...مع التقدير.','السادة رئيس وأعضاء لجنة تنفيذ وتسلم العمل/ لاتخاذ ما يلزم ...مع التقدير.','الاضبارة مع الأوليات.'];
+const AM_HEAD='لمقتضيات المصلحة العامة واستناداً إلى الصلاحيات المخولة إلينا وبناءً على ما جاء بتعليمات تنفيذ الأعمال بأسلوب العمل أمانة رقم (3) لسنة 2022';
+function amOrder(k,f,P){const B='…………',v=x=>String(f[x]||'').trim()||B,amt=String(f.amt||'').trim();const money=amt?`(${amFm(amt)}) ${amTafqit(amt)} دينار فقط`:`(${B}) ${B} دينار فقط`;
+  let n=1;const L=[];let tables=[],cc=AM_CC.slice();
+  if(k==='amn'){const ref=String(f.ref||'').trim(),can=String(f.cancel||'').trim();
+    if(can)L.push(`${n++}- إلغاء أمرنا الإداري ذي العدد ${can} .`);if(ref)L.push(`${n++}- اعتماد الكشف وحسب ${ref} .`);
+    L.push(`${n++}- ${can?'إعادة تشكيل':'تشكيل'} لجان من السادة المدرجة أسماؤهم أدناه لتنفيذ وتسلم مشروع (${v('p')}${String(f.d||'').trim()?' / قضاء '+f.d.trim():''}) بأسلوب تنفيذ العمل أمانة على أن تنهي اللجنة أعمالها خلال السنة المالية الحالية .\nلجنة تنفيذ العمل:\n[[جدول 1]]\nلجنة التسلم/ تباشر عملها عند مباشرة لجنة التنفيذ في مهامها\n[[جدول 2]]`);
+    L.push(`${n++}- صرف مبلغ قدره ${money} .`);tables=[amTable(P&&P.exec),amTable(P&&P.recv)];
+    if(P&&P.beneficiary)cc.splice(cc.length-1,0,`${P.beneficiary}/ للتفضل بالاطلاع ...مع التقدير.`);}
+  else if(k==='amc'){L.push(`${n++}- إعفاء (${v('old')}) من عضوية ${String(f.which||'').trim()||'لجنة تنفيذ العمل'} لمشروع (${v('p')}) المشكلة بموجب أمرنا الإداري ذي العدد ${v('oref')}${String(f.reason||'').trim()?' '+f.reason.trim():''} .`);
+    L.push(`${n++}- تكليف (${v('new')}) بديلاً عنه .`);L.push(`${n++}- تبقى الفقرات الأخرى من الأمر أعلاه دون تغيير .`);}
+  else if(k==='amx'){L.push(`${n++}- إلغاء أمرنا الإداري ذي العدد ${v('oref')} الخاص بتشكيل لجنتي تنفيذ وتسلم مشروع (${v('p')})${String(f.reason||'').trim()?' '+f.reason.trim():''} .`);}
+  else if(k==='ams'){L.push(`${n++}- صرف مبلغ قدره ${money} سلفةً رقم (${v('advno')}) إلى لجنة تنفيذ العمل أمانة لمشروع (${v('p')}) المشكلة بموجب أمرنا الإداري ذي العدد ${v('oref')}، على أن تُعزَّز بمستندات أصولية مؤيدة من لجنتي التنفيذ والتسلم .`);}
+  L.push(`${n++}- ينفذ أمرنا من تاريخ صدوره .`);
+  return {subject:'',body:`${AM_HEAD} .\nتقرر ما يلي:\n${L.join('\n')}`,tables,cc};}
+function amProjects(){try{const t=DESK&&DESK.amData&&DESK.amData();const d=t?JSON.parse(t):null;return (d&&d.records||[]).filter(r=>r&&r.type==='p').sort((a,b)=>String(b.orderDate||'').localeCompare(String(a.orderDate||'')));}catch(_){return [];}}
+function showAmanaOrder(){const PS=amProjects(),d=document.createElement('div');d.className='modal';d.id='otModal';
+  const fld=k=>`<label class="fld" data-of="${k}"><span>${AMF[k][0]}</span><input data-otf="${k}" placeholder="${esc(AMF[k][1])}"></label>`;
+  d.innerHTML=`<div class="box"><h2>+ أمر إداري — شعبة تنفيذ العمل أمانة</h2><p class="hint">اختر النموذج والمشروع (من بيانات البرنامج) فتُملأ الحقول وأسماء اللجنتين، أو اكتبها يدوياً. أي حقل فارغ يُترك «…………».</p>
+   <div class="otl">${Object.entries(AMT).map(([k,x],i)=>`<label class="chk ot"><input type="radio" name="otk" value="${k}" ${i===0?'checked':''}> ${x.t}</label>`).join('')}<label class="chk ot"><input type="radio" name="otk" value="blank"> أمر إداري فارغ</label></div>
+   ${PS.length?`<label class="fld"><span>المشروع (${PS.length})</span><select id="amP"><option value="">— اختر —</option>${PS.map(p=>`<option value="${esc(p.id)}">${esc((p.orderNo?p.orderNo+' — ':'')+p.name)}</option>`).join('')}</select></label>`:''}
+   <div class="grid2" id="otF">${Object.keys(AMF).map(fld).join('')}</div>
+   <div class="addrow" style="margin-top:10px"><button class="btn primary" data-ot="go">إنشاء الأمر</button><button class="btn" data-ot="close">إلغاء</button></div></div>`;
+  document.body.appendChild(d);const F=k=>d.querySelector(`[data-otf="${k}"]`);
+  const sync=()=>{const k=(d.querySelector('input[name=otk]:checked')||{}).value;const need=AMT[k]?AMT[k].f:[];d.querySelectorAll('[data-of]').forEach(x=>{x.style.display=need.includes(x.dataset.of)?'':'none';});};
+  const pick=()=>{const s=d.querySelector('#amP'),p=s&&PS.find(x=>x.id===s.value);if(!p)return;F('p').value=p.name||'';F('d').value=p.district||'';F('amt').value=amFm(p.amount);
+    const dm=x=>{const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(x||'');return m?`${m[1]}/${+m[2]}/${+m[3]}`:'';};F('oref').value=p.orderNo?`${p.orderNo} في ${dm(p.orderDate)}`:'';F('advno').value=String(((p.advances||[]).length||0)+1);};
+  d.addEventListener('change',e=>{if(e.target.id==='amP')pick();sync();});sync();
+  d.addEventListener('click',e=>{const b=e.target.closest('[data-ot]');if(e.target===d||(b&&b.dataset.ot==='close')){d.remove();return;}if(!b)return;
+    const k=(d.querySelector('input[name=otk]:checked')||{}).value,n=newRecord('order');n.to='';n.closing='';
+    if(AMT[k]){const f={};d.querySelectorAll('[data-otf]').forEach(x=>{f[x.dataset.otf]=x.value;});const s=d.querySelector('#amP'),P=s&&PS.find(x=>x.id===s.value);
+      const g=amOrder(k,f,P);n.subject='';n.body=g.body;n.tables=g.tables;const nz0=t=>String(t||'').replace(/\s+/g,' ').trim(),have=new Set(g.cc.map(nz0));
+      n.cc=[...g.cc.map(t=>({t,on:true})),...n.cc.filter(x=>!have.has(nz0(x.t))).map(x=>({t:x.t,on:false}))];
+      const gov=(settings().signs||[]).find(x=>/محافظ الأنبار|محافظ الانبار/.test(x.title||''));if(gov)n.sign=Object.assign({},n.sign,{hon:gov.hon||'المهندس',name:gov.name,title:gov.title});}
+    d.remove();DB.records.push(comStamp(n));persist();openRec(n.id);});}
+function showOrderChooser(){if(LTM&&LTM.id==='aml'){showAmanaOrder();return;}const d=document.createElement('div');d.className='modal';d.id='otModal';
   const fld=k=>`<label class="fld" data-of="${k}"><span>${OTF[k][0]}</span><input data-otf="${k}" placeholder="${esc(OTF[k][1])}" value="${esc(OTDEF[k]||'')}"></label>`;
   d.innerHTML=`<div class="box"><h2>+ أمر إداري</h2><p class="hint">اختر النموذج، واكتب بيانات المشروع (أي حقل فارغ يُترك مكانه «…………» لتكمله لاحقاً)، فيُكتب الأمر بنصه وجداوله و«صورة عنه إلى» على نسق أوامر القسم.</p>
    <div class="otl">${[['blank','أمر إداري فارغ'],...Object.entries(OTPL).map(([k,x])=>[k,x.t])].map(([k,t],i)=>`<label class="chk ot"><input type="radio" name="otk" value="${k}" ${i===1?'checked':''}> ${t}</label>`).join('')}</div>

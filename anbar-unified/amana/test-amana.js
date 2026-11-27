@@ -28,6 +28,11 @@ const sleep = ms => new Promise(r => setTimeout(r, ms)); const R = []; const ok 
   ok('order saved in AmanaLetters-Data.json', o && o.no === '12696' && o.tables.length === 2);
   await pg.evaluate(() => document.querySelector('[data-go=am]').click()); await sleep(800);
   ok('the «المشاريع» tab switches back', await pg.evaluate(() => document.querySelector('[data-go=am]').classList.contains('on')));
+  await pg.evaluate(() => document.querySelector('[data-go=aml]').click()); await sleep(800);
+  await lt(`(()=>{showAmanaOrder();const m=document.getElementById('otModal');const s=m.querySelector('#amP');s.value='p1';s.dispatchEvent(new Event('change',{bubbles:true}));m.querySelector('[data-ot=go]').click();return 1})()`); await sleep(3500);
+  const j3 = JSON.parse(fs.readFileSync(lf, 'utf8')), o2 = j3.records.filter(r => r.type === 'order').pop();
+  ok('«+ أمر إداري» Amana template filled from the chosen project (name, amount in words, committee tables)', o2 && /تعريض واكساء طريق/.test(o2.body) && /مائتان وأربعة وأربعون مليون/.test(o2.body) && o2.tables[0].rows[0][0] === 'المهندس/ أ أ أ' && o2.tables[1].rows.length === 3, o2 && o2.body.slice(0, 80));
+  await pg.evaluate(() => document.querySelector('[data-go=am]').click()); await sleep(500);
   ok('daily backup created', fs.existsSync(path.join(D, 'نسخ-احتياطية')));
   await app.close();
   console.log(R.map(r => r.join('  ')).join('\n')); const n = R.filter(r => r[0] === 'FAIL').length; console.log(n ? n + ' FAILED' : 'ALL PASS'); process.exit(n ? 1 : 0);

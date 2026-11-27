@@ -77,8 +77,95 @@ svg.map circle{stroke:#fff;stroke-width:.8;cursor:pointer}
 .doc .sg{margin-top:28px;margin-inline-start:55%;text-align:center;font-weight:700}
 .doc .cc{margin-top:20px;font-size:12pt}.doc .cc ul{margin:2px 0;padding-inline-start:22px}
 .doc p{margin:0 0 4px;text-align:justify;white-space:pre-wrap}
-@media print{body{background:#fff}body>*:not(#printArea){display:none!important}#printArea{display:block!important}#printArea .doc{border:none;padding:0;width:auto;min-height:0}@page{size:A4;margin:16mm}}
+@media print{body{background:#fff}body>*:not(#printArea){display:none!important}#printArea{display:block!important}#printArea .doc{border:none;padding:14mm 14mm;width:auto;min-height:0;page-break-before:always}#printArea .doc:first-child{page-break-before:auto}@page{size:A4;margin:0}
+  #printArea .pg{margin:0;box-shadow:none;page-break-after:always;break-after:page;-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 #printArea{display:none}
+/* ===== استمارة قرار لجنة تدقيق السلف — منقولة من استمارة السلف في برنامج القسم الهندسي (ad.html) ===== */
+.pg{--g:#1f6b3a;--g2:#e9f4ec;--au:#b08a2e;--bl:#2563a8;--ink:#14201a;--mu:#5a6b61;width:210mm;height:297mm;background:#fff;color:var(--ink);margin:0 auto 14px;position:relative;padding:8mm 11mm 13mm;box-shadow:0 3px 18px rgba(10,30,20,.25);font-family:var(--ff,Arial,'Helvetica Neue',sans-serif);font-size:calc(12.5px*var(--k,1)*var(--fz,1));line-height:calc(1.5*var(--lh,1));overflow:hidden;display:flex;flex-direction:column;gap:1.1mm}
+.pg .wm{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:0}.pg .wm img{width:125mm;opacity:.06}
+.pg>*{position:relative;z-index:1}
+.pg .hd{flex:none}.pg .hd img.lh{display:block;aspect-ratio:2445/580;width:calc(100%*var(--hk,1));max-width:100%;height:auto;margin:0 auto}
+.pg .lhf{position:absolute!important;left:11mm;right:11mm;bottom:4.5mm}.pg .lhf img{display:block;width:100%;height:auto;aspect-ratio:2405/76}
+.pg .top{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:4mm;padding-bottom:1.2mm;border-bottom:.7mm solid var(--g);position:relative}
+.pg .top:after{content:"";position:absolute;inset:auto 0 -1.5mm 0;height:.45mm;background:var(--au)}
+.pg .gov{font-weight:400;color:#9b2c2c;font-size:.7em;max-width:44mm;line-height:1.4;text-align:center}.pg .gov .idms{display:block;font-family:Arial,sans-serif;font-weight:800;font-size:1.9em;letter-spacing:.6mm;color:#b42318;line-height:1.1}
+.pg .ttl{display:flex;align-items:center;justify-content:center;gap:3mm}.pg .top .tl{display:flex;align-items:center;justify-content:flex-end;gap:2.5mm}
+.pg .ttl .tx{text-align:center;direction:rtl;display:flex;flex-direction:column;align-items:center;gap:.8mm}
+.pg .ttl h2{margin:0;white-space:nowrap;font-size:1.75em;color:var(--g);line-height:1.2}.pg .ttl .sub{color:var(--mu);font-size:.85em}
+.pg .badges{display:flex;flex-direction:column;gap:1mm;align-items:flex-start}.pg .badges .pill em{font-style:normal;font-weight:400;opacity:.9;margin-inline-end:1mm}.pg .badges .pill small{font-weight:400;font-size:.85em}
+.pg .pill{background:var(--g);color:#fff;border-radius:4mm;padding:.2mm 3.2mm;font-weight:700;font-size:.92em;white-space:nowrap}.pg .pill.au{background:var(--au)}.pg .pill .wr{display:inline-block;vertical-align:middle;min-width:24mm;height:4.6mm;background:#fff;border-radius:1mm;margin-inline-start:1.5mm;box-shadow:inset 0 0 0 1px #9fb3a5}.pg .pill.ln{background:#fff;color:var(--ink);border:1px solid #b9c7bd}
+.pg .qr{width:17mm;flex:none;order:99;text-align:center}.pg .qr .qs{width:17mm;height:17mm;padding:.6mm;border:1px solid #cfdcd2;border-radius:1.2mm;background:#fff}.pg .qr svg{width:100%;height:100%;display:block}.pg .qr small{display:block;font-size:.58em;color:var(--mu);line-height:1.2;margin-top:.3mm;white-space:nowrap}
+.pg .proj{background:linear-gradient(270deg,var(--g2),#fff 85%);border:1px solid #cfe3d3;border-right:1.5mm solid var(--g);border-radius:1.8mm;padding:2mm 3.6mm}
+.pg .proj .nm{font-weight:700;font-size:1.16em;line-height:1.45}
+.pg .proj .mt{display:flex;flex-wrap:wrap;gap:.6mm 5mm;margin-top:.8mm;color:#33423a;font-size:.95em}.pg .proj .mt b{color:var(--ink)}
+.pg .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:1.8mm}
+.pg .tile{border:1px solid #d8e2da;background:#fbfdfb;border-radius:1.8mm;padding:1mm 2.4mm 1.2mm;min-width:0}.pg .tile.s2{grid-column:span 2}
+.pg .tile i{display:block;font-style:normal;font-size:.72em;color:var(--mu);line-height:1.3}
+.pg .tile b{display:block;font-size:1.04em;white-space:nowrap;overflow:hidden;min-height:1.4em}.pg .tile b.lt{direction:ltr;text-align:right}
+.pg .stops{border:1px solid #d8e2da;border-radius:1.8mm;overflow:hidden;font-size:.9em}
+.pg .stops .r{display:grid;grid-template-columns:1.2fr 1fr 1fr 1.2fr 1fr;align-items:center}
+.pg .stops .r>*{padding:.5mm 2mm;border-bottom:1px solid #e3ebe5;min-height:5.2mm;white-space:nowrap;overflow:hidden}.pg .stops .r:last-child>*{border-bottom:0}
+.pg .stops .h{background:var(--g2);font-weight:700;color:var(--g);font-size:.92em}.pg .stops .lt{direction:ltr;text-align:right}
+.pg .money{display:grid;grid-template-columns:1fr 1.25fr 1fr;gap:2.2mm}
+.pg .mc{border:1px solid #cfdcd2;border-radius:2mm;padding:1.6mm 3mm;text-align:center;background:#fff;min-width:0}
+.pg .mc i{display:block;font-style:normal;font-size:.78em;color:var(--mu)}.pg .mc b{display:block;font-size:1.45em;white-space:nowrap;overflow:hidden;direction:ltr;line-height:1.35}
+.pg .mc.net{background:var(--g2);border:1.5px solid var(--g);color:var(--ink)}.pg .mc.net i{color:var(--g);font-weight:700}.pg .mc.net b{font-size:1.75em;color:var(--g)}
+.pg .bars{display:grid;gap:1.2mm;border:1px solid #d8e2da;border-radius:1.8mm;padding:1.6mm 3mm;background:#fbfdfb}
+.pg .bar{display:grid;grid-template-columns:30mm 1fr 14mm;align-items:center;gap:2.5mm;font-size:.92em}
+.pg .bar .tr{height:3.2mm;background:#e7eee9;border-radius:2mm;overflow:hidden;direction:ltr}.pg .bar .tr i{display:block;height:100%;border-radius:2mm}
+.pg .bar .bv{font-weight:700;text-align:left;direction:ltr}
+.pg .rec{border:1px solid #c9d6cd;border-radius:1.8mm;overflow:hidden;flex:1;display:flex;flex-direction:column;min-height:24mm;background:#fff}
+.pg .rec .rh{width:100%;background:var(--g2);color:var(--g);border-bottom:1px solid #cfe3d3;font-weight:700;padding:.6mm 3.5mm;font-size:.98em}
+.pg .rec .rb{background:#fff;color:#111;padding:2mm 3.6mm;line-height:1.75;font-weight:600;border-right:1.4mm solid var(--au);flex:1}
+.pg .rec .amt{margin-top:1.6mm;padding:1.2mm 2.6mm;background:#fbf6e6;border:1px solid #ecdca8;border-radius:1.5mm;font-weight:700}
+.pg .sigs{display:grid;grid-template-columns:repeat(var(--n,6),1fr);gap:2.4mm;text-align:center;font-size:.88em;margin-top:auto}
+.pg .sg{display:flex;flex-direction:column;justify-content:flex-end;min-width:0}.pg .sg .ln{height:calc(6mm*var(--sgh,1));margin-bottom:.8mm}.pg .sg .dt{direction:ltr;text-align:center;font-size:.9em;margin-top:.8mm;white-space:nowrap}.pg .sg .dt i{display:inline-block;width:10mm}
+.pg .sg .nm{color:#000;font-weight:700;line-height:1.35}.pg .sg .rl{color:#000;font-size:.93em;line-height:1.3}.pg .sg .mark{font-weight:700;color:#000;font-size:1.06em;min-height:1.4em}
+.pg .apps{display:grid;grid-template-columns:repeat(var(--na,3),1fr);gap:3mm;text-align:center;font-size:.95em}
+.pg .apps .sg .ln{height:calc(7mm*var(--sgh,1))}.pg .prevs{display:flex;flex-wrap:wrap;gap:1.2mm;align-items:center;border:1px solid #e6d9b4;border-radius:2mm;padding:.7mm 1.6mm;background:linear-gradient(90deg,#fbf6e8,#fff)}.pg .pv.none{color:var(--mu);font-weight:600;justify-content:center}.pg .prevs .pvh{align-self:center;font-weight:700;color:var(--g);font-size:.9em;padding-inline-end:1mm}.pg .pv{border:1px solid #cfdcd2;border-right:1.2mm solid var(--au);border-radius:1.6mm;background:#fbfdfb;padding:.4mm 2.4mm;font-size:.8em;line-height:1.3;display:flex;flex-direction:row;gap:2.4mm;align-items:baseline}.pg .pv b{color:var(--g)}.pg .pv em{font-style:normal;font-weight:700}.pg .tile.wr b{white-space:normal;line-height:1.35;font-size:.95em}.pg .sg .hon{color:#000;min-height:1.35em;font-weight:700;line-height:1.35}.pg .sigs,.pg .apps{padding-top:var(--sgg,0mm)}.pg .annx{border:1px solid #d8e2da;border-radius:1.8mm;padding:.8mm 3mm;font-size:.88em;background:#fbfdfb}.pg .annx b{color:var(--g)}
+.pg .ft{display:flex;justify-content:space-between;align-items:center;color:var(--mu);font-size:.72em;border-top:1px solid #dde6df;padding-top:1mm}
+.pg{--ct:#2563a8;--ct2:#eaf1fb;--ad:#6b46c1;--ad2:#f1ecfb;--fn:#b07d12;--fn2:#fbf4e3}
+/* ثلاث لوحات ملوّنة: تعاقدية / إدارية / مالية */
+.pg .pnls{display:grid;grid-template-columns:1fr 1fr 1.08fr;gap:2mm}
+.pg .pnl{--c:var(--g);--c2:var(--g2);border:1px solid color-mix(in srgb,var(--c) 30%,#fff);border-radius:2.2mm;background:linear-gradient(180deg,var(--c2),#fff 38%);overflow:hidden;display:flex;flex-direction:column;min-width:0;box-shadow:0 .4mm 1.2mm rgba(20,40,30,.08)}
+.pg .pnl.ct{--c:var(--ct);--c2:var(--ct2)}.pg .pnl.ad{--c:var(--ad);--c2:var(--ad2)}.pg .pnl.fn{--c:var(--fn);--c2:var(--fn2)}
+.pg .pnl .ph{background:var(--c);color:#fff;font-weight:700;font-size:1.08em;padding:.7mm 2.6mm;display:flex;align-items:center;gap:1.6mm;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.pg .pnl .pi{display:inline-flex;align-items:center;justify-content:center;min-width:4.6mm;height:4.6mm;border-radius:50%;background:rgba(255,255,255,.22);font-size:.78em;padding:0 .8mm}
+.pg .kv{display:flex;justify-content:space-between;align-items:baseline;gap:2mm;padding:.55mm 2.4mm;border-bottom:1px dashed color-mix(in srgb,var(--c) 22%,#fff);min-width:0}
+.pg .kv:last-of-type{border-bottom:0}.pg .kv i{font-style:normal;color:var(--mu);font-size:.98em;white-space:nowrap}
+.pg .kv b{font-size:1.16em;white-space:nowrap;overflow:hidden;min-width:0;text-align:left}.pg .kv b.lt{direction:ltr}
+.pg .kv.wr{flex-direction:column;align-items:stretch;gap:0}.pg .kv.wr b{white-space:normal;text-align:right;font-size:.84em;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pg .netb{margin:auto 1.4mm 1.2mm;border-radius:1.8mm;background:var(--fn);color:#fff;text-align:center;padding:.8mm 2mm;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.pg .netb i{display:block;font-style:normal;font-size:.74em;opacity:.92;line-height:1.2}.pg .netb b{display:block;font-size:1.4em;direction:ltr;white-space:nowrap;overflow:hidden;line-height:1.25}
+/* شريط النسب: مستطيل مقسّم ارتفاعه 2 سم */
+.pg .pcts{height:10mm;flex:none;display:grid;grid-template-columns:repeat(4,1fr);border:1px solid #cfdad2;border-radius:2.2mm;overflow:hidden;background:#fff}
+.pg .pc{--c:var(--g);position:relative;display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:center;column-gap:1.6mm;row-gap:.3mm;border-inline-start:1px solid #dfe7e1;background:linear-gradient(180deg,color-mix(in srgb,var(--c) 9%,#fff),#fff)}
+.pg .pc:first-child{border-inline-start:0}.pg .pc.fin{--c:var(--fn)}.pg .pc.act{--c:var(--ct)}.pg .pc.pln{--c:var(--g)}.pg .pc.dev{--c:#5a6b61}.pg .pc.dev.neg{--c:#b42318}.pg .pc.dev.pos{--c:#1f7a3f}
+.pg .pc i{font-style:normal;font-size:.76em;color:var(--mu);white-space:nowrap}.pg .pc b{font-size:1.3em;color:var(--c);line-height:1.05;font-variant-numeric:tabular-nums}.pg .pc b small{font-size:.55em;margin-inline-start:.4mm}
+.pg .pc .tr{flex-basis:100%;max-width:72%;height:1.2mm;border-radius:1mm;background:#e8eee9;overflow:hidden;direction:ltr}.pg .pc .tr u{display:block;height:100%;background:var(--c);-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.pg .pc .st{font-size:.72em;font-weight:700;color:var(--c)}
+.pg .pc:before{content:"";position:absolute;inset:0 0 auto 0;height:.9mm;background:var(--c);-webkit-print-color-adjust:exact;print-color-adjust:exact}
+/* مستطيل قرار اللجنة: ارتفاعه 10 سم */
+.pg .dec{height:70mm;flex:none;border:1.2px solid var(--g);border-radius:2.4mm;overflow:hidden;display:flex;flex-direction:column;background:#fff;box-shadow:0 .5mm 1.6mm rgba(20,60,35,.1)}
+.pg .dec .rh{display:flex;justify-content:space-between;align-items:center;background:linear-gradient(90deg,#e4f2e8,#f6fbf7);color:var(--g);font-weight:700;padding:1mm 4mm;font-size:1.05em;border-bottom:1px solid #cfe3d3;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.pg .dec .rh .rn{background:var(--g);color:#fff;border-radius:3mm;padding:0 3mm;font-size:.88em;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.pg .dec .rb{flex:1;padding:3mm 4.5mm;line-height:2.05;font-weight:600;font-size:1.06em;text-align:justify;border-right:1.6mm solid var(--au);background:#fff repeating-linear-gradient(180deg,transparent 0,transparent calc(2.05em - 1px),#eef2ef calc(2.05em - 1px),#eef2ef 2.05em)}
+.pg .dec .amt{margin-top:2mm;padding:1.4mm 3mm;background:#fbf6e6;border:1px solid #ecdca8;border-radius:1.6mm;font-weight:700;line-height:1.7}
+.pg .alert{background:#fdecea;border:1px solid #e8a8a1;color:#b42318;font-weight:700;border-radius:1.8mm;padding:.8mm 3mm;text-align:center;font-size:.92em}
+/* ===== طباعة أوضح (اعتراض التدقيق): البيانات أسود غامق، أحجام بالنقاط 10–20، ترويسة مختصرة 2 سم ورمز QR يساراً، حقل التوصيات والتواقيع أكبر ===== */
+.pg{--dfz:12;--tfz:12;--sgf:10;--sgs:8;--dech:60}
+.pg .proj,.pg .pnls,.pg .annx,.pg .stops,.pg .pcts,.pg .prevs{font-size:calc(var(--dfz)*.86pt*var(--k,1))}
+.pg .kv i{color:#222}.pg .kv b,.pg .proj .nm,.pg .proj .mt,.pg .proj .mt b,.pg .pc b,.pg .pv,.pg .pv em,.pg .stops .r>*{color:#000!important;font-weight:800}
+.pg .pc i,.pg .stops .h{color:#222}.pg .netb{background:var(--fn2);color:#000;border:1.4px solid var(--fn)}.pg .netb i{opacity:1;font-weight:700}.pg .netb b{color:#000;font-weight:900}
+.pg .pnl .ph{filter:brightness(.82)}.pg .pcts .pc b{font-size:1.12em}.pg .pc{padding:0 1mm;overflow:hidden}
+.pg .dec{height:auto;flex:1 0 auto;min-height:calc(var(--dech)*1mm);font-size:calc(var(--tfz)*1pt*var(--k,1))}.pg .dec .rb{font-size:1em;color:#000;font-weight:700}.pg .dec .rh{font-size:.9em}
+.pg .sigs,.pg .apps{font-size:calc(var(--sgf)*1pt*var(--k,1))}.pg .sg .ln{height:calc(var(--sgs)*1mm)}.pg .apps .sg .ln{height:calc(var(--sgs)*1.15mm)}.pg .sg .rl{font-size:.9em}
+.pg .hd2{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;height:calc(20mm*var(--hk,1));border-bottom:.6mm solid var(--g);padding-bottom:.8mm;flex:none}
+.pg .hd2 .ar{text-align:center;font-family:'DecoType Thuluth II','DecoType Thuluth III','Dima Thuluth','Traditional Arabic',serif;font-weight:400;color:#000;line-height:1.12;font-size:calc(15pt*var(--hk,1));justify-self:start;padding-inline-start:2mm}.pg .hd2>*{min-width:0;overflow:hidden}.pg .hd2 .lg{display:flex;justify-content:center;align-items:center}.pg .hd2 .lg img{height:calc(18.5mm*var(--hk,1));width:auto;max-width:40mm;object-fit:contain;display:block}
+.pg .hd2 .q{display:flex;justify-content:flex-end;align-items:center;gap:1.5mm;height:100%}.pg .hd2 .q .qs{height:calc(18mm*var(--hk,1));width:calc(18mm*var(--hk,1));padding:.5mm;border:1px solid #cfdcd2;border-radius:1mm;background:#fff}.pg .hd2 .q svg{width:100%;height:100%;display:block}.pg .hd2 .q small{font-size:7pt;color:#333;writing-mode:vertical-rl;transform:rotate(180deg)}
+
+.pg .top,.pg .proj,.pg .pnls,.pg .prevs,.pg .stops,.pg .sigs,.pg .apps{flex:none}.pg .stops .r{grid-template-columns:1.5fr .9fr 1fr 1fr 1fr}.pg .dec .rb .amt{font-size:1em}
+
 table.rc input,table.rc select{font-size:12px;padding:2px 4px}table.rc td{padding:3px 4px}tr.rcf td{border-bottom:2px solid #ece6da;padding:0 6px 3px;font-size:11.5px}
 .doc.aud{font:11pt/1.45 Arial,Tahoma,sans-serif;padding:8mm 10mm}.doc .lh{width:100%;display:block}.doc .lf{width:100%;display:block;margin-top:6px}
 .doc .bdg{display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px;border:1px solid #000;padding:3px 8px;margin:4px 0;font-size:10.5pt}
@@ -487,9 +574,50 @@ function parseAlloc(sh){const f=findCols(sh.rows,['رقم الصادر','اسم 
   const out=[];for(let i=f.hdr+1;i<sh.rows.length;i++){const x=sh.rows[i]||[];const no=hn(x[C.no]),name=hn(x[C.name]),plan=hn(x[C.plan]);if(!no||!name||!/امان/.test(plan))continue;const date=xDate(x[C.date]);
     out.push({orderNo:no.replace(/\.0$/,''),orderDate:date,year:date?+date.slice(0,4):0,name,amount:num(x[C.amt]),exec:splitMembers(x[C.com]),sector:hn(x[C.sec]),notes:C.note>=0?hn(x[C.note]):'',adv:num(x[C.adv]),spent:num(x[C.spent]),prog:C.prog>=0?num(x[C.prog]):0,beneficiary:C.ben>=0?hn(x[C.ben]):''});}
   return out;}
-async function importFiles(files){const reg=[],alc=[],seen=[];
+/* ملف الموقف المصدَّر من البرنامج نفسه (ورقة «الموقف» وورقة «السلف»): يُعدَّل في Excel ثم يُستورد فيحدّث البرنامج.
+   الربط بعمود «المعرّف» (ثم السنة ورقم الأمر)؛ الخلية الفارغة لا تمسح قيمة موجودة؛ الصف الجديد بلا معرّف = مشروع جديد. */
+function parseSit(sh){const f=findCols(sh.rows,['عدد الأمر الإداري','اسم المشروع','خط العرض']);if(!f)return null;const r=f.r,C={};
+  [['id','المعرّف'],['year','السنة'],['no','عدد الأمر الإداري'],['date','تاريخه'],['name','اسم المشروع'],['dist','القضاء'],['sec','القطاع'],['ben','الجهة المستفيدة'],['amt','مبلغ الأمر الإداري'],['raised','المبلغ المرفوع'],['paid','المبلغ المصروف'],['prog','نسبة الإنجاز الفعلي %'],['lat','خط العرض'],['lng','خط الطول'],['link','رابط الموقع'],['st','الحالة'],['ex','لجنة التنفيذ'],['rc','لجنة التسلم'],['note','ملاحظات']].forEach(([k,h])=>{C[k]=r.findIndex(c=>c===h);});
+  const out=[];for(let i=f.hdr+1;i<sh.rows.length;i++){const x=sh.rows[i]||[],g=k=>C[k]>=0?x[C[k]]:'';if(/^المجموع/.test(hn(x[0])))continue;const name=hn(g('name')),no=hn(g('no')),id=hn(g('id'));if(!name&&!id)continue;
+    out.push({id,year:num(g('year')),orderNo:no.replace(/\.0$/,''),orderDate:xDate(g('date')),name,district:hn(g('dist')),sector:hn(g('sec')),beneficiary:hn(g('ben')),amount:g('amt'),raised:g('raised'),paid:g('paid'),progress:g('prog'),lat:g('lat'),lng:g('lng'),link:hn(g('link')),status:hn(g('st')),exec:hn(g('ex')),recv:hn(g('rc')),notes:hn(g('note'))});}
+  return out;}
+function parseAdvX(sh){const f=findCols(sh.rows,['رقم السلفة','المبلغ المصروف','معرّف السلفة']);if(!f)return null;const r=f.r,C={};
+  [['pid','معرّف المشروع'],['aid','معرّف السلفة'],['no','رقم السلفة'],['date','التاريخ'],['raised','المبلغ المرفوع'],['paid','المبلغ المصروف'],['chq','رقم الصك'],['note','ملاحظات'],['ono','عدد الأمر'],['name','المشروع']].forEach(([k,h])=>{C[k]=r.findIndex(c=>c===h);});
+  const out=[];for(let i=f.hdr+1;i<sh.rows.length;i++){const x=sh.rows[i]||[],g=k=>C[k]>=0?x[C[k]]:'';const pid=hn(g('pid')),ono=hn(g('ono')),name=hn(g('name'));if(!pid&&!ono&&!name)continue;
+    out.push({pid,aid:hn(g('aid')),ono:ono.replace(/\.0$/,''),name,no:hn(g('no')).replace(/\.0$/,''),date:xDate(g('date')),raised:g('raised'),paid:g('paid'),cheque:hn(g('chq')),note:hn(g('note'))});}
+  return out;}
+const STATUS_BY_LABEL=Object.fromEntries(Object.entries(STATUS).map(([k,v])=>[v[0],k]));
+function applySit(sit,advx){const now=Date.now(),byId=new Map(P().map(p=>[p.id,p])),key=(y,n)=>y+'|'+String(n).replace(/\D/g,''),byKey=new Map(P().filter(p=>p.orderNo).map(p=>[key(yearOf(p),p.orderNo),p]));
+  const st={upd:0,add:0,ll:0,prog:0,adv:0,advAdd:0,diff:0};const has=v=>v!==''&&v!=null;
+  sit.forEach(it=>{let p=(it.id&&byId.get(it.id))||(it.orderNo&&byKey.get(key(it.year,it.orderNo)));
+    if(!p){p={id:uid(),type:'p',kind:'p',year:it.year||new Date().getFullYear(),orderNo:'',orderDate:'',name:'',district:'',sector:'',beneficiary:'',amount:0,exec:[],recv:[],advances:[],progress:0,status:'new',lat:'',lng:'',notes:'',src:'ملف الموقف'};DB.records.push(p);byId.set(p.id,p);st.add++;}else st.upd++;
+    if(it.year)p.year=it.year;if(it.orderNo)p.orderNo=it.orderNo;if(it.orderDate)p.orderDate=it.orderDate;if(it.name)p.name=it.name;if(it.district)p.district=fixDist(it.district);if(it.sector)p.sector=it.sector;if(it.beneficiary)p.beneficiary=it.beneficiary;
+    if(has(it.amount)&&num(it.amount))p.amount=num(it.amount);if(has(it.progress)){const v=Math.max(0,Math.min(100,num(it.progress)));if(v!==num(p.progress))st.prog++;p.progress=v;}
+    let lat=num(it.lat),lng=num(it.lng);if(!(lat&&lng)&&it.link){const ll=parseLL(it.link);if(ll){lat=ll.lat;lng=ll.lng;}}
+    if(lat&&lng){if(String(lat)!==String(p.lat)||String(lng)!==String(p.lng))st.ll++;p.lat=lat;p.lng=lng;}
+    if(it.status&&STATUS_BY_LABEL[it.status])p.status=STATUS_BY_LABEL[it.status];
+    if(it.exec)p.exec=splitMembers(it.exec);if(it.recv)p.recv=splitMembers(it.recv);if(has(it.notes))p.notes=it.notes;
+    if(!advx.length){const rs=num(it.raised),pd=num(it.paid),c=calc(p);
+      if((rs||pd)&&!(p.advances||[]).length){p.advances=[{id:uid(),no:'1',date:'',raised:rs||pd,paid:pd,cheque:'',note:'من ملف الموقف'}];st.advAdd++;}
+      else if((rs||pd)&&(Math.round(rs)!==Math.round(c.raised)||Math.round(pd)!==Math.round(c.paid)))st.diff++;}
+    p.updated=now;});
+  advx.forEach(it=>{const p=(it.pid&&byId.get(it.pid))||P().find(x=>(it.ono&&String(x.orderNo)===it.ono)||(it.name&&x.name===it.name));if(!p)return;p.advances=p.advances||[];
+    let a=it.aid&&p.advances.find(x=>x.id===it.aid);if(!a){a={id:uid(),no:it.no||String(p.advances.length+1),date:'',raised:0,paid:0,cheque:'',note:''};p.advances.push(a);st.advAdd++;}else st.adv++;
+    const r0=a.raised,p0=a.paid;if(it.no)a.no=it.no;if(it.date)a.date=it.date;if(it.raised!==''&&it.raised!=null)a.raised=num(it.raised);if(it.paid!==''&&it.paid!=null)a.paid=num(it.paid);if(it.cheque)a.cheque=it.cheque;if(it.note)a.note=it.note;
+    /* سلفة مستوردة من ملف التخصيصات تبقى كذلك ما لم يتغير مبلغها (فإعادة استيراد التخصيصات تستبدلها بلا تكرار) */if(a.src==='xl'&&(a.raised!==r0||a.paid!==p0))delete a.src;
+    if(p.status==='new'&&(a.paid||a.raised))p.status='run';p.updated=now;});
+  return st;}
+async function importFiles(files){const reg=[],alc=[],seen=[],sit=[],advx=[];
   for(const file of files){let book;try{book=await readBook(file);}catch(e){flash(file.name+': '+(e.message||e),true);continue;}
-    for(const sh of book){const a=parseRegister(sh);if(a){reg.push(...a);seen.push(`${file.name} ← «${sh.name}»: ${a.length} أمر إداري`);continue;}const b=parseAlloc(sh);if(b){alc.push(...b);seen.push(`${file.name} ← «${sh.name}»: ${b.length} مشروع تنفيذ أمانة (تخصيصات وسلف)`);}}}
+    for(const sh of book){const s1=parseSit(sh);if(s1){sit.push(...s1);seen.push(`${file.name} ← «${sh.name}»: ${s1.length} مشروع (ملف الموقف المصدَّر من البرنامج)`);continue;}
+      const s2=parseAdvX(sh);if(s2){advx.push(...s2);seen.push(`${file.name} ← «${sh.name}»: ${s2.length} سلفة`);continue;}
+      const a=parseRegister(sh);if(a){reg.push(...a);seen.push(`${file.name} ← «${sh.name}»: ${a.length} أمر إداري`);continue;}const b=parseAlloc(sh);if(b){alc.push(...b);seen.push(`${file.name} ← «${sh.name}»: ${b.length} مشروع تنفيذ أمانة (تخصيصات وسلف)`);}}}
+  if(sit.length||advx.length){const st=applySit(sit,advx);persist(true);render();
+    const d=document.createElement('div');d.className='modal';d.innerHTML=`<div class="box" style="width:min(720px,100%)"><h3>✔ حُدِّث البرنامج من ملف الموقف</h3>${seen.map(s=>`<div class="sub">• ${esc(s)}</div>`).join('')}
+     <p>مشاريع حُدِّثت: <b>${st.upd}</b> — مشاريع جديدة: <b>${st.add}</b> — إحداثيات تغيّرت: <b>${st.ll}</b> — نسب إنجاز تغيّرت: <b>${st.prog}</b> — سلف حُدِّثت: <b>${st.adv}</b> — سلف أُضيفت: <b>${st.advAdd}</b></p>
+     ${st.diff?`<p class="warn">⚠ ${st.diff} مشروع اختلف فيه «المرفوع/المصروف» في ورقة الموقف عن مجموع سلفه ولم يُغيَّر: المبالغ تُعدَّل في ورقة «السلف» (كل سلفة سطر) ثم يُستورد الملف.</p>`:''}
+     <p class="hint">الخلايا الفارغة لا تمسح القيم الموجودة. الصف الجديد بلا «المعرّف» يُضاف مشروعاً جديداً.</p><button class="pri" data-x="1">موافق</button></div>`;
+    document.body.appendChild(d);d.addEventListener('click',e=>{if(e.target.closest('[data-x]'))d.remove();});if(!reg.length&&!alc.length)return;}
   if(!reg.length&&!alc.length)return flash('لم يُعثر على ورقة معروفة (سجل الأوامر الإدارية: «عدد الصادر، اسم المشروع، لجنة التنفيذ» أو التخصيصات: «رقم الصادر، اسم المشروع، اسم اللجنة»)',true);
   const key=(y,no)=>y+'|'+String(no).replace(/\D/g,'');const cur=new Map(P().map(p=>[key(yearOf(p),p.orderNo),p]));let add=0,adv=0,sec=0;const now=Date.now();
   const get=(it,src)=>{const k=key(it.year,it.orderNo);let p=cur.get(k);if(!p){p={id:uid(),type:'p',kind:it.kind||'p',year:it.year,orderNo:it.orderNo,orderDate:it.orderDate,name:it.name,district:'',sector:'',beneficiary:'',amount:0,exec:[],recv:[],advances:[],progress:0,status:'new',lat:'',lng:'',notes:'',src};DB.records.push(p);cur.set(k,p);add++;}p.updated=now;return p;};
@@ -509,11 +637,11 @@ function saveFile(name,bytes){if(DESK&&DESK.saveFile)return DESK.saveFile(name,b
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([bytes]));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},800);return Promise.resolve();}
 function exportXlsx(){if(!window.XLW)return flash('كاتب Excel غير متاح (ملف shell/xlwriter.js)',true);const X=XLW.S,T=v=>({v:v==null?'':String(v),s:X.txt}),I=v=>({v:Math.round(num(v)),s:X.int}),Pp=v=>({v:Math.round(num(v)*10)/10,s:X.pct}),H=v=>({v,s:X.head}),W=v=>({v:v==null?'':String(v),s:X.wrap});
   const ttl=YEAR==='all'?'كل السنوات':'لعام '+YEAR,pm=people(),ov=overSet(pm),ps=P().filter(p=>inYear(p)&&isProj(p)).sort((a,b)=>yearOf(a)-yearOf(b)||(a.orderDate||'').localeCompare(b.orderDate||''));
-  const hd=['ت','السنة','عدد الأمر الإداري','تاريخه','اسم المشروع','القضاء','القطاع','الجهة المستفيدة','مبلغ الأمر الإداري','المبلغ المرفوع','المبلغ المصروف','المتبقي','نسبة الصرف %','نسبة الإنجاز الفعلي %','خط العرض','خط الطول','رابط الموقع','الحالة','عدد السلف','لجنة التنفيذ','لجنة التسلم','ملاحظات'];
+  const hd=['ت','السنة','عدد الأمر الإداري','تاريخه','اسم المشروع','القضاء','القطاع','الجهة المستفيدة','مبلغ الأمر الإداري','المبلغ المرفوع','المبلغ المصروف','المتبقي','نسبة الصرف %','نسبة الإنجاز الفعلي %','خط العرض','خط الطول','رابط الموقع','الحالة','عدد السلف','لجنة التنفيذ','لجنة التسلم','ملاحظات','تنبيهات البرنامج','المعرّف'];
   const L=XLW.colL(hd.length-1);let t={a:0,r:0,p:0};
-  const rows=[[{v:'موقف مشاريع التنفيذ أمانة — '+ttl,s:X.title}],[{v:'قسم الشؤون الهندسية — محافظة الأنبار — '+dmy(today()),s:X.sub}],[],hd.map(H)];
+  const rows=[[{v:'موقف مشاريع التنفيذ أمانة — '+ttl,s:X.title}],[{v:'قسم الشؤون الهندسية — محافظة الأنبار — '+dmy(today())+' — عدّل الإحداثيات ونسب الإنجاز والمبالغ هنا ثم «📥 استيراد Excel» بالملف نفسه لتحديث البرنامج (لا تغيّر عمود «المعرّف»)',s:X.sub}],[],hd.map(H)];
   ps.forEach((p,i)=>{const c=calc(p);t.a+=c.amt;t.r+=c.raised;t.p+=c.paid;rows.push([I(i+1),I(yearOf(p)),T(p.orderNo),T(dmy(p.orderDate)),W(p.name),T(p.district),T(p.sector),T(p.beneficiary),I(c.amt),I(c.raised),I(c.paid),I(c.rem),Pp(c.fin),Pp(c.prog),
-    p.lat?{v:+p.lat,s:X.num1}:T(''),p.lng?{v:+p.lng,s:X.num1}:T(''),T(p.lat&&p.lng?gmaps(p):''),T(STATUS[p.status||'new'][0]),I(c.n),W((p.exec||[]).join(' / ')),W((p.recv||[]).join(' / ')),W([p.notes,...projFlags(p,ov)].filter(Boolean).join(' — '))]);});
+    p.lat?{v:+p.lat,s:X.num1}:T(''),p.lng?{v:+p.lng,s:X.num1}:T(''),T(p.lat&&p.lng?gmaps(p):''),T(STATUS[p.status||'new'][0]),I(c.n),W((p.exec||[]).join(' / ')),W((p.recv||[]).join(' / ')),W(p.notes||''),W(projFlags(p,ov).join(' — ')),T(p.id)]);});
   rows.push([{v:'المجموع',s:X.gtT},null,null,null,null,null,null,null,{v:t.a,s:X.gtI},{v:t.r,s:X.gtI},{v:t.p,s:X.gtI},{v:t.a-t.p,s:X.gtI},{v:t.a?Math.round(t.p/t.a*1000)/10:0,s:X.gtP}]);
   const grp=(name,list,label)=>{const r=[[{v:name+' — '+ttl,s:X.title}],[],[label,'عدد المشاريع','مبلغ الأوامر الإدارية','المبلغ المرفوع','المبلغ المصروف','المتبقي','نسبة الصرف %','معدل الإنجاز الفعلي %','مهندسو التنفيذ'].map(H)];let s={n:0,a:0,r:0,p:0};
     list.forEach(g=>{s.n+=g.n;s.a+=g.amt;s.r+=g.raised;s.p+=g.paid;r.push([T(g.k),I(g.n),I(g.amt),I(g.raised),I(g.paid),I(g.amt-g.paid),Pp(g.amt?g.paid/g.amt*100:0),Pp(g.n?g.prog/g.n:0),I(g.eng.size)]);});
@@ -522,13 +650,13 @@ function exportXlsx(){if(!window.XLW)return flash('كاتب Excel غير متا�
   const mx=S().maxCom,ys=YEAR==='all'?years().map(String):[String(YEAR)],er=[[{v:'المهندسون في لجان التنفيذ والتسلم — '+ttl,s:X.title}],[{v:`المؤشَّر: مضاف في لجان التنفيذ أكثر من ${mx} مرات في السنة الواحدة (المادة 1/رابعاً/أ)`,s:X.sub}],['الاسم','الصفة','السنة','لجان التنفيذ','لجان التسلم','تجاوز','مشاريع التنفيذ'].map(H)];
   const byId=new Map(P().map(p=>[p.id,p]));[...pm.values()].forEach(e=>ys.forEach(y=>{const Y=e.years[y];if(!Y)return;er.push([T(e.name),T({eng:'مهندس',tech:'فني',staff:'موظف'}[e.role]||''),T(y),I(Y.exec.length),I(Y.recv.length),Y.exec.length>mx?{v:'⚠ أكثر من '+mx,s:X.dev}:T(''),W(Y.exec.map(id=>(byId.get(id)||{}).name||'').join(' / '))]);}));
   er.splice(3,er.length,...er.slice(3).sort((a,b)=>b[3].v-a[3].v));
-  const ar=[[{v:'السلف المصروفة لكل مشروع — '+ttl,s:X.title}],[],['المشروع','عدد الأمر','القضاء','القطاع','رقم السلفة','التاريخ','المبلغ المرفوع','المبلغ المصروف','رقم الصك','ملاحظات'].map(H)];
-  P().filter(inYear).forEach(p=>(p.advances||[]).forEach(a=>ar.push([W(p.name),T(p.orderNo),T(p.district),T(p.sector),T(a.no),T(dmy(a.date)),I(a.raised),I(a.paid),T(a.cheque),T(a.note)])));
+  const ar=[[{v:'السلف المصروفة لكل مشروع — '+ttl,s:X.title}],[],['المشروع','عدد الأمر','القضاء','القطاع','رقم السلفة','التاريخ','المبلغ المرفوع','المبلغ المصروف','رقم الصك','ملاحظات','معرّف المشروع','معرّف السلفة'].map(H)];
+  P().filter(inYear).forEach(p=>(p.advances||[]).forEach(a=>ar.push([W(p.name),T(p.orderNo),T(p.district),T(p.sector),T(a.no),T(dmy(a.date)),I(a.raised),I(a.paid),T(a.cheque),T(a.note),T(p.id),T(a.id)])));
   const rr=[[{v:'تدقيق السلف — الوصولات — '+ttl,s:X.title}],[],['المشروع','عدد الأمر','السلفة','رقم الاستمارة','رقم الوصل','التاريخ','المجهز','المادة / العمل','الصنف','المبلغ','التسديد','القرار','المقبول','الملاحظة'].map(H)];
   P().filter(inYear).forEach(p=>(p.advances||[]).forEach(a=>{const au=a.audit;if(!au)return;au.receipts.forEach(r=>rr.push([W(p.name),T(p.orderNo),T(a.no),T(au.serial),T(r.no),T(dmy(r.date)),T(r.vendor),W(r.item),T(CATS[r.cat||'mat']),I(r.amount),T(r.pay),T(DEC[r.dec||'pend'][0]),I(recAcc(r)),W(r.note)]));}));
-  const buf=XLW.book([{name:'الموقف',cols:[5,7,10,11,46,12,12,20,16,16,16,16,10,11,11,11,30,12,7,40,40,34],rows,merges:[`A1:${L}1`,`A2:${L}2`],freeze:4,titles:4,filter:`A4:${L}4`,heights:{1:30,4:30},zoom:90},
+  const buf=XLW.book([{name:'الموقف',cols:[5,7,10,11,46,12,12,20,16,16,16,16,10,11,11,11,30,12,7,40,40,34,40,16],rows,merges:[`A1:${L}1`,`A2:${L}2`],freeze:4,titles:4,filter:`A4:${L}4`,heights:{1:30,4:30},zoom:90},
     grp('حسب القضاء',groupBy(ps,p=>p.district),'القضاء'),grp('حسب القطاع',groupBy(ps,p=>p.sector),'القطاع'),
-    {name:'المهندسون',cols:[30,10,8,12,12,14,90],rows:er,merges:['A1:G1','A2:G2'],freeze:3,titles:3,filter:`A3:G3`},{name:'السلف',cols:[46,10,12,12,9,11,16,16,14,34],rows:ar,merges:['A1:J1'],freeze:3,titles:3,filter:'A3:J3'},{name:'تدقيق الوصولات',cols:[40,10,7,9,10,11,22,30,12,15,7,12,15,30],rows:rr,merges:['A1:N1'],freeze:3,titles:3,filter:'A3:N3'}],{title:'موقف مشاريع التنفيذ أمانة',author:'قسم الشؤون الهندسية — محافظة الأنبار'});
+    {name:'المهندسون',cols:[30,10,8,12,12,14,90],rows:er,merges:['A1:G1','A2:G2'],freeze:3,titles:3,filter:`A3:G3`},{name:'السلف',cols:[46,10,12,12,9,11,16,16,14,34,16,16],rows:ar,merges:['A1:L1'],freeze:3,titles:3,filter:'A3:L3'},{name:'تدقيق الوصولات',cols:[40,10,7,9,10,11,22,30,12,15,7,12,15,30],rows:rr,merges:['A1:N1'],freeze:3,titles:3,filter:'A3:N3'}],{title:'موقف مشاريع التنفيذ أمانة',author:'قسم الشؤون الهندسية — محافظة الأنبار'});
   saveFile(`موقف-مشاريع-التنفيذ-أمانة_${YEAR==='all'?'كل-السنوات':YEAR}_${today()}.xlsx`,buf);}
 
 /* ---------- تدقيق سلف التنفيذ أمانة ----------
@@ -598,7 +726,7 @@ function audEditor(p,a){const au=a.audit;
   const R=au.receipts,T=au.tests;
   return `<div class="card" id="audEd"><div class="row" style="justify-content:space-between"><h4 style="margin:0">🧾 استمارة تدقيق السلفة ${esc(a.no)} — ${esc(p.name)} <span class="sub">(رقم الاستمارة ${au.serial})</span></h4>
    <div class="row"><label>تاريخ التدقيق <input type="date" data-af2="date" value="${esc(au.date||'')}"></label><label>الحالة <select data-af2="status">${Object.entries(AST).map(([k,v])=>`<option value="${k}"${(au.status||'draft')===k?' selected':''}>${v[0]}</option>`).join('')}</select></label>
-   <button class="pri" data-au="print">🖨 طباعة الاستمارة</button><button data-au="word">⬇ Word</button><button class="dng" data-au="drop">🗑 حذف التدقيق</button></div></div>
+   <button class="pri" data-au="print">🖨 استمارة قرار التدقيق (معاينة وطباعة)</button><button class="dng" data-au="drop">🗑 حذف التدقيق</button></div></div>
    <div id="audSum" style="margin-top:8px"></div></div>
   <div class="card"><div class="row" style="justify-content:space-between"><h4 style="margin:0">الوصولات والمستندات (${R.length})</h4><div class="row"><button data-au="addR">＋ وصل</button><button data-au="paste" title="انسخ الصفوف من Excel: رقم الوصل، التاريخ، المجهز، المادة أو العمل، الكمية، الوحدة، السعر، المبلغ">📋 لصق من Excel</button>
     <button data-au="accAll" title="كل وصل بلا ملاحظات وقيد التدقيق ← مقبول">✔ قبول الوصولات السليمة</button></div></div>
@@ -626,26 +754,68 @@ function audRefresh(){const {p,a}=audFind();if(!p||!a||!a.audit)return;const au=
    <div class="kpi"><b>${fm(c.bal)}</b><span>بذمة لجنة التنفيذ (تراكمياً)</span></div><div class="kpi${c.tFail?' bad':''}"><b>${c.tests}</b><span>فحص — ${c.tFail} غير مطابق، ${c.tPend} بلا نتيجة</span></div></div>
    <div class="sub" style="margin-top:6px">${Object.entries(c.cat).map(([k,v])=>`${CATS[k]}: ${v.n} وصل بمبلغ ${fm(v.sub)} — المقبول ${fm(v.acc)}`).join(' &nbsp;|&nbsp; ')}</div>`;
   const d=document.getElementById('audDef');if(d)d.textContent='النص المعتمد: '+defRec(p,a);}
-/* استمارة التدقيق المطبوعة */
-function audHtml(p,a){const s=S(),au=a.audit,c=audCalc(p,a),o=s.audOrder||{};const rec=(au.rec||'').trim()||defRec(p,a);const ex=(p.exec||[]).map(r=>memberInfo(r).name);
-  const prev=(p.advances||[]).slice(0,(p.advances||[]).indexOf(a));
-  const row=(k,v)=>`<tr><th>${k}</th><td>${v}</td></tr>`;
-  return `<div class="doc aud"><img class="lh" src="${IMG_AMH}" alt=""><div class="bdg"><span>رقم الاستمارة: <b>${au.serial}</b></span><span>رقم السلفة: <b>${esc(a.no||'')}</b></span><span>تاريخ السلفة: <b>${dmy(a.date)}</b></span><span>تاريخ التدقيق: <b>${dmy(au.date)}</b></span></div>
-   <div class="ttl">قرار لجنة تدقيق سلف التنفيذ أمانة</div><div style="text-align:center;font-weight:700">استمارة تدقيق تعزيز سلفة — الوصولات والفحوصات</div>
-   <p style="text-align:center;margin:4px 0"><b>${esc(p.name)}</b></p>
-   <div class="pn"><table><tbody>${row('الأمر الإداري',`${esc(p.orderNo)} في ${dmy(p.orderDate)}`)}${row('القضاء / القطاع',esc([p.district,p.sector].filter(Boolean).join(' / ')))}${row('الجهة المستفيدة',esc(p.beneficiary))}${row('رئيس لجنة التنفيذ',esc(ex[0]||''))}${row('نسبة الإنجاز الفعلي',pc(p.progress))}</tbody></table>
-   <table><tbody>${row('مبلغ الأمر الإداري',fm(p.amount))}${row('السلف السابقة',fm(c.prevAdv))}${row('المعزَّز منها سابقاً',fm(c.prevAcc))}${row('مبلغ هذه السلفة',fm(c.adv))}${row('الوصولات المقدمة',`${fm(c.sub)} (${c.n} وصل)`)}${row('المقبول',`${fm(c.acc)} (${c.nAcc})`)}${row('غير المقبول',`${fm(c.rej)} (${c.nRej} مرفوض${c.nPart?`، ${c.nPart} جزئي`:''})`)}${row('بذمة لجنة التنفيذ',fm(c.bal))}</tbody></table></div>
-   ${prev.length?`<p class="sm">السلف السابقة: ${prev.map(x=>`السلفة ${esc(x.no)} / ${fm(advAmt(x))} د.ع`).join(' — ')}</p>`:''}
+/* استمارة «قرار لجنة تدقيق السلف» بتصميم استمارة السلف في برنامج القسم الهندسي (ad.html) نفسه، لكن لمشاريع التنفيذ أمانة:
+   الصفحة الأولى A4 ثابتة (الشارات، العنوان، المشروع، ثلاث لوحات، شريط النسب، السلف السابقة، ملخص التدقيق، قرار اللجنة والمبلغ كتابةً، التواقيع والمصادقات)،
+   والثانية «كشف الوصولات والفحوصات المدققة» مرفق بالاستمارة. */
+const ORD=['الأولى','الثانية','الثالثة','الرابعة','الخامسة','السادسة','السابعة','الثامنة','التاسعة','العاشرة','الحادية عشرة','الثانية عشرة'];
+const advIdx=(p,a)=>(p.advances||[]).indexOf(a);
+const advNo=(p,a)=>String(a.no||advIdx(p,a)+1);
+const advName=(p,a)=>{const n=+advNo(p,a);return ORD[n-1]||advNo(p,a);};
+function audPage(p,a){const s=S(),au=a.audit,c=audCalc(p,a),i=advIdx(p,a),prev=(p.advances||[]).slice(0,i);
+  const amt=num(p.amount),cum=c.prevAdv+c.adv,fin=amt?Math.round(cum/amt*1000)/10:'',act=num(p.progress)||(p.progress===0?0:''),enh=c.adv?Math.round(c.acc/c.adv*1000)/10:'';
+  const ex=(p.exec||[]).map(r=>memberInfo(r).name),rc=(p.recv||[]).map(r=>memberInfo(r).name);
+  const bw=v=>v===''?0:Math.max(0,Math.min(100,v));
+  const kv=(l,v,lt,wrap)=>`<div class="kv${wrap?' wr':''}"><i>${l}</i><b class="${lt?'lt':''}">${v===''||v==null?'—':v}</b></div>`;
+  const pct=(l,v,cls)=>`<div class="pc ${cls}"><i>${l}</i><b>${v===''?'—':v+'<small>%</small>'}</b><span class="tr"><u style="width:${bw(v)}%"></u></span></div>`;
+  const dvv=act!==''&&fin!==''?Math.round((act-fin)*10)/10:'',dev=`<div class="pc dev ${dvv===''?'':dvv<0?'neg':'pos'}"><i>الإنجاز الفعلي − نسبة الصرف</i><b dir="ltr">${dvv===''?'—':(dvv>0?'+':'')+dvv+'<small>%</small>'}</b><span class="st">${dvv===''?'':dvv<0?'الصرف أعلى من الإنجاز':dvv>0?'الإنجاز أعلى من الصرف':'متطابقان'}</span></div>`;
+  const rec=(au.rec||'').trim()||defRec(p,a),o=s.audOrder||{};
+  const sig=(s.audCom||[]).map(m=>`<div class="sg"><div class="ln"></div><div class="hon">${esc(m.hon||'')}</div><div class="nm">${esc(m.name||'')||'&nbsp;'}</div><div class="rl">${esc(m.role||'')}</div><div class="dt">${new Date().getFullYear()} / <i></i> / <i></i></div></div>`).join('');
+  const app=(s.audApp||[]).map(m=>`<div class="sg"><div class="ln"></div><div class="mark">${esc(m.mark||'')}</div><div class="nm">${esc(m.name||'')||'&nbsp;'}</div><div class="rl">${esc(m.title||'')}</div><div class="dt">${new Date().getFullYear()} / <i></i> / <i></i></div></div>`).join('');
+  const cats=Object.entries(c.cat);
+  return `<div class="pg" style="--n:${Math.max(1,(s.audCom||[]).length)};--na:${Math.max(1,(s.audApp||[]).length)}">
+   <div class="hd"><img class="lh" src="${IMG_AMH}" alt="جمهورية العراق - محافظة الأنبار - قسم الشؤون الهندسية - شعبة تنفيذ العمل أمانة"></div>
+   <div class="top"><div class="badges"><span class="pill au"><em>رقم الاستمارة</em> ${esc(au.serial)}</span><span class="pill"><em>رقم السلفة</em> ${esc(advNo(p,a))} <small>(${esc(advName(p,a))})</small></span><span class="pill ln"><em>تاريخ السلفة</em> ${a.date?`<span dir="ltr">${esc(a.date)}</span>`:'<span class="wr"></span>'}</span></div>
+    <div class="ttl"><div class="tx"><h2>قرار لجنة تدقيق السلف</h2><div class="sub">استمارة تدقيق سلفة مشروع تنفيذ أمانة</div></div></div>
+    <div class="tl"><div class="gov"><b class="idms">IDMS</b>الاستمارة خالية من الحك والشطب والاضافة</div></div></div>
+   <div class="proj"><div class="nm">${esc(p.name)||'&nbsp;'}</div><div class="mt"><span>لجنة التنفيذ: <b>${esc(ex[0]||'')}</b> (رئيساً)</span><span>الجهة المستفيدة: <b>${esc(p.beneficiary||'')}</b></span><span>الأمر الإداري: <b>${esc(p.orderNo||'')}${p.orderDate?' في '+dmy(p.orderDate):''}</b></span></div></div>
+   <div class="pnls">
+    <div class="pnl ct"><div class="ph"><span class="pi">§</span>بيانات الأمر الإداري</div>
+     ${kv('عدد الأمر الإداري',esc(p.orderNo||''))}${kv('تاريخ الأمر',esc(p.orderDate||''),1)}${kv('مبلغ الأمر الإداري',fm(amt),1)}${kv('القضاء',esc(p.district||''))}${kv('القطاع',esc(p.sector||''))}${kv('تاريخ المباشرة',esc(p.startDate||''),1)}${kv('أسلوب التنفيذ','تنفيذ أمانة')}</div>
+    <div class="pnl ad"><div class="ph"><span class="pi">◆</span>لجنتا التنفيذ والتسلم</div>
+     ${kv('رئيس لجنة التنفيذ',esc(ex[0]||''),0,1)}${kv('أعضاء لجنة التنفيذ',esc(ex.slice(1).join(' / ')),0,1)}${kv('رئيس لجنة التسلم',esc(rc[0]||''),0,1)}${kv('تاريخ الإنجاز',esc(p.doneDate||''),1)}${kv('حالة المشروع',esc(STATUS[p.status||'new'][0]),0,1)}</div>
+    <div class="pnl fn"><div class="ph"><span class="pi">د.ع</span>البيانات المالية</div>
+     ${kv('مبلغ الأمر الإداري',fm(amt),1)}${kv('السلف السابقة',fm(c.prevAdv),1)}${kv('المعزَّز من السابقة',fm(c.prevAcc),1)}${kv('مبلغ السلفة '+esc(advName(p,a)),fm(c.adv),1)}${kv('الوصولات المقدمة',fm(c.sub),1)}${kv('بذمة لجنة التنفيذ',fm(c.bal),1)}
+     <div class="netb"><i>المبلغ المعزَّز (المقبول) — السلفة ${esc(advName(p,a))} (دينار)</i><b>${fm(c.acc)}</b></div></div>
+   </div>
+   <div class="pcts">${pct('نسبة الصرف (السلف ÷ المبلغ)',fin,'fin')}${pct('نسبة الإنجاز الفعلي',act,'act')}${pct('نسبة تعزيز السلفة',enh,'pln')}${dev}</div>
+   <div class="prevs"><span class="pvh">السلف السابقة</span>${prev.length?prev.map(x=>{const ac=(x.audit&&x.audit.receipts||[]).reduce((t,r)=>t+recAcc(r),0);return `<span class="pv"><em>السلفة ${esc(advNo(p,x))}</em> ${fm(advAmt(x))} د.ع <b>المعزَّز ${fm(ac)}</b></span>`;}).join(''):'<span class="pv none">لا توجد سلف سابقة</span>'}</div>
+   <div class="stops"><div class="r h"><span>الصنف</span><span>عدد الوصولات</span><span>المقدم</span><span>المقبول</span><span>غير المقبول</span></div>
+    ${cats.map(([k,v])=>`<div class="r"><span>${CATS[k]}</span><span>${v.n}</span><span class="lt">${fm(v.sub)}</span><span class="lt">${fm(v.acc)}</span><span class="lt">${fm(v.sub-v.acc)}</span></div>`).join('')}
+    <div class="r"><span><b>المجموع</b></span><span>${c.n}</span><span class="lt">${fm(c.sub)}</span><span class="lt">${fm(c.acc)}</span><span class="lt">${fm(c.sub-c.acc)}</span></div>
+    <div class="r"><span>الفحوصات المختبرية</span><span>${c.tests}</span><span>مطابق ${c.tests-c.tFail-c.tPend}</span><span>غير مطابق ${c.tFail}</span><span>بلا نتيجة ${c.tPend}</span></div></div>
+   <div class="dec"><div class="rh"><span>قرار اللجنة</span><span class="rn">السلفة رقم ( ${esc(advNo(p,a))} )</span></div><div class="rb">${esc(rec).replace(/\n/g,'<br>')}
+    <div class="amt">المبلغ المعزَّز (المقبول): ( ${fm(c.acc)} ) فقط ${c.acc>0?tafqit(c.acc):'صفر'} دينار لا غير.</div></div></div>
+   <div class="sigs">${sig}</div><div class="apps">${app}</div>
+   <div class="lhf"><img src="${IMG_LHB}" alt=""></div></div>`;}
+/* الصفحة الثانية: كشف الوصولات والفحوصات وقائمة التحقق */
+function audSheet(p,a){const s=S(),au=a.audit,c=audCalc(p,a);
+  return `<div class="doc aud"><div class="ttl" style="font-size:14pt">كشف الوصولات والفحوصات المدققة</div><p style="text-align:center;margin:0 0 4px">مرفق باستمارة تدقيق السلفة رقم ( ${esc(au.serial)} ) — السلفة ${esc(advNo(p,a))} (${esc(advName(p,a))}) — ${esc(p.name)}</p>
    <div class="h">الوصولات والمستندات</div><table class="g"><thead><tr><th>ت</th><th>رقم الوصل</th><th>التاريخ</th><th>المجهز / الجهة</th><th>المادة / العمل</th><th>الصنف</th><th>الكمية</th><th>السعر</th><th>المبلغ</th><th>التسديد</th><th>القرار</th><th>المقبول</th><th>الملاحظة</th></tr></thead><tbody>
-   ${au.receipts.map((r,i)=>`<tr><td>${i+1}</td><td>${esc(r.no)}</td><td>${dmy(r.date)}</td><td>${esc(r.vendor)}</td><td>${esc(r.item)}</td><td>${CATS[r.cat||'mat']}</td><td>${esc(r.qty)} ${esc(r.unit)}</td><td>${r.price?fm(r.price):''}</td><td>${fm(r.amount)}</td><td>${esc(r.pay||'')}${r.chq?' '+esc(r.chq):''}</td><td>${DEC[r.dec||'pend'][0]}</td><td>${fm(recAcc(r))}</td><td>${esc(r.note)}</td></tr>`).join('')}
+   ${au.receipts.map((r,i)=>`<tr><td>${i+1}</td><td>${esc(r.no)}</td><td>${dmy(r.date)}</td><td>${esc(r.vendor)}</td><td>${esc(r.item)}</td><td>${CATS[r.cat||'mat']}</td><td>${esc(r.qty)} ${esc(r.unit)}</td><td>${r.price?fm(r.price):''}</td><td>${fm(r.amount)}</td><td>${esc(r.pay||'')}${r.chq?' '+esc(r.chq):''}</td><td>${DEC[r.dec||'pend'][0]}</td><td>${fm(recAcc(r))}</td><td>${esc(r.note)}</td></tr>`).join('')||'<tr><td colspan="13">لا وصولات</td></tr>'}
    <tr class="tot"><td colspan="8">المجموع</td><td>${fm(c.sub)}</td><td></td><td></td><td>${fm(c.acc)}</td><td></td></tr></tbody></table>
-   <table class="g"><thead><tr><th>الصنف</th><th>عدد الوصولات</th><th>المقدم</th><th>المقبول</th></tr></thead><tbody>${Object.entries(c.cat).map(([k,v])=>`<tr><td>${CATS[k]}</td><td>${v.n}</td><td>${fm(v.sub)}</td><td>${fm(v.acc)}</td></tr>`).join('')}</tbody></table>
    <div class="h">الفحوصات المختبرية</div>${au.tests.length?`<table class="g"><thead><tr><th>ت</th><th>نوع الفحص</th><th>المادة / الفقرة</th><th>المختبر</th><th>رقم التقرير</th><th>التاريخ</th><th>النتيجة</th><th>ملاحظة</th></tr></thead><tbody>${au.tests.map((t,i)=>`<tr><td>${i+1}</td><td>${esc(t.name)}</td><td>${esc(t.item)}</td><td>${esc(t.lab)}</td><td>${esc(t.no)}</td><td>${dmy(t.date)}</td><td>${TRES[t.result||'pend'][0]}</td><td>${esc(t.note)}</td></tr>`).join('')}</tbody></table>`:'<p class="sm">لم تُقدَّم فحوصات مختبرية.</p>'}
    <div class="h">قائمة التحقق</div><table class="g ck"><tbody>${CHECKS.map(([k,t])=>{const v=(au.checks||{})[k];return `<tr><td style="text-align:right">${esc(t)}</td><td style="width:22mm">${v==='ok'?'✓':v==='no'?'✗':v==='na'?'لا ينطبق':''}</td></tr>`;}).join('')}</tbody></table>
-   <div class="h">قرار اللجنة — السلفة رقم ( ${esc(a.no||'')} )</div><div class="dec"><p>${esc(rec)}</p><p><b>المبلغ المقبول (المعزَّز): ( ${fm(c.acc)} ) فقط ${tafqit(c.acc)} دينار لا غير.</b></p></div>
-   <div class="sgs">${(s.audCom||[]).map(m=>`<div><div class="ln"></div>${esc(m.hon||'')}<br>${esc(m.name||'')}<br>${esc(m.role||'')}</div>`).join('')}</div>
-   <div class="sgs">${(s.audApp||[]).map(m=>`<div>${esc(m.mark||'')||'&nbsp;'}<div class="ln"></div>${esc(m.name||'')}<br>${esc(m.title||'')}<br>&nbsp;&nbsp;/&nbsp;&nbsp;/ ${new Date().getFullYear()}</div>`).join('')}</div>
-   <p class="sm" style="margin-top:6px">أمر تشكيل لجنة تدقيق السلف: ${esc(o.no||'…………')} في ${dmy(o.date)||'…………'} — الاستمارة خالية من الحك والشطب والإضافة.</p><img class="lf" src="${IMG_LHB}" alt=""></div>`;}
+   <div class="sgs">${(s.audCom||[]).map(m=>`<div><div class="ln"></div>${esc(m.hon||'')}<br>${esc(m.name||'')}<br>${esc(m.role||'')}</div>`).join('')}</div></div>`;}
+function audHtml(p,a){return audPage(p,a)+audSheet(p,a);}
+/* ملاءمة الصفحة الأولى: تُصغَّر حتى 55% إن زاد المحتوى (كما في استمارة السلف) */
+function fitPg(root){root.querySelectorAll('.pg').forEach(pg=>{let k=1;pg.style.setProperty('--k',k);const over=()=>pg.scrollHeight>pg.clientHeight+1;for(let n=0;n<45&&k>0.55&&over();n++){k-=0.01;pg.style.setProperty('--k',k.toFixed(3));}
+  pg.querySelectorAll('.kv b:not(.wr b),.netb b').forEach(el=>{el.style.fontSize='';let fs=parseFloat(getComputedStyle(el).fontSize),m=0;while(el.scrollWidth>el.clientWidth+.5&&fs>6&&m++<60){fs-=.4;el.style.fontSize=fs+'px';}});});}
+function audPreview(p,a){const d=document.createElement('div');d.className='modal';d.innerHTML=`<div class="box" style="width:auto;background:#d9dfdb"><div class="row" style="margin-bottom:8px"><button class="pri" data-x="print">🖨 طباعة</button>${DESK&&DESK.pdf?'<button data-x="pdf">💾 PDF</button>':''}<button data-x="close">إغلاق</button><span class="hint">الصفحة الأولى استمارة القرار، والثانية كشف الوصولات والفحوصات.</span></div><div id="pvPages">${audHtml(p,a)}</div></div>`;
+  document.body.appendChild(d);fitPg(d);
+  d.addEventListener('click',async e=>{const b=e.target.closest('[data-x]');if(!b)return;const x=b.dataset.x;if(x==='close'){d.remove();return;}
+    $('#printArea').innerHTML=d.querySelector('#pvPages').innerHTML;
+    if(x==='print')window.print();else if(x==='pdf'){const r=await DESK.pdf(`استمارة-تدقيق-السلفة-${advNo(p,a)}-${String(p.orderNo||'').slice(0,20)}.pdf`);if(r==='ok')flash('حُفظ ملف PDF');else if(r==='error')flash('تعذّر حفظ PDF',true);}});}
+
 function audAct(k,b){const {p,a}=audFind();if(!p||!a)return;const done=()=>{touch(p);persist();render();};
   if(k==='start'){audObj(a);done();return;}
   const au=a.audit;if(!au)return;
@@ -655,9 +825,7 @@ function audAct(k,b){const {p,a}=audFind();if(!p||!a)return;const done=()=>{touc
   else if(k==='delT'){if(confirm('حذف الفحص؟')){au.tests.splice(+b.dataset.i,1);done();}}
   else if(k==='accAll'){let n=0;au.receipts.forEach((r,i)=>{if((!r.dec||r.dec==='pend')&&!rcFlags(r,i,au,p).length){r.dec='acc';n++;}});flash(`قُبل ${n} وصل بلا ملاحظات`);done();}
   else if(k==='drop'){if(confirm('حذف تدقيق هذه السلفة (الوصولات والفحوصات)؟')){delete a.audit;done();}}
-  else if(k==='print'){$('#printArea').innerHTML=audHtml(p,a);window.print();}
-  else if(k==='word'){const css=[...document.styleSheets[0].cssRules].map(r=>r.cssText).filter(t=>/^\.doc/.test(t)).join('\n');
-    saveFile(`تدقيق-سلفة-${a.no||''}-${String(p.orderNo||p.name).slice(0,30)}.doc`,new TextEncoder().encode('﻿'+`<html><head><meta charset="utf-8"><style>@page{size:21cm 29.7cm;margin:1.5cm}body{direction:rtl}${css}.doc{border:none;width:auto;padding:0}</style></head><body dir="rtl">${audHtml(p,a)}</body></html>`));}
+  else if(k==='print'){audPreview(p,a);}
   else if(k==='paste'){const d=document.createElement('div');d.className='modal';d.innerHTML=`<div class="box" style="width:min(820px,100%)"><h3>📋 لصق الوصولات من Excel</h3><p class="hint">انسخ الصفوف من Excel والصقها هنا. ترتيب الأعمدة: رقم الوصل | التاريخ | المجهز | المادة أو العمل | الكمية | الوحدة | السعر | المبلغ (المبلغ الفارغ = الكمية × السعر).</p><textarea rows="12" id="pst" dir="rtl"></textarea><div class="row" style="margin-top:8px"><button class="pri" data-x="ok">إضافة</button><button data-x="no">إلغاء</button></div></div>`;
     document.body.appendChild(d);d.addEventListener('click',e=>{const x=e.target.closest('[data-x]');if(!x)return;if(x.dataset.x==='ok'){let n=0;d.querySelector('#pst').value.split(/\r?\n/).forEach(l=>{const c=l.split('\t');if(c.join('').trim()===''||/رقم الوصل/.test(l))return;
       const qty=c[4]||'',price=num(c[6]),amt=num(c[7])||(num(qty)*price);const item=c[3]||'';

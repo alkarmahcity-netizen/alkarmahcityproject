@@ -4,7 +4,8 @@
    الخلية: null أو {v, s, f} — v نص أو رقم، s رقم التنسيق (XLW.S)، f معادلة (اختياري، مع v قيمة محسوبة) */
 (function(root){
 'use strict';
-const S={def:0,title:1,sub:2,head:3,txt:4,int:5,pct:6,grp:7,stT:8,stI:9,stP:10,gtT:11,gtI:12,gtP:13,dev:14,wrap:15,org:16,kpiL:17,kpiV:18,kpiP:19,num1:20,stD:21,gtD:22};
+const S={def:0,title:1,sub:2,head:3,txt:4,int:5,pct:6,grp:7,stT:8,stI:9,stP:10,gtT:11,gtI:12,gtP:13,dev:14,wrap:15,org:16,kpiL:17,kpiV:18,kpiP:19,num1:20,stD:21,gtD:22,
+  /* خانات الإدخال (أصفر): نص، رقم صحيح، عدد عشري حر (الإحداثيات)، نسبة، ورأس عمود إدخال (برتقالي) */ inT:23,inI:24,inG:25,inP:26,inH:27};
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g,'');
 const colL=n=>{let s='';n++;while(n>0){const m=(n-1)%26;s=String.fromCharCode(65+m)+s;n=Math.floor((n-1)/26);}return s;};
 const ref=(r,c)=>colL(c)+(r+1);
@@ -23,7 +24,7 @@ const STYLES=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <font><b/><sz val="16"/><color rgb="FF1F5F36"/><name val="Arial"/><family val="2"/></font>
 <font><sz val="9"/><color rgb="FF5F6B65"/><name val="Arial"/><family val="2"/></font>
 </fonts>
-<fills count="8">
+<fills count="10">
 <fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>
 <fill><patternFill patternType="solid"><fgColor rgb="FF1F5F36"/><bgColor indexed="64"/></patternFill></fill>
 <fill><patternFill patternType="solid"><fgColor rgb="FF2E7D4F"/><bgColor indexed="64"/></patternFill></fill>
@@ -31,6 +32,8 @@ const STYLES=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <fill><patternFill patternType="solid"><fgColor rgb="FFF2F2F2"/><bgColor indexed="64"/></patternFill></fill>
 <fill><patternFill patternType="solid"><fgColor rgb="FFFFF7E0"/><bgColor indexed="64"/></patternFill></fill>
 <fill><patternFill patternType="solid"><fgColor rgb="FFF7FBF8"/><bgColor indexed="64"/></patternFill></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FFFFF2CC"/><bgColor indexed="64"/></patternFill></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FFC55A11"/><bgColor indexed="64"/></patternFill></fill>
 </fills>
 <borders count="3">
 <border><left/><right/><top/><bottom/><diagonal/></border>
@@ -38,7 +41,7 @@ const STYLES=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <border><left style="thin"><color rgb="FF1F5F36"/></left><right style="thin"><color rgb="FF1F5F36"/></right><top style="medium"><color rgb="FF1F5F36"/></top><bottom style="medium"><color rgb="FF1F5F36"/></bottom><diagonal/></border>
 </borders>
 <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
-<cellXfs count="23">
+<cellXfs count="28">
 <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"><alignment readingOrder="2"/></xf>
 <xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="center" vertical="center" readingOrder="2"/></xf>
 <xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="right" vertical="center" readingOrder="2"/></xf>
@@ -62,6 +65,11 @@ const STYLES=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <xf numFmtId="167" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
 <xf numFmtId="166" fontId="4" fillId="5" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
 <xf numFmtId="166" fontId="3" fillId="2" borderId="2" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+<xf numFmtId="0" fontId="0" fillId="8" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center" wrapText="1" readingOrder="2"/></xf>
+<xf numFmtId="164" fontId="0" fillId="8" borderId="1" xfId="0" applyNumberFormat="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+<xf numFmtId="0" fontId="0" fillId="8" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+<xf numFmtId="165" fontId="0" fillId="8" borderId="1" xfId="0" applyNumberFormat="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+<xf numFmtId="0" fontId="3" fillId="9" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1" readingOrder="2"/></xf>
 </cellXfs>
 <cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>
 <dxfs count="2"><dxf><font><color rgb="FFC00000"/></font><fill><patternFill><bgColor rgb="FFFDE9E7"/></patternFill></fill></dxf><dxf><font><color rgb="FF1F5F36"/></font></dxf></dxfs>
@@ -71,6 +79,9 @@ function cellXml(c,r,ci){if(c==null||(c.v==null&&!c.f&&c.s==null))return '';cons
   if(c.v==null||c.v==='')return `<c r="${R}"${s}/>`;
   if(typeof c.v==='number'&&isFinite(c.v))return `<c r="${R}"${s}><v>${c.v}</v></c>`;
   return `<c r="${R}"${s} t="inlineStr"><is><t xml:space="preserve">${esc(c.v)}</t></is></c>`;}
+function dvXml(sh){const L=[...(sh.lists||[]).map(d=>`<dataValidation type="list" allowBlank="1" showInputMessage="1" showErrorMessage="1" errorStyle="warning" sqref="${d.ref}"${d.prompt?` promptTitle="${esc(d.title||'')}" prompt="${esc(d.prompt)}"`:''}><formula1>"${esc(d.items.join(','))}"</formula1></dataValidation>`),
+    ...(sh.nums||[]).map(d=>`<dataValidation type="${d.dec?'decimal':'whole'}" operator="between" allowBlank="1" showInputMessage="1" showErrorMessage="1" errorStyle="warning" sqref="${d.ref}"${d.prompt?` promptTitle="${esc(d.title||'')}" prompt="${esc(d.prompt)}"`:''}${d.error?` errorTitle="تنبيه" error="${esc(d.error)}"`:''}><formula1>${d.min}</formula1><formula2>${d.max}</formula2></dataValidation>`)];
+  return L.length?`<dataValidations count="${L.length}">${L.join('')}</dataValidations>`:'';}
 function sheetXml(sh){const rows=sh.rows||[],nc=Math.max(1,...rows.map(r=>r?r.length:0)),H=sh.heights||{};
   const cols=(sh.cols||[]).map((w,i)=>`<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join('');
   const data=rows.map((r,ri)=>{const ht=H[ri+1]?` ht="${H[ri+1]}" customHeight="1"`:'';return `<row r="${ri+1}"${ht}>${(r||[]).map((c,ci)=>cellXml(c,ri,ci)).join('')}</row>`;}).join('');
@@ -82,7 +93,7 @@ function sheetXml(sh){const rows=sh.rows||[],nc=Math.max(1,...rows.map(r=>r?r.le
 <sheetPr>${sh.tab?`<tabColor rgb="${sh.tab}"/>`:''}<pageSetUpPr fitToPage="1"/></sheetPr><dimension ref="A1:${ref(Math.max(0,rows.length-1),nc-1)}"/>
 <sheetViews><sheetView rightToLeft="1" workbookViewId="0"${sh.first?' tabSelected="1"':''} zoomScale="${sh.zoom||100}" zoomScaleNormal="${sh.zoom||100}">${fr}</sheetView></sheetViews>
 <sheetFormatPr defaultRowHeight="18" customHeight="1"/>${cols?`<cols>${cols}</cols>`:''}<sheetData>${data}</sheetData>
-${sh.filter?`<autoFilter ref="${sh.filter}"/>`:''}${sh.merges&&sh.merges.length?`<mergeCells count="${sh.merges.length}">${sh.merges.map(m=>`<mergeCell ref="${m}"/>`).join('')}</mergeCells>`:''}${cf}
+${sh.filter?`<autoFilter ref="${sh.filter}"/>`:''}${sh.merges&&sh.merges.length?`<mergeCells count="${sh.merges.length}">${sh.merges.map(m=>`<mergeCell ref="${m}"/>`).join('')}</mergeCells>`:''}${cf}${dvXml(sh)}
 <printOptions horizontalCentered="1"/><pageMargins left="0.3" right="0.3" top="0.5" bottom="0.55" header="0.25" footer="0.25"/>
 <pageSetup paperSize="${sh.paper||9}" orientation="${sh.portrait?'portrait':'landscape'}" fitToWidth="1" fitToHeight="${sh.fitH?1:0}"/>
 <headerFooter><oddFooter>&amp;C&amp;8صفحة &amp;P من &amp;N&amp;R&amp;8${esc(sh.footer||'')}</oddFooter></headerFooter>

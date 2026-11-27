@@ -229,6 +229,7 @@ details summary{cursor:pointer;font-weight:700;color:#6a430f}
   <label>السنة: <select id="fYear"></select></label>
   <button id="bNew">＋ مشروع جديد</button>
   <button id="bImport" title="استيراد سجل الأوامر الإدارية (الصادر 2024/2025/2026) وملف التخصيصات (Projects) — يمكن اختيار الملفين معاً">📥 استيراد Excel</button>
+  <button id="bFill" title="ملف Excel للجان: الخانات الصفراء لما ينقص كل مشروع (الإحداثيات، التواريخ، نسبة الإنجاز، المبالغ…) ثم يُستورد الملف نفسه فيُكمل البرنامج">📝 استمارة إكمال النواقص</button>
   <button id="bExport" title="الموقف بالإكسل: الإحداثيات والمبلغ المرفوع والمصروف ونسبة الإنجاز الفعلي، مع الأقضية والجهات المستفيدة والمهندسين والسلف">📤 الموقف بالإكسل</button>
   <span class="st" id="stInfo"></span>
 </div>
@@ -691,11 +692,18 @@ function applySit(sit,advx){const now=Date.now(),byId=new Map(P().map(p=>[p.id,p
     /* سلفة مستوردة من ملف التخصيصات تبقى كذلك ما لم يتغير مبلغها (فإعادة استيراد التخصيصات تستبدلها بلا تكرار) */if(a.src==='xl'&&(a.raised!==r0||a.paid!==p0))delete a.src;
     if(p.status==='new'&&(a.paid||a.raised))p.status='run';p.updated=now;});
   return st;}
-async function importFiles(files){const reg=[],alc=[],seen=[],sit=[],advx=[];
+async function importFiles(files){const reg=[],alc=[],seen=[],sit=[],advx=[],fil=[];
   for(const file of files){let book;try{book=await readBook(file);}catch(e){flash(file.name+': '+(e.message||e),true);continue;}
-    for(const sh of book){const s1=parseSit(sh);if(s1){sit.push(...s1);seen.push(`${file.name} ← «${sh.name}»: ${s1.length} مشروع (ملف الموقف المصدَّر من البرنامج)`);continue;}
+    for(const sh of book){const s0=parseFill(sh);if(s0){fil.push(...s0);seen.push(`${file.name} ← «${sh.name}»: ${s0.length} مشروع (استمارة إكمال النواقص)`);continue;}
+      const s1=parseSit(sh);if(s1){sit.push(...s1);seen.push(`${file.name} ← «${sh.name}»: ${s1.length} مشروع (ملف الموقف المصدَّر من البرنامج)`);continue;}
       const s2=parseAdvX(sh);if(s2){advx.push(...s2);seen.push(`${file.name} ← «${sh.name}»: ${s2.length} سلفة`);continue;}
       const a=parseRegister(sh);if(a){reg.push(...a);seen.push(`${file.name} ← «${sh.name}»: ${a.length} أمر إداري`);continue;}const b=parseAlloc(sh);if(b){alc.push(...b);seen.push(`${file.name} ← «${sh.name}»: ${b.length} مشروع تنفيذ أمانة (تخصيصات وسلف)`);}}}
+  if(fil.length){const st=applyFill(fil);dedupe();cleanAdvDups();persist(true);render();
+    const d=document.createElement('div');d.className='modal';d.innerHTML=`<div class="box" style="width:min(720px,100%)"><h3>✔ أُكملت البيانات من استمارة اللجان</h3>${seen.map(s=>`<div class="sub">• ${esc(s)}</div>`).join('')}
+     <p>مشاريع تغيّرت: <b>${st.upd}</b> — إحداثيات: <b>${st.ll}</b> — نسب إنجاز: <b>${st.prog}</b> — تواريخ: <b>${st.dates}</b> — أقضية وجهات مستفيدة: <b>${st.ben}</b> — لجان تسلم: <b>${st.recv}</b> — سلف أُضيفت: <b>${st.adv}</b> — ملاحظات: <b>${st.notes}</b></p>
+     ${st.low?`<p class="warn">⚠ ${st.low} مشروع كتبت فيه اللجنة مبلغاً تراكمياً أقل من مجموع سلفه في البرنامج — لم يُغيَّر (يُراجع في بطاقة المشروع).</p>`:''}${st.none?`<p class="warn">⚠ ${st.none} سطر لم يُعثر على مشروعه.</p>`:''}
+     <p class="hint">بقي ${st.miss} مشروع فيه نواقص — «📝 استمارة إكمال النواقص» ← «الناقصة فقط» لإخراجها مرة أخرى.</p><button class="pri" data-x="1">موافق</button></div>`;
+    document.body.appendChild(d);d.addEventListener('click',e=>{if(e.target.closest('[data-x]'))d.remove();});if(!reg.length&&!alc.length&&!sit.length&&!advx.length)return;}
   if(sit.length||advx.length){const st=applySit(sit,advx);dedupe();cleanAdvDups();persist(true);render();
     const d=document.createElement('div');d.className='modal';d.innerHTML=`<div class="box" style="width:min(720px,100%)"><h3>✔ حُدِّث البرنامج من ملف الموقف</h3>${seen.map(s=>`<div class="sub">• ${esc(s)}</div>`).join('')}
      <p>مشاريع حُدِّثت: <b>${st.upd}</b> — مشاريع جديدة: <b>${st.add}</b> — إحداثيات تغيّرت: <b>${st.ll}</b> — نسب إنجاز تغيّرت: <b>${st.prog}</b> — سلف حُدِّثت: <b>${st.adv}</b> — سلف أُضيفت: <b>${st.advAdd}</b></p>
@@ -1038,6 +1046,74 @@ function showDups(r){const G=P().filter(p=>!p.dupOf&&dupsOf(p).length);const d=d
    <p class="hint">يبقى الأمر الأحدث للمشروع، والأوامر السابقة لا تُحسب في المبالغ ولا على المهندسين (الشخص يُحسب مرة واحدة للمشروع). «ليس مكرراً» يفصل الأمر نهائياً.</p>
    <div class="tw" style="max-height:60vh"><table><thead><tr><th>المشروع (الأمر الأحدث)</th><th>الأوامر السابقة</th></tr></thead><tbody>${G.map(m=>`<tr><td>${esc(m.name)}<div class="sub">${esc(m.orderNo)} — ${dmy(m.orderDate)} — ${fm(m.amount)} د — ${esc(m.district)}</div></td><td>${dupsOf(m).map(o=>`<div class="sub">${esc(o.orderNo)} — ${dmy(o.orderDate)} — ${fm(o.amount)} د ${o.name!==m.name?`<br><i>${esc(o.name)}</i>`:''} <button class="sm" data-sp="${o.id}">ليس مكرراً</button></div>`).join('')}</td></tr>`).join('')||'<tr><td colspan="2" class="empty">لا تكرار</td></tr>'}</tbody></table></div><button class="pri" data-x="1" style="margin-top:8px">إغلاق</button></div>`;
   document.body.appendChild(d);d.addEventListener('click',e=>{const sp=e.target.closest('[data-sp]');if(sp){const t=P().find(x=>x.id===sp.dataset.sp);if(t){delete t.dupOf;t.notDup=true;touch(t);persist();sp.parentNode.remove();render();}return;}if(e.target.closest('[data-x]'))d.remove();});}
+/* ---------- استمارة إكمال النواقص (للجان) ----------
+   ملف Excel تملؤه اللجان: لكل مشروع بياناته المعروفة، وخانات صفراء لما ينقصه (الإحداثيات، الجهة المستفيدة، تاريخ المباشرة والإنجاز، نسبة الإنجاز الفعلي،
+   الحالة، المبلغ المرفوع والمصروف التراكمي، لجنة التسلم، ملاحظات اللجنة)، وعمود «النواقص». يُعاد الملف نفسه بـ«📥 استيراد Excel» فيُكمل البرنامج. */
+function missingOf(p){const m=[],c=calc(p);
+  if(!p.district)m.push('القضاء');if(!(p.lat&&p.lng))m.push('الإحداثيات');if(!benOf(p))m.push('الجهة المستفيدة');if(!p.startDate)m.push('تاريخ المباشرة');
+  if(!num(p.progress))m.push('نسبة الإنجاز');if(!c.n)m.push('المبالغ المرفوعة والمصروفة');if(num(p.progress)>=100&&!p.doneDate)m.push('تاريخ الإنجاز');
+  if(!(p.recv||[]).length)m.push('لجنة التسلم');if(!(p.exec||[]).length)m.push('لجنة التنفيذ');return m;}
+const FILL_H=['ت','السنة','عدد الأمر الإداري','تاريخه','اسم المشروع','القضاء','مبلغ الأمر الإداري','رئيس لجنة التنفيذ','النواقص',
+  'الجهة المستفيدة','خط العرض','خط الطول','رابط الموقع أو الإحداثيات','تاريخ المباشرة','تاريخ الإنجاز','نسبة الإنجاز الفعلي %','الحالة','المبلغ المرفوع (التراكمي)','المبلغ المصروف (التراكمي)','أسماء لجنة التسلم','ملاحظات اللجنة','المعرّف'];
+function fillDialog(){const all=P().filter(p=>inYear(p)&&isProj(p)),dists=uniq(all.map(p=>p.district));const nMiss=all.filter(p=>missingOf(p).length).length;
+  const d=document.createElement('div');d.className='modal';d.innerHTML=`<div class="box" style="width:min(640px,100%)"><h3>📝 استمارة إكمال النواقص (للجان)</h3>
+   <p>ملف Excel لكل مشروع: بياناته من البرنامج، وخانات <b style="background:#fff2cc;padding:0 6px">صفراء</b> تملؤها اللجنة، وعمود «النواقص». ${YEAR==='all'?'كل السنوات':'سنة '+YEAR} — ${all.length} مشروع، منها ${nMiss} ناقص.</p>
+   <div class="fg"><label>المشاريع<select id="fsc"><option value="miss">الناقصة فقط (${nMiss})</option><option value="all">كل المشاريع (${all.length})</option></select></label>
+   <label>القضاء<select id="fdi"><option value="">كل الأقضية</option>${dists.map(x=>`<option>${esc(x)}</option>`).join('')}</select></label></div>
+   <p class="hint">بعد أن تملأها اللجنة: «📥 استيراد Excel» واختر الملف نفسه فيُكمل البرنامج. المبالغ تراكمية: إن زادت عن مجموع السلف في البرنامج يُضاف الفرق سلفةً جديدة.</p>
+   <div class="row"><button class="pri" data-x="go">⬇ إخراج الاستمارة</button><button data-x="no">إلغاء</button></div></div>`;
+  document.body.appendChild(d);d.addEventListener('click',e=>{const b=e.target.closest('[data-x]');if(!b)return;if(b.dataset.x==='go')exportFill(d.querySelector('#fsc').value,d.querySelector('#fdi').value);d.remove();});}
+function exportFill(scope,dist){if(!window.XLW)return flash('كاتب Excel غير متاح',true);const X=XLW.S;
+  const ps=P().filter(p=>inYear(p)&&isProj(p)&&(!dist||p.district===dist)&&(scope==='all'||missingOf(p).length))
+    .sort((a,b)=>(a.district||'').localeCompare(b.district||'','ar')||yearOf(a)-yearOf(b)||(a.orderDate||'').localeCompare(b.orderDate||''));
+  if(!ps.length)return flash('لا مشاريع ناقصة بهذا الاختيار',true);
+  const T=v=>({v:v==null?'':String(v),s:X.txt}),W=v=>({v:v==null?'':String(v),s:X.wrap}),I=v=>({v:Math.round(num(v)),s:X.int});
+  const iT=v=>({v:v==null?'':String(v),s:X.inT}),iI=v=>({v:num(v)?Math.round(num(v)):'',s:X.inI}),iG=v=>({v:v===''||v==null?'':+v,s:X.inG}),iP=v=>({v:num(v)?Math.round(num(v)*10)/10:'',s:X.inP});
+  const R0=5,Rn=R0+ps.length-1,L=XLW.colL(FILL_H.length-1);
+  const ttl='استمارة إكمال النواقص — مشاريع التنفيذ أمانة — '+(YEAR==='all'?'كل السنوات':'سنة '+YEAR)+(dist?' — قضاء '+dist:'');
+  const rows=[[{v:ttl,s:X.title}],[{v:'تملأ اللجنة الخانات الصفراء فقط (الأعمدة من «الجهة المستفيدة» الى «ملاحظات اللجنة»)؛ التاريخ يوم/شهر/سنة؛ المبالغ تراكمية بالدينار؛ الإحداثيات: خط العرض (29–38) وخط الطول (38–49) أو لصق رابط خرائط Google. لا تغيّر عمود «المعرّف». ثم يُعاد الملف الى القسم.',s:X.sub}],[],
+    FILL_H.map((h,i)=>({v:h,s:(i>=9&&i<=20)||i===5?X.inH:X.head}))];
+  ps.forEach((p,i)=>{const c=calc(p),ex=(p.exec||[]).map(r=>memberInfo(r).name);
+    rows.push([I(i+1),{v:yearOf(p)||'',s:X.txt},T(p.orderNo),T(dmy(p.orderDate)),W(p.name),iT(p.district),I(p.amount),T(ex[0]||''),{v:missingOf(p).join('، ')||'✓ مكتمل',s:X.wrap},
+      iT(benOf(p)),iG(p.lat||''),iG(p.lng||''),iT(p.lat&&p.lng?gmaps(p):''),iT(dmy(p.startDate)),iT(dmy(p.doneDate)),iP(p.progress),iT(STATUS[p.status||'new'][0]),iI(c.raised),iI(c.paid),iT((p.recv||[]).join(' / ')),iT(''),T(p.id)]);});
+  const help=[[{v:'طريقة ملء استمارة إكمال النواقص',s:X.title}],[],
+    ...[['الخانات الصفراء (والقضاء)','تملؤها اللجنة؛ الخانة المملوءة سابقاً تُصحَّح إن كانت خاطئة، والفارغة تبقى كما هي في البرنامج.'],
+      ['الإحداثيات','خط العرض مثل 33.4215 وخط الطول مثل 43.3021، أو لصق رابط الموقع من خرائط Google في عمود «رابط الموقع أو الإحداثيات».'],
+      ['التواريخ','يوم/شهر/سنة، مثل 15/3/2026.'],['نسبة الإنجاز الفعلي','رقم من 0 الى 100.'],['الحالة','تُختار من القائمة: '+Object.values(STATUS).map(v=>v[0]).join('، ')+'.'],
+      ['المبالغ','المبلغ المرفوع والمصروف التراكميان (كل ما صُرف للمشروع حتى الآن). إن زادا عن مجموع السلف في البرنامج يُضاف الفرق سلفةً جديدة؛ وإن نقصا لا يُغيَّر شيء ويُنبَّه.'],
+      ['أسماء لجنة التسلم','تُكتب الأسماء مفصولة بـ « / » وتبدأ بـ «م.» للمهندس.'],['المعرّف','لا يُغيَّر؛ به يُطابق البرنامج كل سطر بمشروعه.'],
+      ['الإرجاع','يُعاد الملف الى القسم فيُستورد في البرنامج بـ «📥 استيراد Excel».']].map(([a,b])=>[{v:a,s:X.head},{v:b,s:X.wrap}])];
+  const buf=XLW.book([{name:'إكمال النواقص',cols:[5,7,10,11,44,12,15,22,30,22,11,11,26,12,12,11,14,15,15,34,30,15],rows,merges:[`A1:${L}1`,`A2:${L}2`],freeze:4,titles:4,filter:`A4:${L}4`,heights:{1:30,2:34,4:44},zoom:90,first:true,
+      lists:[{ref:`Q${R0}:Q${Rn}`,items:Object.values(STATUS).map(v=>v[0]),title:'الحالة',prompt:'اختر من القائمة'}],
+      nums:[{ref:`K${R0}:K${Rn}`,min:29,max:38,dec:true,title:'خط العرض',prompt:'مثل 33.4215',error:'خط العرض في الأنبار بين 29 و38'},{ref:`L${R0}:L${Rn}`,min:38,max:49,dec:true,title:'خط الطول',prompt:'مثل 43.3021',error:'خط الطول في الأنبار بين 38 و49'},
+        {ref:`P${R0}:P${Rn}`,min:0,max:100,dec:true,title:'نسبة الإنجاز',prompt:'من 0 الى 100',error:'النسبة بين 0 و100'},{ref:`R${R0}:S${Rn}`,min:0,max:1000000000000,title:'المبلغ',prompt:'المبلغ التراكمي بالدينار'}]},
+    {name:'طريقة الملء',cols:[24,100],rows:help,merges:['A1:B1'],portrait:true}],{title:ttl,author:'قسم الشؤون الهندسية — محافظة الأنبار'});
+  saveFile(`استمارة-إكمال-النواقص_${dist||'كل-الأقضية'}_${YEAR==='all'?'كل-السنوات':YEAR}_${today()}.xlsx`,buf);}
+function parseFill(sh){const f=findCols(sh.rows,['النواقص','المعرّف','خط العرض']);if(!f)return null;const r=f.r,C={};FILL_H.forEach(h=>{C[h]=r.findIndex(c=>c===h);});
+  const out=[];for(let i=f.hdr+1;i<sh.rows.length;i++){const x=sh.rows[i]||[],g=h=>C[h]>=0?x[C[h]]:'';const id=hn(g('المعرّف')),no=hn(g('عدد الأمر الإداري'));if(!id&&!no)continue;
+    out.push({id,orderNo:no.replace(/\.0$/,''),year:num(g('السنة')),dist:hn(g('القضاء')),ben:hn(g('الجهة المستفيدة')),lat:g('خط العرض'),lng:g('خط الطول'),link:hn(g('رابط الموقع أو الإحداثيات')),start:xDate(g('تاريخ المباشرة')),done:xDate(g('تاريخ الإنجاز')),
+      prog:g('نسبة الإنجاز الفعلي %'),st:hn(g('الحالة')),raised:g('المبلغ المرفوع (التراكمي)'),paid:g('المبلغ المصروف (التراكمي)'),recv:hn(g('أسماء لجنة التسلم')),note:hn(g('ملاحظات اللجنة'))});}
+  return out;}
+function applyFill(list){const st={upd:0,ll:0,prog:0,dates:0,ben:0,adv:0,low:0,miss:0,recv:0,notes:0,none:0},has=v=>v!==''&&v!=null,key=(y,n)=>y+'|'+String(n).replace(/\D/g,'');
+  const byId=new Map(P().map(p=>[p.id,p])),byKey=new Map(P().filter(p=>p.orderNo&&isProj(p)).map(p=>[key(yearOf(p),p.orderNo),p]));
+  list.forEach(it=>{let p=(it.id&&byId.get(it.id))||(it.orderNo&&byKey.get(key(it.year,it.orderNo)));if(!p){st.none++;return;}if(p.dupOf)p=byId.get(p.dupOf)||p;const b0=JSON.stringify(p);
+    if(it.dist&&fixDist(it.dist)!==p.district){p.district=fixDist(it.dist);st.ben++;}
+    if(it.ben&&it.ben!==benOf(p)){p.beneficiary=it.ben;st.ben++;}
+    let lat=num(it.lat),lng=num(it.lng);if(!(lat&&lng)&&it.link){const ll=parseLL(it.link);if(ll){lat=ll.lat;lng=ll.lng;}}
+    if(lat&&lng&&(String(lat)!==String(p.lat)||String(lng)!==String(p.lng))){p.lat=lat;p.lng=lng;st.ll++;}
+    if(it.start&&it.start!==p.startDate){p.startDate=it.start;st.dates++;}if(it.done&&it.done!==p.doneDate){p.doneDate=it.done;st.dates++;}
+    if(has(it.prog)){const v=Math.max(0,Math.min(100,num(it.prog)));if(v!==num(p.progress)){p.progress=v;st.prog++;}}
+    /* الحالة: تُؤخذ إن غيّرتها اللجنة؛ وإن بقيت كما هي تتبع نسبة الإنجاز (أكثر من صفر = قيد التنفيذ، 100 = منجز) */
+    if(it.st&&STATUS_BY_LABEL[it.st]&&STATUS_BY_LABEL[it.st]!==(p.status||'new'))p.status=STATUS_BY_LABEL[it.st];else if(num(p.progress)>=100&&['new','run'].includes(p.status||'new'))p.status='done';else if(num(p.progress)>0&&(p.status||'new')==='new')p.status='run';
+    if(it.recv&&it.recv!==(p.recv||[]).join(' / ')){p.recv=splitMembers(it.recv);st.recv++;}
+    if(it.note&&!(p.notes||'').includes(it.note)){p.notes=[p.notes,'ملاحظات اللجنة: '+it.note].filter(Boolean).join(' — ');st.notes++;}
+    const R=num(it.raised),Pd=num(it.paid),c=calc(p);p.advances=p.advances||[];
+    if((R||Pd)&&!c.n){p.advances.push({id:uid(),no:'1',date:'',raised:R||Pd,paid:Pd,cheque:'',note:'من استمارة إكمال النواقص'});st.adv++;}
+    else if((R||Pd)&&(Math.round(R)>Math.round(c.raised)||Math.round(Pd)>Math.round(c.paid))){p.advances.push({id:uid(),no:String(c.n+1),date:today(),raised:Math.max(0,R-c.raised),paid:Math.max(0,Pd-c.paid),cheque:'',note:'فرق التراكمي من استمارة إكمال النواقص'});st.adv++;}
+    else if((R||Pd)&&(Math.round(R)<Math.round(c.raised)||Math.round(Pd)<Math.round(c.paid)))st.low++;
+    if(JSON.stringify(p)!==b0){p.updated=Date.now();st.upd++;}if(missingOf(p).length)st.miss++;});
+  return st;}
+
 /* ---------- الإعدادات ---------- */
 function rSet(){const s=S();return `<div class="grid2"><div class="card"><h4>الحدود (تعليمات التنفيذ أمانة 1/2018 المعدلة 3/2022)</h4><div class="fg">
   <label>أقصى عدد لجان تنفيذ للشخص في السنة<input type="number" data-s="maxCom" value="${s.maxCom}"></label>
@@ -1069,7 +1145,7 @@ function audInput(t,isChange){const {p,a}=audFind();if(!p||!a||!a.audit)return;c
 /* ---------- الأحداث ---------- */
 $('#tabs').addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(b){TAB=b.dataset.t;render();}});
 $('#fYear').addEventListener('change',e=>{YEAR=e.target.value;render();});
-$('#bNew').onclick=()=>openProj('');$('#bImport').onclick=()=>$('#fileIn').click();$('#bExport').onclick=exportXlsx;
+$('#bNew').onclick=()=>openProj('');$('#bFill').onclick=fillDialog;$('#bImport').onclick=()=>$('#fileIn').click();$('#bExport').onclick=exportXlsx;
 $('#fileIn').addEventListener('change',e=>{const f=[...e.target.files];e.target.value='';if(f.length)importFiles(f);});
 $('#jsonIn').addEventListener('change',async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;try{const o=JSON.parse(await f.text());if(!Array.isArray(o.records))throw new Error('ملف غير صالح');if(!confirm(`استعادة ${o.records.length} سجل؟ تُستبدل البيانات الحالية.`))return;DB=o;persist(true);load();render();flash('تمت الاستعادة');}catch(err){flash(String(err.message||err),true);}});
 $('#main').addEventListener('click',e=>{const o=e.target.closest('[data-open]');if(o&&o.dataset.open){e.preventDefault();openProj(o.dataset.open);return;}

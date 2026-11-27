@@ -14590,8 +14590,24 @@ function regFill(r,p){const P=r.project;P.fileNo=String(p.fileNo);try{const m=An
   P.prevDays=p.extra||0;if(p.sector)P.beneficiary=p.sector;if(p.fund)P.fund=p.fund;const loc=[p.district,p.sub].filter(Boolean).join(' / ');if(loc)P.location=loc;try{const sp=AnbarReg.supText(p.fileNo);if(sp)P.supervisor=sp;}catch(_){}}
 function regLive(r){const c=calc(r),x=c.last;return {cNo:String(r.project&&r.project.contractNo||''),orders:r.orders.length,changeCost:x.cumNet,extraDays:x.days,newValue:x.newValue,exceeds:c.rows.some(y=>y.exceeds),status:r.status||''};}
 /* ربط أوامر التغيير بالموقف العام — لمشاريع الموقف فقط (بالاضبارة، وإلا باسم المشروع ورقم العقد)، مع تفاصيل كل أمر */
+/* ملفات أوامر التغيير المستوردة من النظام القديم (الأرشيف) بلا رقم عقد: الاسم وحده يجب أن يطابق الموقف حرفاً بحرف، فاختلاف حرف
+   («بدا» / «بداء») يُسقط الربط وتظهر البطاقة «لا ملف». هنا — فقط حين لا يوجد رقم عقد ولا اضبارة — يُقبل أقرب اسم في الموقف بشروط صارمة:
+   تشابه ≥ 0.9 (أو ≥ 0.82 مع تطابق الشركة)، ولا مشروع آخر قريب منه (فارق 0.05 على الأقل). */
+const FZ={key:null,memo:{}};
+const fzKey=s=>String(s==null?'':s).replace(/[\u064b-\u0652\u0640]/g,'').replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/[^\u0621-\u064a0-9]/g,'');   // نفس توحيد الكتابة في سجل الموقف
+const fzG=t=>{const m={};for(let i=0;i<t.length-1;i++){const x=t.substr(i,2);m[x]=(m[x]||0)+1;}return m;};
+function fzSimG(a,A,b,B){if(!a||!b)return 0;if(a===b)return 1;let x=0;for(const t in A)x+=Math.min(A[t],B[t]||0);return 2*x/Math.max(1,a.length+b.length-2);}
+function fzSim(a,b){return fzSimG(a,fzG(a),b,fzG(b));}
+function fuzzyReg(P){if(!P||String(P.contractNo||'').trim()||String(P.fileNo||'').trim())return null;const k=fzKey(P.name);if(k.length<12)return null;
+  let S;try{S=AnbarReg.state();}catch(_){return null;}
+  const fk=(S.projectsAt||'')+'|'+(S.projects||[]).length;if(FZ.key!==fk){FZ.key=fk;FZ.memo={};FZ.P=(S.projects||[]).map(q=>{const n=fzKey(q.name);return {q,n,g:fzG(n)};});}   // تُحضَّر أسماء الموقف مرة واحدة لكل تحديث للموقف
+  const mk=k+'|'+fzKey(P.contractor);if(mk in FZ.memo)return FZ.memo[mk];
+  const co=fzKey(P.contractor),K=fzG(k);let best=null,b1=0,b2=0;FZ.P.forEach(e=>{if(Math.abs(e.n.length-k.length)>k.length*0.4)return;const v=fzSimG(k,K,e.n,e.g);if(v>b1){b2=b1;b1=v;best=e.q;}else if(v>b2)b2=v;});
+  let ok=best&&b1-b2>=0.05&&(b1>=0.9||(b1>=0.82&&co&&fzSim(co,fzKey(best.contractor))>=0.6));
+  if(ok&&co&&fzKey(best.contractor)&&fzSim(co,fzKey(best.contractor))<0.35)ok=false;   // شركة مختلفة تماماً: لا يُربط
+  return FZ.memo[mk]=ok?best:null;}
 function syncLinks(){if(!window.AnbarReg||!AnbarReg.setLinks)return;const list=[],seen={},metas=[];
-  DB.records.forEach(r=>{const P=r.project;if(!P)return;const m=AnbarReg.matchProject(P.fileNo,P.name,P.contractNo);if(!m)return;if(String(P.fileNo||'')!==String(m.fileNo))P.fileNo=String(m.fileNo);
+  DB.records.forEach(r=>{const P=r.project;if(!P)return;const m=AnbarReg.matchProject(P.fileNo,P.name,P.contractNo)||fuzzyReg(P);if(!m)return;if(String(P.fileNo||'')!==String(m.fileNo))P.fileNo=String(m.fileNo);
     if(!substOf(r))return;   // ملف بلا مبالغ ولا مدد (فارغ) لا يُرسل إلى الموقف
     const c=calc(r),live=regLive(r);live.items=r.orders.map((o,i)=>{const x=c.rows[i];return {no:i+1,fix:isFix(o)?1:0,date:o.decDate||o.date||'',decNo:o.decNo||'',del:x.d,add:x.a,nw:x.n,net:x.net,days:+o.extraDays||0,after:x.newValue};});
     live.rid=r.id;

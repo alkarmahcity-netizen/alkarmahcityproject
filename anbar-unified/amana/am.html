@@ -279,7 +279,9 @@ const DEF_SET={id:'am-settings',type:'s',maxCom:3,ceiling:500000000,advMax:10000
   audCom:[{hon:'المهندس',name:'',role:'عضواً'},{hon:'المهندس',name:'',role:'عضواً'},{hon:'المهندس',name:'',role:'رئيس اللجنة'}],
   audApp:[{mark:'دققت /',name:'',title:'قسم الرقابة والتدقيق الداخلي'},{mark:'',name:'',title:'مدير قسم الشؤون الهندسية'},{mark:'اصادق',name:'',title:'نائب المحافظ للشؤون الفنية'}]};
 let DB={version:1,records:[]};
-let TAB='dash',YEAR='all',F={q:'',dist:'',sector:'',status:'',flag:false,kind:'p'},ENG={only:true,over:false,q:''};
+let TAB='dash',YEAR='all',F={q:'',dist:'',sector:'',status:'',flag:false,kind:'p'},ENG={role:'eng',over:false,q:''};
+/* فئة العضو: مهندس (م./المهندس أو بلا لقب) أو موظف وفني (السيد/الفني) — من لقبه في الأوامر */
+const roleG=e=>(e.role==='staff'||e.role==='tech')?'other':'eng';
 
 /* ---------- الحفظ والتحميل ---------- */
 function load(){let t=null;try{t=DESK?DESK.load():localStorage.getItem(LSK);}catch(_){}
@@ -396,9 +398,10 @@ function reconHtml(){const rs=S().regStats||{},ys=years().filter(y=>YEAR==='all'
   return `<div class="card"><h4>مطابقة عدد المشاريع مع سجل الأوامر الإدارية (Excel)</h4><div class="tw" style="max-height:none"><table><thead><tr><th class="n">السنة</th><th class="n">صفوف السجل</th><th class="n">صف مكرر في السجل نفسه</th><th class="n">من ملف التخصيصات أو الموقف فقط</th><th class="n">مضاف يدوياً</th><th class="n">ملاحق وتعديل لجان وإلغاء</th><th class="n">أوامر سابقة لنفس المشروع</th><th class="n">المشاريع في البرنامج</th></tr></thead>
    <tbody>${ys.map(row).join('')}</tbody></table></div><p class="hint">الملاحق (اسم يبدأ بـ«ملحق» أو لجنة فيها «اعفاء/بديلاً/الغاء») والأوامر السابقة لنفس المشروع تبقى في البرنامج لكن لا تُعدّ مشاريع جديدة؛ تُعرض من «📁 المشاريع» ← قائمة النوع.</p></div>`;}
 function rDash(){const all=P().filter(isProj),ps=all.filter(inYear);if(!all.length)return `<div class="card empty"><h3>لا توجد مشاريع بعد</h3><p>ابدأ بـ «📥 استيراد Excel» واختر سجل الأوامر الإدارية (الصادر 2024 / 2025 / 2026) وملف التخصيصات معاً، أو أضف مشروعاً يدوياً بـ «＋ مشروع جديد».</p><button class="pri" data-a="import">📥 استيراد Excel</button></div>`;
-  const pm=people(),ov=overSet(pm),mx=S().maxCom;let amt=0,raised=0,paid=0,prog=0,coords=0,flagged=0;const engs=new Set(),execAll=new Set();
-  ps.forEach(p=>{const c=calc(p);amt+=c.amt;raised+=c.raised;paid+=c.paid;prog+=c.prog;if(p.lat&&p.lng)coords++;if(projFlags(p,ov).length)flagged++;(p.exec||[]).forEach(r=>{const mi=memberInfo(r);execAll.add(mi.key);if(mi.role==='eng'||!mi.role)engs.add(mi.key);});(p.recv||[]).forEach(r=>{const mi=memberInfo(r);if(mi.role==='eng'||!mi.role)engs.add(mi.key);});});
-  const overList=[...pm.values()].filter(e=>e.act.length>mx);
+  const pm=people(),ov=overSet(pm),mx=S().maxCom;let amt=0,raised=0,paid=0,prog=0,coords=0,flagged=0;const mem=new Set();
+  ps.forEach(p=>{const c=calc(p);amt+=c.amt;raised+=c.raised;paid+=c.paid;prog+=c.prog;if(p.lat&&p.lng)coords++;if(projFlags(p,ov).length)flagged++;[...(p.exec||[]),...(p.recv||[])].forEach(r=>{const k=memberInfo(r).key;if(k)mem.add(k);});});
+  const cnt={eng:0,staff:0,tech:0};mem.forEach(k=>{const e=pm.get(k);const r=e&&(e.role==='staff'||e.role==='tech')?e.role:'eng';cnt[r]++;});
+  const overList=[...pm.values()].filter(e=>e.act.length>mx),overEng=overList.filter(e=>roleG(e)==='eng'),overOth=overList.filter(e=>roleG(e)==='other');
   const st={};ps.forEach(p=>{const k=p.status||'new';st[k]=(st[k]||0)+1;});
   const byYear=groupBy(all,p=>String(yearOf(p)||'')).sort((a,b)=>a.k.localeCompare(b.k));
   return `<div class="kpis">
@@ -408,8 +411,10 @@ function rDash(){const all=P().filter(isProj),ps=all.filter(inYear);if(!all.leng
    <div class="kpi"><b>${fm(paid)}</b><span>المبلغ المصروف — ${pc(amt?paid/amt*100:0)}</span></div>
    <div class="kpi"><b>${fm(amt-paid)}</b><span>المتبقي</span></div>
    <div class="kpi"><b>${pc(ps.length?prog/ps.length:0)}</b><span>معدل نسبة الإنجاز الفعلي</span></div>
-   <div class="kpi"><b>${engs.size}</b><span>مهندس في لجان التنفيذ والتسلم (${execAll.size} عضو تنفيذ)</span></div>
-   <div class="kpi${overList.length?' bad':''}" data-a="goOver" style="cursor:pointer"><b>${overList.length}</b><span>عضو لجنة تنفيذ في أكثر من ${mx} مشاريع قيد التنفيذ في آن واحد ←</span></div>
+   <div class="kpi" data-a="goRole" data-r="eng" style="cursor:pointer"><b>${cnt.eng}</b><span>مهندس في لجان التنفيذ والتسلم ←</span></div>
+   <div class="kpi" data-a="goRole" data-r="other" style="cursor:pointer"><b>${cnt.staff+cnt.tech}</b><span>موظف وفني في اللجان (السيد ${cnt.staff} — الفني ${cnt.tech}) ←</span></div>
+   <div class="kpi${overEng.length?' bad':''}" data-a="goOver" data-r="eng" style="cursor:pointer"><b>${overEng.length}</b><span>مهندس في لجان تنفيذ أكثر من ${mx} مشاريع قيد التنفيذ في آن واحد ←</span></div>
+   <div class="kpi${overOth.length?' bad':''}" data-a="goOver" data-r="other" style="cursor:pointer"><b>${overOth.length}</b><span>موظف وفني في لجان تنفيذ أكثر من ${mx} مشاريع قيد التنفيذ في آن واحد ←</span></div>
    <div class="kpi${flagged?' bad':''}"><b>${flagged}</b><span>مشروع عليه ملاحظة</span></div>
    <div class="kpi"><b>${coords} / ${ps.length}</b><span>مشروع له إحداثيات</span></div></div>
   ${reconHtml()}
@@ -437,14 +442,14 @@ function rProj(){const {ov,list}=filtered(),all=P();let t={amt:0,raised:0,paid:0
   <div class="tw"><table><thead><tr><th class="n">ت</th><th class="n">السنة</th><th class="n">الأمر الإداري</th><th>اسم المشروع</th><th>القضاء</th><th>الجهة المستفيدة</th><th>مبلغ الأمر الإداري</th><th>المبلغ المرفوع</th><th>المبلغ المصروف</th><th class="n">السلف</th><th class="n">الإنجاز الفعلي</th><th class="n">إحداثيات</th><th>الحالة</th></tr></thead>
   <tbody>${rows||'<tr><td colspan="13" class="empty">لا نتائج</td></tr>'}</tbody><tfoot><tr><td colspan="6">المجموع (${list.length})</td><td class="m">${fm(t.amt)}</td><td class="m">${fm(t.raised)}</td><td class="m">${fm(t.paid)}</td><td colspan="4"></td></tr></tfoot></table></div>`;}
 function rEng(){const pm=people(),mx=S().maxCom,byId=new Map(P().map(p=>[p.id,p])),q=nk(ENG.q);
-  const rows=[];for(const e of pm.values()){if(ENG.only&&e.role&&e.role!=='eng')continue;if(q&&!e.key.includes(q))continue;if(YEAR!=='all'&&![...e.act,...e.fin,...e.idle,...e.recv].some(id=>String(yearOf(byId.get(id)||{}))===String(YEAR)))continue;
+  const rows=[];for(const e of pm.values()){if(ENG.role&&roleG(e)!==ENG.role)continue;if(q&&!e.key.includes(q))continue;if(YEAR!=='all'&&![...e.act,...e.fin,...e.idle,...e.recv].some(id=>String(yearOf(byId.get(id)||{}))===String(YEAR)))continue;
     const over=e.act.length>mx;if(ENG.over&&!over)continue;rows.push({e,over});}
   rows.sort((a,b)=>b.e.act.length-a.e.act.length||b.e.idle.length-a.e.idle.length||b.e.fin.length-a.e.fin.length||a.e.name.localeCompare(b.e.name,'ar'));
   const nOver=rows.filter(r=>r.over).length;
   const lst=ids=>ids.map(id=>{const p=byId.get(id);return p?`<div class="sub">• ${esc(p.orderNo)} — ${esc(p.name)} <i>(${STATUS[p.status||'new'][0]})</i></div>`:'';}).join('');
-  return `<div class="kpis"><div class="kpi"><b>${rows.length}</b><span>${ENG.only?'مهندس':'عضو'} في اللجان ${YEAR==='all'?'':'(لهم مشاريع في '+YEAR+')'}</span></div><div class="kpi${nOver?' bad':''}"><b>${nOver}</b><span>عضو لجنة تنفيذ في أكثر من ${mx} مشاريع قيد التنفيذ في آن واحد</span></div></div>
+  return `<div class="kpis"><div class="kpi"><b>${rows.length}</b><span>${ENG.role==='eng'?'مهندس':ENG.role==='other'?'موظف وفني':'عضو'} في اللجان ${YEAR==='all'?'':'(لهم مشاريع في '+YEAR+')'}</span></div><div class="kpi${nOver?' bad':''}"><b>${nOver}</b><span>${ENG.role==='eng'?'مهندس':ENG.role==='other'?'موظف وفني':'عضو'} في لجان تنفيذ أكثر من ${mx} مشاريع قيد التنفيذ في آن واحد</span></div></div>
   <div class="card"><div class="row"><input id="eq" placeholder="بحث باسم المهندس" value="${esc(ENG.q)}" style="flex:1;min-width:200px">
-   <label><input type="checkbox" id="eOnly"${ENG.only?' checked':''}> المهندسون فقط (م.) — من لا لقب له يُعدّ مهندساً</label>
+   <select id="eRole"><option value="eng"${ENG.role==='eng'?' selected':''}>المهندسون (م. — ومن لا لقب له)</option><option value="other"${ENG.role==='other'?' selected':''}>الموظفون والفنيون (السيد، الفني)</option><option value=""${!ENG.role?' selected':''}>الجميع</option></select>
    <label><input type="checkbox" id="eOver"${ENG.over?' checked':''}> المتجاوزون فقط (أكثر من ${mx})</label></div>
    <p class="hint">لا يجوز تكليف العضو (رئيساً أو عضواً) في لجان تنفيذ أكثر من (${mx}) مشاريع <b>قيد التنفيذ في الوقت نفسه</b>؛ ويجوز إشراكه في مشروع رابع بعد إنجاز أحد الثلاثة واستلامه. الحساب على المشاريع «قيد التنفيذ» و«المتوقفة»${S().countNew===false?'':' و«لم يباشر»'} في كل السنوات، و«المنجز» و«المستلم» لا تُحسب. الاسم الواحد يُوحَّد إملاؤه، والأوامر المكررة لنفس المشروع والملاحق لا تُحسب. حدّث حالات المشاريع (بطاقة المشروع أو استمارة إكمال النواقص) ليكون العدّ صحيحاً.</p></div>
   <div class="tw"><table><thead><tr><th class="n">ت</th><th>الاسم</th><th>الصفة</th><th class="n">قيد التنفيذ</th><th class="n">المنجزة</th>${S().countNew!==false?'':'<th class="n">لم يباشر (لا يُحسب)</th>'}<th class="n">لجان التسلم</th><th>المشاريع الجارية (لجان التنفيذ)</th><th>المنجزة والمستلمة</th>${S().countNew!==false?'':'<th>لم يباشر</th>'}</tr></thead><tbody>
@@ -1171,7 +1176,7 @@ $('#jsonIn').addEventListener('change',async e=>{const f=e.target.files[0];e.tar
 $('#main').addEventListener('click',e=>{const o=e.target.closest('[data-open]');if(o&&o.dataset.open){e.preventDefault();openProj(o.dataset.open);return;}
   const a=e.target.closest('[data-a]');if(a){const k=a.dataset.a;
     if(k==='dups'){const r=dedupe();persist(true);render();showDups(r);return;}
-    if(k==='import')$('#fileIn').click();else if(k==='new')openProj('');else if(k==='goOver'){TAB='eng';ENG.over=true;render();}
+    if(k==='import')$('#fileIn').click();else if(k==='new')openProj('');else if(k==='goOver'||k==='goRole'){TAB='eng';ENG.over=k==='goOver';ENG.role=a.dataset.r||'';render();}
     else if(k==='jsonOut')saveFile(`AmanaProjects-نسخة_${today()}.json`,new TextEncoder().encode(JSON.stringify(DB,null,1)));else if(k==='jsonIn')$('#jsonIn').click();else if(k==='folder')DESK.openDataFolder();
     else if(k==='wipe'){if(!confirm('حذف كل المشاريع؟ لا يمكن التراجع.'))return;P().forEach(p=>{try{DESK&&DESK.tomb&&DESK.tomb(p.id);}catch(_){}});DB.records=DB.records.filter(r=>r.type!=='p');persist(true);render();}return;}
   const ad=e.target.closest('[data-aud]');if(ad){[AUD.pid,AUD.aid]=ad.dataset.aud.split('|');render();setTimeout(()=>{const x=$('#audEd')||$('#main .card:last-child');if(x)x.scrollIntoView({behavior:'smooth',block:'start'});},50);return;}
@@ -1190,7 +1195,7 @@ let qT=0;$('#main').addEventListener('input',e=>{const id=e.target.id;
   if(e.target.id==='cq'){clearTimeout(qT);qT=setTimeout(()=>{CERT.q=e.target.value;render();const n=$('#cq');if(n){n.focus();n.setSelectionRange(n.value.length,n.value.length);}},250);}
   const sk=e.target.dataset.s,ss=e.target.dataset.ss;if(sk){setS({[sk]:['memoTo'].includes(sk)?e.target.value:num(e.target.value)});}if(ss){const [a,b]=ss.split('.');const cur=Object.assign({},S()[a]);cur[b]=e.target.value;setS({[a]:cur});}});
 $('#main').addEventListener('change',e=>{const id=e.target.id;if(e.target.dataset.rf||e.target.dataset.tf||e.target.dataset.af2||e.target.dataset.ck){audInput(e.target,true);return;}if(id==='aSt'){AUD.st=e.target.value;render();return;}if(id==='cSt'){CERT.st=e.target.value;render();return;}if(e.target.dataset.cf&&(e.target.type==='checkbox'||e.target.tagName==='SELECT'||e.target.type==='date')){certInput(e.target);return;}if(id==='fDist')F.dist=e.target.value;else if(id==='fSector')F.sector=e.target.value;else if(id==='fStatus')F.status=e.target.value;else if(id==='fKind')F.kind=e.target.value;else if(id==='fFlag')F.flag=e.target.checked;
-  else if(id==='eOnly')ENG.only=e.target.checked;else if(id==='eOver')ENG.over=e.target.checked;else if(e.target.name==='lk'){LET.kind=e.target.value;return;}else return;render();});
+  else if(id==='eRole')ENG.role=e.target.value;else if(id==='eOver')ENG.over=e.target.checked;else if(e.target.name==='lk'){LET.kind=e.target.value;return;}else return;render();});
 $('#main').addEventListener('keydown',e=>{const t=e.target;if(t.dataset&&t.dataset.ll&&e.key==='Enter'){const ll=parseLL(t.value);if(!ll)return flash('صيغة الإحداثيات غير مفهومة',true);const p=P().find(x=>x.id===t.dataset.ll);if(p){p.lat=ll.lat;p.lng=ll.lng;touch(p);persist();render();flash('حُفظت الإحداثيات');}}});
 /* من نظام آخر: فتح مشروع برقم أمره الإداري */
 window.__openProject=a=>{const p=P().find(x=>String(x.orderNo)===String(a)||x.id===a);if(p){openProj(p.id);return true;}return false;};

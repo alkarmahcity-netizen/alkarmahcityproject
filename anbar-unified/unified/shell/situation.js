@@ -404,6 +404,8 @@ function engData(){const S=AnbarReg.state(),map=new Map(),add=e=>{const k=RN(e.n
   S.projects.filter(inCom).forEach(p=>{const seen=new Set();(p.staff||[]).forEach(x=>{const e=add(x);if(e&&!seen.has(RN(x.name))){e.projects.push({p,role:x.role,dept:AnbarReg.cleanDept(x.dept)});seen.add(RN(x.name));}});
     if(p.resident&&!seen.has(RN(p.resident))){const e=add({name:p.resident,role:'مهندس مقيم',dept:p.residentOffice,phone:p.phone});if(e)e.projects.push({p,role:'مهندس مقيم',dept:AnbarReg.cleanDept(p.residentOffice)});}});
   /* المشروع المنجز يُرفع من عدد مشاريع المهندس (يبقى مذكوراً في قائمة «المنجزة» للاطلاع فقط) */
+  /* أسماء استمارة القسم والدوائر التي لا مشروع لها في الموقف: تُضاف إلى القاعدة بدائرتها (بلا مشاريع) — لا يتكرر من له اسم مطابق */
+  try{const have=new Set([...map.values()].map(e=>NK(e.name)));rosterX().P.forEach(r=>{if(r.cat!=='none'||!r.name)return;const k=NK(r.name);if(!k||have.has(k))return;have.add(k);const e=add({name:r.name,role:r.title||'',dept:r.dept,phone:r.phone||'',notes:''});if(e)e.fromRoster=1;});}catch(_){}
   let E=[...map.values()];if(sitCom)E=E.filter(e=>e.projects.length);E.forEach(e=>{e.done=e.projects.filter(x=>stKind(x.p.status)==='ok');e.projects=e.projects.filter(x=>stKind(x.p.status)!=='ok');});return E;}
 /* تقييم المهندس (على حاسبة مدير القسم فقط): خمسة مربعات، وأقل من 3 = «لا يكلّف». التقييم لا يُزامَن ولا يصل إلى حاسبات اللجان */
 var RATE=null;
@@ -417,14 +419,28 @@ const SK=t=>RN(String(t==null?'':t)).replace(/ؤ/g,'و').replace(/ئ/g,'ي').rep
 /* ===== توحيد أسماء الدوائر (دائرة المقيم والمشرف) على الجهات المستفيدة كما في الموقف =====
    المفتاح: بلا «مديرية / دائرة / قسم / شعبة / هيئة / محافظة / الانبار» ولا «ال» — فـ«تربية الانبار» = «مديرية تربية الانبار» = «تربية»،
    و«ديوان محافظة الانبار» = «ديوان المحافظة»، و«طرق وجسور الانبار» = «مديرية الطرق والجسور». الاسم المعروض: كما في الجهة المستفيدة في الموقف إن وُجد. */
-const DSTOP=new Set(['مديريه','دائره','قسم','شعبه','هيئه','وحده','محافظه','انبار','في','العامه','العام']);
-const DK=s=>RN(String(s==null?'':s)).replace(/[^ء-ي0-9\s]/g,' ').split(/\s+/).filter(Boolean).map(w=>w.replace(/^وال(?=..)/,'و').replace(/^ال(?=..)/,'')).filter(w=>!DSTOP.has(w)).join(' ');
+/* ===== توحيد أسماء الدوائر على مستوى المديرية (كما في الجهات المستفيدة بالموقف) =====
+   فروع الأقضية تُدمج في مديريتها: «بلدية هيت / الرمادي / الفلوجة / الكرمة» = «مديرية بلديات الانبار»، «تربية هيت» = «مديرية تربية الانبار»،
+   «طرق وجسور القائم» = «مديرية الطرق والجسور»، «مجاري مركز الفلوجة» = مديرية المجاري… ويُذكر الفرع (القضاء أو المركز) بجانب الاسم.
+   تبقى منفصلة حسب القضاء: القائممقاميات، ومجالس الأقضية والنواحي، والجامعات والكليات والمستشفيات (مؤسسات قائمة بذاتها). */
+const DSTOP=new Set(['مديريه','دايره','دائره','قسم','شعبه','هيئه','وحده','محافظه','انبار','في','العامه','العام','مركز','قطاع','فرع','مكتب']);
+const DPLACE=['قايم','رمادي','فلوجه','هيت','حديثه','عنه','عانه','راوه','قائم','رطبه','كرمه','عامريه','صقلاويه','حبانيه','خالديه','بغدادي','وفاء','كبيسه','حقلانيه','بروانه','عبيدي','كرابله','نخيب','فرات','رمانه','محمدي','حصيبه','زويه','سجر','ثرثار','طاش','حديثه'];
+const DKEEP=/قا[يئ]?م?مقامي|قايممقامي|قائمقامي|مجلس|جامع|كليه|مستشفي|ناحيه/;   // تبقى حسب القضاء
+const DSYN={'بلديات':'بلديه'};
+const dTok=s=>RN(String(s==null?'':s)).replace(/ئ/g,'ي').replace(/[^ء-ي0-9\s]/g,' ').split(/\s+/).filter(Boolean).map(w=>w.replace(/^وال(?=..)/,'و').replace(/^ال(?=..)/,'')).map(w=>DSYN[w]||w);
+const DK=s=>{const t=dTok(s),keep=DKEEP.test(RN(String(s||'')).replace(/ئ/g,'ي'));return t.filter(w=>!DSTOP.has(w)&&(keep||!DPLACE.includes(w))).join(' ');};
+/* الفرع: القضاء أو المركز المحذوف من اسم الدائرة («مركز الفلوجة»، «هيت») — يُعرض بجانب الاسم */
+const DSUB=s=>{const raw=String(s==null?'':s);if(!raw||DKEEP.test(RN(raw).replace(/ئ/g,'ي')))return '';const t=dTok(raw),i=t.findIndex(w=>DPLACE.includes(w));if(i<0)return '';
+  const orig=raw.replace(/\s+/g,' ').trim().split(' '),m=orig.findIndex(w=>DPLACE.includes(dTok(w)[0]||''));if(m<0)return '';return ((m>0&&/^مركز$/.test(RN(orig[m-1])))?'مركز ':'')+orig[m];};
 let DIX=null,DIXk='';
-function deptIndex(E){const S=AnbarReg.state(),key=(S.updated||'')+'|'+E.length;if(DIX&&DIXk===key)return DIX;const C={};
+function deptIndex(E){const S=AnbarReg.state(),key=(S.updated||'')+'|'+E.length+'|'+((S.roster||[]).length);if(DIX&&DIXk===key)return DIX;const C={};
   const put=(v,w)=>{const t=String(v==null?'':v).replace(/\s+/g,' ').trim();if(!t||t==='-'||t.length>45)return;const k=DK(t);if(!k)return;const o=C[k]=C[k]||{};o[t]=(o[t]||0)+w;};
-  S.projects.forEach(p=>put(p.sector,100));   // الجهة المستفيدة في الموقف تغلب
+  S.projects.forEach(p=>put(p.sector,100));
   E.forEach(e=>{put(e.dept,1);e.projects.concat(e.done||[]).forEach(x=>put(x.dept,1));});(S.roster||[]).forEach(r=>put(r.dept,1));
-  const lab={};Object.keys(C).forEach(k=>{lab[k]=Object.entries(C[k]).sort((a,b)=>b[1]-a[1]||b[0].length-a[0].length)[0][0];});
+  /* الاسم المعروض: «مديرية … » بلا اسم قضاء إن وُجد، ثم الجهة المستفيدة في الموقف بلا قضاء، ثم الأكثر تكراراً؛ والبلديات = «مديرية بلديات الانبار» */
+  const hasPlace=t=>!DKEEP.test(RN(t))&&dTok(t).some(w=>DPLACE.includes(w));
+  const lab={};Object.keys(C).forEach(k=>{if(k==='بلديه'){lab[k]='مديرية بلديات الانبار';return;}const L=Object.entries(C[k]);
+    const sc=([t,w])=>(/^مديري/.test(RN(t))&&!hasPlace(t)?1e6:0)+(!hasPlace(t)?1e5:0)+w;lab[k]=L.sort((a,b)=>sc(b)-sc(a)||b[0].length-a[0].length)[0][0];});
   const memo=new Map();DIX={lab,of:v=>{const sv=String(v==null?'':v);let r=memo.get(sv);if(r===undefined){const k=DK(sv);r=k?(lab[k]||sv.trim()):'';memo.set(sv,r);}return r;}};DIXk=key;return DIX;}
 function engView(){if(!engVis()){$q('engs').innerHTML=ENGLOCK.replace('hint','empty');try{$q('ekpis').innerHTML='';const rb=$q('rosterBox');if(rb)rb.innerHTML='';}catch(_){}return;}
   const E=engData(),q=($q('eq').value||'').trim(),rf=$q('er').value,RV=finVis()&&!!rateMap(),CV=cntVis(),DX=deptIndex(E);
@@ -434,6 +450,7 @@ function engView(){if(!engVis()){$q('engs').innerHTML=ENGLOCK.replace('hint','em
   if($q('edist'))opts($q('edist'),[...new Set(E.flatMap(e=>[...dOf(e)]))].sort((a,b)=>a.localeCompare(b,'ar')),'كل الأقضية');
   /* الدائرة الموحّدة للمهندس، وكل دوائر مشاريعه (الجهات المستفيدة ودائرته فيها) */
   const eDept=e=>DX.of(e.dept)||'غير محدد',eDepts=e=>{const st=new Set();[e.dept,...e.projects.concat(e.done||[]).flatMap(x=>[x.dept,x.p&&x.p.sector])].forEach(v=>{const l=DX.of(v);if(l)st.add(l);});return st;};
+  const eSub=e=>{let v=DSUB(e.dept);if(!v)for(const x of e.projects.concat(e.done||[])){v=DSUB(x.dept);if(v)break;}return v;};
   const fdep=$q('edept')?$q('edept').value:'';
   const isRes=e=>e.projects.some(x=>/مقيم/.test(x.role))||/مقيم/.test(e.role),isSup=e=>e.projects.some(x=>/مشرف/.test(x.role))||/مشرف/.test(e.role);
   const EF={res:isRes,sup:isSup,noproj:e=>!e.projects.length,nophone:e=>!e.phone};
@@ -455,13 +472,13 @@ function engView(){if(!engVis()){$q('engs').innerHTML=ENGLOCK.replace('hint','em
     $q('engs').innerHTML=rateBtn+`<h3 class="eres">نتائج البحث «${esc(q)}» — ${list.length}</h3>`+list.slice().sort((a,b)=>a.name.localeCompare(b.name,'ar')).map(e=>{const ro=RS.get(NK(e.name)),ds=[...eDepts(e)];
       const row=(x,dn)=>`<tr${dn?' class="co" style="text-decoration:line-through"':''}><td>${esc(x.p.name)} <button class="btn sm" data-open-fn="${esc(x.p.fileNo)}" title="فتح بطاقة المشروع">اضبارة ${esc(x.p.fileNo)}</button></td><td>${esc(x.role||'')}</td><td>${esc(DX.of(x.p.sector)||'—')}</td><td>${esc(DX.of(x.dept)||'—')}</td><td>${esc(String(x.p.district||'').trim()||'—')}</td><td>${esc(x.p.status||'')}${dn?' (منجز — لا يُحسب)':''}</td></tr>`;
       return `<div class="ecard"><div class="ech"><b>${esc(e.name)}</b>${RV?rateBadge(e.name):''}<span class="co">${esc(e.role||'')}${e.phone?' — <span dir="ltr">'+esc(e.phone)+'</span>':''}</span></div>
-        <div class="ecd"><span><i>الدائرة</i> <b>${esc(eDept(e))}</b></span>${ds.length?`<span><i>دوائر مشاريعه</i> ${ds.map(x=>`<span class="dtag">${esc(x)}</span>`).join(' ')}</span>`:''}${ro?`<span><i>في استمارة القسم</i> ${esc(ro.title||'')}${ro.dept?' — '+esc(DX.of(ro.dept)||ro.dept):''}</span>`:''}</div>
+        <div class="ecd"><span><i>الدائرة</i> <b>${esc(eDept(e))}</b>${eSub(e)?' — '+esc(eSub(e)):''}</span>${ds.length?`<span><i>دوائر مشاريعه</i> ${ds.map(x=>`<span class="dtag">${esc(x)}</span>`).join(' ')}</span>`:''}${ro?`<span><i>في استمارة القسم</i> ${esc(ro.title||'')}${ro.dept?' — '+esc(DX.of(ro.dept)||ro.dept):''}</span>`:''}</div>
         ${!CV?(e.projects.length||e.done.length?'<div>'+lock+'</div>':''):e.projects.length||e.done.length?`<table class="etb"><thead><tr><th>المشروع</th><th>صفته فيه</th><th>الجهة المستفيدة</th><th>دائرته في المشروع</th><th>القضاء</th><th>الحالة</th></tr></thead><tbody>${e.projects.map(x=>row(x,0)).join('')}${e.done.map(x=>row(x,1)).join('')}</tbody></table>`:'<div class="co">لا مشاريع في الموقف.</div>'}</div>`;}).join('');return;}
   /* القائمة: حسب الدائرة الموحّدة (أبجدياً، و«غير محدد» أخيراً)، والأسماء أبجدياً */
   const groups={};list.forEach(e=>{const kk=eDept(e);(groups[kk]=groups[kk]||[]).push(e);});
   const keys=Object.keys(groups).sort((a,b)=>(a==='غير محدد')-(b==='غير محدد')||a.localeCompare(b,'ar'));
   $q('engs').innerHTML=rateBtn+keys.map(kk=>{const L=groups[kk].slice().sort((a,b)=>a.name.localeCompare(b.name,'ar')),pn=new Set();L.forEach(e=>e.projects.forEach(x=>pn.add(x.p.fileNo)));
-    return `<div class="dept"><h3>${esc(kk)}<span>${L.length} مهندس${CV?` — ${pn.size} مشروع`:''}</span></h3><table><thead><tr><th>الاسم</th><th>الصفة</th><th>الهاتف</th>${RV?'<th title="يظهر على حاسبة مدير القسم فقط">التقييم 🔒</th>':''}<th>المشاريع${CV?'':' 🔒'}</th></tr></thead><tbody>${L.map(e=>`<tr style="cursor:default"><td><b>${esc(e.name)}</b>${e.notes?`<div class="co">${esc(e.notes)}</div>`:''}</td><td>${esc(e.role||'')}</td><td class="n" dir="ltr" style="text-align:right">${esc(e.phone||'—')}</td>${RV?rateCell(e.name):''}
+    return `<div class="dept"><h3>${esc(kk)}<span>${L.length} مهندس${CV?` — ${pn.size} مشروع`:''}</span></h3><table><thead><tr><th>الاسم</th><th>الصفة</th><th>الهاتف</th>${RV?'<th title="يظهر على حاسبة مدير القسم فقط">التقييم 🔒</th>':''}<th>المشاريع${CV?'':' 🔒'}</th></tr></thead><tbody>${L.map(e=>`<tr style="cursor:default"><td><b>${esc(e.name)}</b>${eSub(e)?` <span class="dtag" title="الفرع / القضاء">${esc(eSub(e))}</span>`:''}${e.fromRoster?' <span class="co" title="من استمارة أسماء القسم والدوائر">(من الاستمارة)</span>':''}${e.notes?`<div class="co">${esc(e.notes)}</div>`:''}</td><td>${esc(e.role||'')}</td><td class="n" dir="ltr" style="text-align:right">${esc(e.phone||'—')}</td>${RV?rateCell(e.name):''}
       <td>${!CV?(e.projects.length||e.done.length?lock:'<span class="co">—</span>'):e.projects.length||e.done.length?`<details><summary>${e.projects.length} مشروع${e.done.length?` <span class="co">(+${e.done.length} منجز لا يُحسب)</span>`:''}</summary><ul>${e.projects.map(x=>`<li>${esc(x.p.name)} <span class="co">— ${esc(x.role||'')}${x.p.sector?' — '+esc(DX.of(x.p.sector)):''}${x.p.district?' — '+esc(String(x.p.district).trim()):''}</span></li>`).join('')}${e.done.map(x=>`<li class="co" style="text-decoration:line-through">${esc(x.p.name)} — ${esc(x.role||'')} (منجز)</li>`).join('')}</ul></details>`:'<span class="co">—</span>'}</td></tr>`).join('')}</tbody></table></div>`;}).join('');}
 document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('#engs [data-open-fn]');if(!b)return;try{drawer(b.dataset.openFn);}catch(_){}});
 {const st=document.createElement('style');st.textContent='.eres{margin:8px 0 6px}.ecard{border:1px solid var(--line,#dde3e0);border-radius:10px;padding:9px 11px;margin:0 0 9px;background:#fff}.ech{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}.ech b{font-size:16px}.ecd{display:flex;flex-wrap:wrap;gap:6px 16px;margin:6px 0}.ecd i{font-style:normal;color:#5b6660;font-size:12px;margin-inline-end:4px}.dtag{display:inline-block;background:#eef3f0;border-radius:6px;padding:0 6px;margin:1px 0;font-size:12.5px}.etb{width:100%;border-collapse:collapse;font-size:13px}.etb th,.etb td{border-bottom:1px solid #eef1ef;padding:4px 6px;text-align:right}';document.head.appendChild(st);}
@@ -498,7 +515,8 @@ function rosterParse(sheets){const out=[],seen=new Set();
       out.push({name:nm,dept,title:H.title!=null?cells[H.title]:'',phone:H.phone!=null?cells[H.phone]:'',notes:H.notes!=null?cells[H.notes]:''});}});
   return out;}
 /* المقاطعة: لكل اسم في الاستمارة عدد مشاريعه مقيماً ومشرفاً (المنجزة لا تُحسب) + المهندسون في الموقف غير المدرجين في الاستمارة */
-function rosterX(){const S=AnbarReg.state(),P=(S.roster||[]).map(r=>({...r,k:NK(r.name),res:[],sup:[],done:[]}));P.forEach(p=>p.t=p.k.split(' '));
+let RXC={k:'',v:null};function rosterX(){const S0=AnbarReg.state(),rk=(S0.updated||'')+'|'+((S0.roster||[]).length)+'|'+S0.projects.length;if(RXC.k===rk&&RXC.v)return RXC.v;RXC={k:rk,v:rosterX0()};return RXC.v;}
+function rosterX0(){const S=AnbarReg.state(),P=(S.roster||[]).map(r=>({...r,k:NK(r.name),res:[],sup:[],done:[]}));P.forEach(p=>p.t=p.k.split(' '));
   const ex=new Map();P.forEach(p=>{if(!ex.has(p.k))ex.set(p.k,[]);ex.get(p.k).push(p);});
   const find=(name,dept)=>{const k=NK(name);if(!k)return null;let c=ex.get(k);
     if(!c){const t=k.split(' ');if(t.length<2)return null;const pre=n=>P.filter(p=>{const a=p.t.length<=t.length?p.t:t,b=p.t.length<=t.length?t:p.t;return a.length>=n&&a.every((x,i)=>b[i]===x);});

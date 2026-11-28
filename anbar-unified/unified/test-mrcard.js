@@ -35,10 +35,18 @@ const sleep = ms => new Promise(r => setTimeout(r, ms)); const R = []; const ok 
   const rg = JSON.parse(fs.readFileSync(path.join(RG, 'registry.json'), 'utf8')), m9 = (rg.meta || {})['900'] || {}, L9 = String(m9.mrPh || '').split(';').filter(Boolean);
   const dir9 = require('./photos').dirOf('900');
   ok('report photos copied to the synced project-photo store (meta.mrPh) so every PC gets them', L9.length === 2 && /^a2\|/.test(m9.mrPhKey || '') && L9.every(n => fs.existsSync(path.join(DD, 'صور-المشاريع', dir9, n))) && +((rg.metaAt || {})['900']) > 0, JSON.stringify(m9));
+  /* اعتماد صور المقيم صوراً للمشروع: صورة قديمة في البطاقة تُستبدل وتُحذف */
+  const dirO = path.join(DD, 'صور-المشاريع', require('./photos').dirOf('900')); fs.mkdirSync(dirO, { recursive: true }); fs.writeFileSync(path.join(dirO, 'poldphoto01.jpg'), J);
+  await pg.evaluate(() => window.AnbarReg.setMeta('900', { photos: 'poldphoto01.jpg', photosAt: Date.now() })); await pg.evaluate(() => window.SitOpen('900')); await sleep(1500);
+  const hasBtn = await pg.evaluate(() => !!document.querySelector('#drawer [data-mrphadopt]'));
+  ok('card offers «✔ تُعتمد صور المقيم في البطاقة»', hasBtn);
+  await pg.evaluate(() => { window.confirm = () => true; document.querySelector('#drawer [data-mrphadopt]').click(); }); await sleep(1800);
+  const ad = await pg.evaluate(() => { const m = window.AnbarReg.getMeta('900'); return { photos: m.photos, mrPh: m.mrPh, note: /صور المشروع أعلاه هي صور الموقع من آخر تقرير/.test(document.getElementById('drawer').textContent), btn: !!document.querySelector('#drawer [data-mrphadopt]'), imgs: document.querySelectorAll('#drawer .pphs img[data-pph]').length }; });
+  ok('after «تُعتمد»: the project photos are the resident\'s photos, the old photo file is deleted, a note replaces the duplicate section', ad.photos === ad.mrPh && !fs.existsSync(path.join(dirO, 'poldphoto01.jpg')) && ad.note && !ad.btn, JSON.stringify(ad));
   fs.rmSync(path.join(DD, 'تقارير-المقيمين'), { recursive: true, force: true });   // كحاسبة لم تجلب من السكربت: الصور من المخزن المُزامَن فقط
   const c3 = await pg.evaluate(async () => window.desktop.mrCard('900'));
   ok('a PC without the script files still shows the photos (from the synced store)', c3 && c3.ph && c3.ph.photos.length === 2 && c3.ph.missing === 0, JSON.stringify(c3 && c3.ph && { n: c3.ph.photos.length, x: c3.ph.missing }));
-  ok('registry photos untouched', !((JSON.parse(fs.readFileSync(path.join(RG, 'registry.json'), 'utf8')).meta || {})['900'] || {}).photos);
+  { const m9b = ((JSON.parse(fs.readFileSync(path.join(RG, 'registry.json'), 'utf8')).meta || {})['900'] || {}); ok('project photos change only by the explicit «تُعتمد» (now = resident photos)', m9b.photos === m9b.mrPh, JSON.stringify(m9b.photos)); }
   const e = await app.evaluate(() => (global.__uniErrors || []).slice()); ok('no JavaScript errors', e.length === 0, e.join(' | ').slice(0, 300));
   await app.close();
   R.forEach(x => console.log(x[0], x[1], x[2] ? '— ' + String(x[2]).slice(0, 300) : '')); console.log(`${R.filter(x => x[0] === 'PASS').length}/${R.length}`); process.exit(R.every(x => x[0] === 'PASS') ? 0 : 1);

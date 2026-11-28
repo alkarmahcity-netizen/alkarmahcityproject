@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>التقارير الشهرية الدورية</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap">
+<style>
+/* لوحة معلومات رسمية: ملخص في الأعلى، توزيع الأقضية، ثم جدول المشاريع المرسلة */
+:root{
+  --bg:#eef0ec;--surface:#fff;--fg:#1b2433;--muted:#5d6878;--line:#d5d9d2;--accent:#1f3a5f;--accent-fg:#fff;
+  --gold:#a3802f;--field:#f7f8f5;--ok:#2e7d4f;--warn:#b7791f;--bad:#b42318;--head:#e6e9e1;
+  --ui:'Cairo','Segoe UI',Tahoma,Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12171f;--surface:#1b222d;--fg:#e7ebf1;--muted:#9aa5b5;--line:#2e3846;--accent:#8fb3e8;--accent-fg:#0f1722;
+  --gold:#d3ab55;--field:#232c39;--ok:#5fc08a;--warn:#e0a94a;--bad:#f2786d;--head:#243040;color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font-family:var(--ui);font-size:15px;line-height:1.6;direction:rtl;
+  padding-block:0 32px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+button,input,select{font:inherit;color:inherit}
+.wrap{max-width:1180px;margin:0 auto}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding-block:16px 10px}
+h1{margin:0;font-size:20px;color:var(--accent);font-weight:700}
+.sub{font-size:12px;color:var(--muted)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:14px;margin-bottom:12px}
+.card h2{margin:0 0 10px;font-size:15px;color:var(--accent)}
+input,select{background:var(--field);border:1px solid var(--line);border-radius:5px;padding:8px 10px;min-width:0}
+input:focus,select:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.btn{background:var(--accent);color:var(--accent-fg);border:0;border-radius:5px;padding:8px 14px;font-weight:700;cursor:pointer}
+.btn.alt{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+.btn.sm{padding:4px 10px;font-size:13px}
+.btn.danger{background:transparent;color:var(--bad);border:1px solid var(--bad)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.msg{min-height:22px;font-size:14px;color:var(--muted)}.msg.err{color:var(--bad)}
+#login{max-width:420px;margin:48px auto}
+#login input{width:100%;margin:10px 0}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px 14px}
+.kpi b{display:block;font-size:26px;line-height:1.2;color:var(--accent);font-variant-numeric:tabular-nums}
+.kpi span{font-size:13px;color:var(--muted)}
+.kpi.bad b{color:var(--bad)}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
+.grid2>*{min-width:0}
+.bar{display:grid;grid-template-columns:90px 1fr 28px;gap:8px;align-items:center;margin:6px 0;font-size:14px}
+.bar i{display:block;height:12px;background:var(--accent);border-radius:2px;min-width:3px}
+.bar .t{height:12px;background:var(--field);border-radius:2px}
+.bar em{font-style:normal;font-variant-numeric:tabular-nums;color:var(--muted);text-align:left}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.filters input{flex:1;min-width:160px}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:6px}
+table{border-collapse:collapse;width:100%;min-width:1000px;background:var(--surface)}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:right;vertical-align:top;font-size:14px}
+th{background:var(--head);position:sticky;top:0;font-weight:700;white-space:nowrap}
+td.n{text-align:center;font-variant-numeric:tabular-nums}
+td.num{white-space:nowrap;font-variant-numeric:tabular-nums}
+.pill{display:inline-block;padding:1px 9px;border-radius:10px;font-size:12px;font-weight:700;color:#fff;white-space:nowrap}
+.bad{color:var(--bad);font-weight:700}
+a.lnk{color:var(--accent);font-weight:600;margin-inline-end:10px;white-space:nowrap}
+.fno{width:110px;padding:4px 6px;font-size:13px}
+td.fn{white-space:nowrap}
+td.fn .btn{margin-inline-start:4px}
+.empty{padding:28px;text-align:center;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div><h1>التقارير الشهرية الدورية</h1><div class="sub">قسم الشؤون الهندسية - محافظة الأنبار</div></div>
+    <div class="row" id="tools" hidden>
+      <span class="sub" id="savedAt"></span>
+      <button class="btn alt sm" id="reload" type="button">تحديث</button>
+    </div>
+  </header>
+
+  <div class="card" id="login">
+    <h2>الدخول إلى اللوحة</h2>
+    <label for="code" class="sub">رمز القسم الهندسي</label>
+    <input id="code" type="password" autocomplete="off" dir="ltr">
+    <div class="row"><button class="btn" id="go" type="button">دخول</button></div>
+    <div class="msg" id="lmsg" role="status" aria-live="polite"></div>
+  </div>
+
+  <div id="board" hidden>
+    <div class="kpis" id="kpis"></div>
+    <div class="grid2">
+      <div class="card"><h2>المشاريع حسب القضاء</h2><div id="dist"></div></div>
+      <div class="card">
+        <h2>المشاريع المرسلة</h2>
+        <div class="filters">
+          <input id="q" type="search" placeholder="بحث بالمشروع أو الشركة أو المقيم">
+          <select id="fm" aria-label="الشهر"></select>
+          <select id="fd" aria-label="القضاء"></select>
+        </div>
+        <div class="tw"><table>
+          <thead><tr><th>ت</th><th>اسم المشروع</th><th>الشركة المنفذة</th><th>القضاء</th><th>المقيم</th><th>الشهر</th><th>الإنجاز الفعلي / المخطط</th><th>السلامة</th><th>الاضبارة</th><th>الملف</th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table></div>
+        <div class="msg" id="bmsg"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+const $=id=>document.getElementById(id);
+const AR='٠١٢٣٤٥٦٧٨٩',ar=s=>String(s==null?'':s).replace(/[0-9]/g,d=>AR[d]);
+const lat=s=>String(s==null?'':s).replace(/[٠-٩]/g,d=>AR.indexOf(d));
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const MONTHS=['كانون الثاني','شباط','آذار','نيسان','أيار','حزيران','تموز','آب','أيلول','تشرين الأول','تشرين الثاني','كانون الأول'];
+const mLabel=m=>{const x=/^(\d{4})-(\d{2})/.exec(m||'');return x?MONTHS[+x[2]-1]+' '+ar(x[1]):(m||'')};
+const SAFE={'ملتزمة':'var(--ok)','ملتزمة جزئياً':'var(--warn)','غير ملتزمة':'var(--bad)'};
+const run=()=>window.google&&window.google.script&&window.google.script.run;
+let CODE='',ALL=[];
+
+function call(fn,...args){
+  return new Promise((res,rej)=>{
+    const r=run();if(!r)return rej(new Error('تعمل هذه اللوحة من رابط Apps Script فقط'));
+    r.withSuccessHandler(res).withFailureHandler(e=>rej(new Error((e&&e.message)||String(e))))[fn](...args);
+  });
+}
+async function load(){
+  $('bmsg').textContent='جارٍ التحميل…';
+  try{
+    const d=await call('listReports',CODE);
+    ALL=(d.records||[]).slice().sort((a,b)=>(b.month||'').localeCompare(a.month||'')||(b.updated||0)-(a.updated||0));
+    $('savedAt').textContent=d.saved?'آخر تحديث: '+new Date(d.saved).toLocaleString('ar-IQ'):'';
+    $('login').hidden=true;$('board').hidden=false;$('tools').hidden=false;
+    fillFilters();draw();$('bmsg').textContent='';
+  }catch(e){
+    $('bmsg').textContent='';$('login').hidden=false;$('board').hidden=true;$('tools').hidden=true;
+    $('lmsg').className='msg err';$('lmsg').textContent=e.message;
+  }
+}
+function fillFilters(){
+  const fm=$('fm'),fd=$('fd'),pm=fm.value,pd=fd.value;
+  const ms=[...new Set(ALL.map(r=>r.month).filter(Boolean))].sort().reverse();
+  const ds=[...new Set(ALL.map(r=>r.district).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ar'));
+  fm.innerHTML='<option value="">كل الأشهر</option>'+ms.map(m=>`<option value="${esc(m)}">${esc(mLabel(m))}</option>`).join('');
+  fd.innerHTML='<option value="">كل الأقضية</option>'+ds.map(d=>`<option>${esc(d)}</option>`).join('');
+  if(ms.includes(pm))fm.value=pm;else if(ms.length&&!pm)fm.value=ms[0];
+  if(ds.includes(pd))fd.value=pd;
+}
+function view(){
+  const q=$('q').value.trim(),m=$('fm').value,d=$('fd').value;
+  return ALL.filter(r=>(!m||r.month===m)&&(!d||r.district===d)&&(!q||[r.project,r.company,r.resident,r.fileNo,r.contractNo].join(' ').includes(q)));
+}
+const dev=r=>{const a=parseFloat(lat(r.actualPct)),p=parseFloat(lat(r.plannedPct));return isNaN(a)||isNaN(p)?0:p-a};
+function draw(){
+  const v=view(),late=v.filter(r=>dev(r)>20).length;
+  const unl=new Set(v.filter(r=>!r.fileNo).map(r=>r.projectKey||r.project)).size;
+  const projects=new Set(v.map(r=>r.projectKey||r.project)).size,companies=new Set(v.map(r=>r.company).filter(Boolean)).size;
+  $('kpis').innerHTML=
+    `<div class="kpi"><b>${ar(v.length)}</b><span>تقرير مُرسَل</span></div>`+
+    `<div class="kpi"><b>${ar(projects)}</b><span>مشروع</span></div>`+
+    `<div class="kpi"><b>${ar(companies)}</b><span>شركة منفذة</span></div>`+
+    `<div class="kpi ${unl?'bad':''}"><b>${ar(unl)}</b><span>مشروع غير مربوط بالاضبارة</span></div>`+
+    `<div class="kpi ${late?'bad':''}"><b>${ar(late)}</b><span>انحراف أكثر من 20%</span></div>`;
+  const by={};v.forEach(r=>{const k=r.district||'غير محدد';by[k]=(by[k]||0)+1});
+  const ks=Object.keys(by).sort((a,b)=>by[b]-by[a]),mx=Math.max(1,...ks.map(k=>by[k]));
+  $('dist').innerHTML=ks.length?ks.map(k=>`<div class="bar"><span>${esc(k)}</span><div class="t"><i style="width:${by[k]/mx*100}%"></i></div><em>${ar(by[k])}</em></div>`).join(''):'<div class="empty">لا توجد بيانات</div>';
+  $('rows').innerHTML=v.length?v.map((r,i)=>{
+    const id=esc(r.pdfId||''),bad=dev(r)>20;
+    const pct='فعلي '+(r.actualPct!==''?ar(r.actualPct)+'%':'—')+'<br>مخطط '+(r.plannedPct!==''?ar(r.plannedPct)+'%':'—');
+    return `<tr><td class="n">${ar(i+1)}</td><td>${esc(r.project)}${r.contractNo?`<div class="sub">عقد ${esc(ar(r.contractNo))}</div>`:''}</td>`+
+      `<td>${esc(r.company)}</td><td>${esc(r.district)}</td><td>${esc(r.resident)}</td><td class="num">${esc(mLabel(r.month))}</td>`+
+      `<td class="num ${bad?'bad':''}">${pct}</td>`+
+      `<td>${r.safeStatus?`<span class="pill" style="background:${SAFE[r.safeStatus]||'var(--muted)'}">${esc(r.safeStatus)}</span>`:'—'}</td>`+
+      `<td class="fn"><input class="fno" data-k="${esc(r.projectKey||'')}" value="${esc(r.fileNo||'')}" placeholder="رقم الاضبارة" dir="ltr" aria-label="رقم الاضبارة"><button class="btn alt sm" data-save type="button">حفظ</button></td>`+
+      `<td>${id?`<a class="lnk" target="_blank" rel="noopener" href="${esc(r.pdfUrl)}">فتح</a><a class="lnk" target="_blank" rel="noopener" href="https://drive.google.com/uc?export=download&id=${id}">تنزيل</a>`:''}</td></tr>`;
+  }).join(''):'<tr><td colspan="10" class="empty">لا توجد تقارير مطابقة</td></tr>';
+}
+$('go').onclick=()=>{CODE=$('code').value;$('lmsg').className='msg';$('lmsg').textContent='جارٍ التحقق…';load()};
+$('code').addEventListener('keydown',e=>{if(e.key==='Enter')$('go').click()});
+$('rows').addEventListener('click',async e=>{
+  const b=e.target.closest('[data-save]');if(!b)return;
+  const i=b.parentNode.querySelector('.fno');b.disabled=true;$('bmsg').className='msg';$('bmsg').textContent='جارٍ الحفظ…';
+  try{await call('setFileNo',CODE,i.dataset.k,i.value);await load();$('bmsg').textContent='تم ربط المشروع بالاضبارة'}
+  catch(err){b.disabled=false;$('bmsg').className='msg err';$('bmsg').textContent=err.message}
+});
+$('reload').onclick=load;
+['q','fm','fd'].forEach(i=>$(i).addEventListener('input',draw));
+})();
+</script>
+</body>
+</html>

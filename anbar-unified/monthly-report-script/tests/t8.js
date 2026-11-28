@@ -1,0 +1,21 @@
+// أوامر التغيير في التقرير الشهري: العدد، صافي المبالغ (قد يكون سالباً)، مبلغ العقد مع الأوامر (تلقائي) — في الـ PDF وما يُرسل للسكربت
+const { chromium, devices } = require('playwright'); const fs = require('fs');
+const B = __dirname, L = process.env.LIBS; const R = []; const ok = (n, c, d = '') => R.push([c ? 'PASS' : 'FAIL', n, d]);
+(async () => { const b = await chromium.launch(); const p = await (await b.newContext({ ...devices['iPhone 13'] })).newPage();
+  const errs = []; p.on('pageerror', e => errs.push(String(e)));
+  await p.route(/cdnjs\.cloudflare\.com.*html2canvas/, r => r.fulfill({ body: fs.readFileSync(L + '/html2canvas-1.4.1/package/dist/html2canvas.min.js'), contentType: 'application/javascript' }));
+  await p.route(/cdnjs\.cloudflare\.com.*jspdf/, r => r.fulfill({ body: fs.readFileSync(L + '/jspdf-2.5.1/package/dist/jspdf.umd.min.js'), contentType: 'application/javascript' }));
+  await p.route(/fonts\.(googleapis|gstatic)\.com/, r => r.fulfill({ body: '', contentType: 'text/css' }));
+  await p.goto('file://' + B + '/index.html'); await p.waitForTimeout(600);
+  await p.fill('[name="cost"]', '1,500,000,000'); await p.fill('[name="coCount"]', '٢'); await p.fill('[name="coAmount"]', '-25,000,000');
+  const t = await p.inputValue('[name="coTotal"]');
+  ok('contract amount with change orders computed automatically (negative net allowed)', t === '1,475,000,000', t);
+  await p.fill('[name="coAmount"]', '120000000'); const t2 = await p.inputValue('[name="coTotal"]');
+  ok('recomputed when the amount changes', t2 === '1,620,000,000', t2);
+  await p.evaluate(() => window.__MR_FORM.makePdf()); const rep = await p.textContent('#rep');
+  ok('the PDF shows the three change-order rows', /عدد أوامر التغيير/.test(rep) && /120,000,000/.test(rep) && /1,620,000,000/.test(rep) && /مبلغ العقد مع أوامر التغيير/.test(rep), rep.slice(rep.indexOf('عدد أوامر'), rep.indexOf('عدد أوامر') + 160));
+  await p.reload(); await p.waitForTimeout(500);
+  ok('kept on the phone for next month', (await p.inputValue('[name="coCount"]')) === '٢' && (await p.inputValue('[name="coTotal"]')) === '1,620,000,000');
+  ok('no page errors', errs.length === 0, errs.join('|'));
+  await b.close(); R.forEach(x => console.log(x[0], x[1], x[2] ? '— ' + x[2] : '')); process.exit(R.every(x => x[0] === 'PASS') ? 0 : 1);
+})().catch(e => { console.error(e); process.exit(1); });

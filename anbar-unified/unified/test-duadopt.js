@@ -1,0 +1,25 @@
+// نظام المدد ← الموقف العام: توقف / استئناف / مدد إضافية / تاريخ الإنجاز — تُعرض في البطاقة، والقسم يختار «تُعتمد» أو «لا تُعتمد»؛ نظام المدد لا يتغير
+const { _electron: electron } = require('playwright'); const fs = require('fs'), path = require('path'), os = require('os');
+const sleep = ms => new Promise(r => setTimeout(r, ms)); const R = []; const ok = (n, c, d = '') => R.push([c ? 'PASS' : 'FAIL', n, d]);
+(async () => { const T = fs.mkdtempSync(path.join(os.tmpdir(), 'dua-')); const mk = n => { const d = path.join(T, n); fs.mkdirSync(d); return d; };
+  const DD = mk('d'), RG = mk('r');
+  const P = (fileNo, name, status, extra, planEnd) => ({ fileNo, name, contractor: 'شركة مثال', contractNo: fileNo, year: '2025', status, extra, planEnd, planPct: 50, actualPct: 45 });
+  const links = { '8001': { du: { status: 'stop', ext: 45, stp: 30, curEnd: '2027-02-01', last: 'أمر توقف' } }, '8002': { du: { status: 'run', ext: 20, stp: 15, curEnd: '2027-01-01', last: 'استئناف العمل' } }, '8003': { du: { status: 'run', ext: 10, curEnd: '2026-12-01', last: 'مدة إضافية' } } };
+  fs.writeFileSync(path.join(RG, 'registry.json'), JSON.stringify({ app: 'anbar-projects-shared', version: 1, projects: [P('8001', 'مشروع صدر له أمر توقف', 'مستمر', 10, '2026-12-01'), P('8002', 'مشروع استؤنف العمل فيه', 'متوقف', 20, '2027-01-01'), P('8003', 'مشروع مطابق لنظام المدد', 'مستمر', 10, '2026-12-01')], links, meta: {} }));
+  const app = await electron.launch({ executablePath: require('electron'), args: ['--no-sandbox', __dirname], env: { ...process.env, UNI_MULTI: mk('u'), UNI_DATA_DIR: DD, ANBAR_REG_DIR: RG, UNI_AC_PORT: '48597', UNI_NO_JSONSCAN: '1', UNI_NO_LINKREFRESH: '1', UNI_NO_INTRO: '1' } });
+  const pg = await app.firstWindow(); await sleep(1500); await pg.evaluate(() => window.desktop.go('sit')); await sleep(1500);
+  const box = async fn => { await pg.evaluate(f => window.SitOpen(f), fn); await sleep(700); return pg.evaluate(() => { const b = document.querySelector('#drawer .duwarn'); return { t: b ? b.textContent.replace(/\s+/g, ' ') : '', dr: document.getElementById('drawer').textContent.replace(/\s+/g, '') }; }); };
+  let b = await box('8001');
+  ok('stop order in the durations system: the card shows status → «متوقف», extension 10 → 45 days, completion 1/12/2026 → 1/2/2027, with «تُعتمد» / «لا تُعتمد»', /«مستمر» ← «متوقف»/.test(b.t) && /10 ← 45 يوم/.test(b.t) && /1\/2\/2027/.test(b.t) && /تُعتمد/.test(b.t) && /لا تُعتمد/.test(b.t), b.t.slice(0, 300));
+  await pg.evaluate(() => { window.confirm = () => true; document.querySelector('#drawer [data-duad="ok"]').click(); }); await sleep(1200);
+  b = await box('8001'); const chip = await pg.evaluate(() => { const tr = document.querySelector('#tbl tr[data-fn="8001"]'); return tr ? tr.textContent.replace(/\s+/g, ' ') : ''; });
+  ok('«تُعتمد»: the situation shows «متوقف», 45 days and the new completion date; the box becomes a confirmation note', !b.t && /معتمدةمننظامالمدد/.test(b.dr) && /المدةالإضافية\(يوم\)45/.test(b.dr) && /متوقف/.test(chip), (b.dr.match(/المدةالإضافية\(يوم\)\d+/) || [''])[0] + ' | ' + chip.slice(0, 120));
+  b = await box('8002'); ok('resumption: status «متوقف» → «مستأنف» offered', /«متوقف» ← «مستأنف»/.test(b.t), b.t.slice(0, 200));
+  await pg.evaluate(() => document.querySelector('#drawer [data-duad="no"]').click()); await sleep(1200);
+  b = await box('8002'); ok('«لا تُعتمد»: no box, a note says it was checked, status stays «متوقف»', !b.t && /تحققالقسممنبياناتنظامالمدد/.test(b.dr) && /الحالة.{0,40}متوقف/.test(b.dr), b.dr.slice(0, 160));
+  b = await box('8003'); ok('nothing differs → no box', !b.t);
+  const reg = JSON.parse(fs.readFileSync(path.join(RG, 'registry.json'), 'utf8'));
+  ok('the durations summary itself is unchanged (durations system not modified)', reg.links['8001'].du.status === 'stop' && reg.links['8001'].du.ext === 45 && reg.projects.find(p => p.fileNo === '8001').status === 'مستمر', JSON.stringify(reg.links['8001'].du));
+  const e = await app.evaluate(() => (global.__uniErrors || []).slice()); ok('no JavaScript errors', e.length === 0, e.join(' | ').slice(0, 300));
+  await app.close(); R.forEach(x => console.log(x[0], x[1], x[2] ? '— ' + String(x[2]).slice(0, 300) : '')); console.log(`${R.filter(x => x[0] === 'PASS').length}/${R.length}`); process.exit(R.every(x => x[0] === 'PASS') ? 0 : 1);
+})().catch(e => { console.error(e); process.exit(1); });

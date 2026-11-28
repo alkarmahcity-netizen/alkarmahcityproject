@@ -10,6 +10,6 @@ parentPort.on('message', m => {
     else if (m.op === 'cmpBuild') { const r = require('./planmerge').build(Buffer.from(m.gen), m.res, m.opts || {}, m.mod ? Buffer.from(m.mod) : null); parentPort.postMessage({ ok: true, buf: r.buf, cells: r.cells, audit: r.audit }); }
     else if (m.op === 'ppParse') { const PP = require('./planprogress'); const model = PP.parse(Buffer.from(m.buf), m.label); parentPort.postMessage({ ok: true, model, items: PP.match(model, m.projects || [], m.links || {}) }); }
     else if (m.op === 'ppExport') { const r = require('./planprogress').exportBook(Buffer.from(m.buf), m.model, m.updates, m.opts || {}); parentPort.postMessage({ ok: true, buf: r.buf, changes: r.changes }); }
-    else if (m.op === 'export') { const r = P.exportBook(Buffer.from(m.buf), m.model, m.updates, m.opts || {}); parentPort.postMessage({ ok: true, buf: r.buf, changes: r.changes, dash: r.dash }); }
+    else if (m.op === 'export') { const r = P.exportBook(Buffer.from(m.buf), m.model, m.updates, m.opts || {}); parentPort.postMessage({ ok: true, buf: r.buf, changes: r.changes, dash: r.dash, diffs: r.diffs || [] }); }
   } catch (e) { parentPort.postMessage({ ok: false, error: String(e && e.message || e) }); }
 });

@@ -199,6 +199,9 @@ function exportBook(buf, model, updates, opts = {}) {
     const nx = base.replace(/\sfillId="\d+"/, '').replace(/\sapplyFill="\d"/, '').replace(/^<xf\b/, `<xf fillId="${fillId}" applyFill="1"`);
     xfList.push(nx); const id = String(xfList.length - 1); hiCache.set(k, id); return id;
   };
+  /* «موقف الخطة التشغيلية» (fillOnly): تُملأ الخلايا الفارغة فقط، والقيمة الموجودة المختلفة تُسجَّل في «فروقات للتدقيق» ولا تُستبدل —
+     إلا الحقول في opts.always (نسب الإنجاز والحالة) فتُكتب دائماً. u.src = {حقل: مصدر القيمة} يُذكر في الورقتين. */
+  const FILL = !!opts.fillOnly, ALW = new Set(opts.always || []), diffs = [];
   const changes = []; const bySheet = {};
   for (const u of updates) (bySheet[u.sheet] = bySheet[u.sheet] || []).push(u);
   for (const sh of book.sheets) {
@@ -237,6 +240,9 @@ function exportBook(buf, model, updates, opts = {}) {
           if (a === b || (a && b && (b.includes(a) || a.includes(b)))) continue;   /* الاسم نفسه مختصراً أو مفصلاً: يبقى كما في ملف التخطيط */
           xmlVal = { s }; shown = s;
         }
+        const oldShown0 = !oldText ? '' : DATES.has(key) ? (dmyTxt(isoOf(oldText)) || oldText) : PCTS.includes(key) && oldNum != null ? (Math.round((meta.scale[key] === 'frac' && oldNum <= 1.5 ? oldNum * 100 : oldNum) * 100) / 100) + '%' : oldNum != null ? oldNum.toLocaleString('en-US') : oldText;
+        const srcOf = (u.src && u.src[key]) || '';
+        if (FILL && oldText && !ALW.has(key)) { diffs.push({ sheet: sh.name, ref, row: u.row, label: u.label, field: meta.head[key] || key, old: oldShown0, neu: shown, src: srcOf }); continue; }
         const na = Object.assign({}, ca); delete na.t; na.r = ref; if (opts.highlight !== false) na.s = hiStyle(ca.s || 0);
         const cellXml = xmlVal.n != null ? `<c${attrStr(na)}><v>${xmlVal.n}</v></c>` : `<c${attrStr(Object.assign(na, { t: 'inlineStr' }))}><is><t xml:space="preserve">${enc(xmlVal.s)}</t></is></c>`;
         if (cm) row.inner = row.inner.replace(cm[0], () => cellXml);
@@ -245,9 +251,40 @@ function exportBook(buf, model, updates, opts = {}) {
           if (!placed) row.inner += cellXml;
         }
         const oldShown = !oldText ? '' : DATES.has(key) ? (dmyTxt(isoOf(oldText)) || oldText) : PCTS.includes(key) && oldNum != null ? (Math.round((meta.scale[key] === 'frac' && oldNum <= 1.5 ? oldNum * 100 : oldNum) * 100) / 100) + '%' : oldNum != null ? oldNum.toLocaleString('en-US') : oldText;
-        changes.push({ sheet: sh.name, ref, row: u.row, label: u.label, field: meta.head[key] || key, old: oldShown, neu: shown, note: '' });
+        changes.push({ sheet: sh.name, ref, row: u.row, label: u.label, field: meta.head[key] || key, old: oldShown, neu: shown, note: srcOf ? 'المصدر: ' + srcOf : '' });
       }
       parts[pi] = row;
+    }
+    /* مشاريع من الموقف غير موجودة في الورقة (opts.appends): صفوف جديدة بعد آخر مكوّن — في الخلايا الفارغة فقط (لا تُمس معادلة) */
+    const ap = (opts.appends || []).filter(x => x.sheet === sh.name);
+    if (ap.length) {
+      let r = Math.max(0, ...model.comps.filter(c => c.sheet === sh.name).map(c => c.row)) + 1, seq = model.comps.filter(c => c.sheet === sh.name).length;
+      const nameCol = meta.cols.name;
+      for (const a of ap) {
+        /* أول صف بعد آخر مكوّن خانة اسمه فارغة */
+        for (;;) { const pi0 = idx.get(r); if (pi0 == null) break; const rw = parts[pi0], ref0 = colL(nameCol) + r, m0 = new RegExp(`<c\\b[^>]*?\\br="${ref0}"[^>]*?(?:\\/>|>([\\s\\S]*?)<\\/c>)`).exec(rw.inner); if (!m0 || !/<(v|is)\b/.test(m0[1] || '')) break; r++; }
+        let pi = idx.get(r);
+        if (pi == null) { const rowObj = { r, a: ` r="${r}"`, inner: '' }; let at = parts.length; for (let i = parts.length - 1; i >= 0; i--) { if (typeof parts[i] !== 'string') { if (parts[i].r < r) { at = i + 1; break; } at = i; } } parts.splice(at, 0, rowObj); idx.clear(); parts.forEach((p, i) => { if (typeof p !== 'string') idx.set(p.r, i); }); pi = idx.get(r); }
+        const row = parts[pi]; seq++;
+        const set = Object.assign({ seq }, a.set);
+        for (const [key, value] of Object.entries(set)) {
+          const c = meta.cols[key]; if (!c || value == null || value === '') continue; const ref = colL(c) + r;
+          const cm = new RegExp(`<c\\b([^>]*?\\br="${ref}"[^>]*?)(?:\\/>|>([\\s\\S]*?)<\\/c>)`).exec(row.inner); const ci = cm ? (cm[2] || '') : '';
+          if (cm && (/<f\b/.test(ci) || /<(v|is)\b/.test(ci))) continue;   // معادلة أو قيمة موجودة: لا تُمس
+          const ca = cm ? attrsOf(cm[1]) : { r: ref };
+          let xmlVal, shown;
+          if (DATES.has(key)) { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value)); shown = m ? `${+m[3]}/${+m[2]}/${m[1]}` : String(value); xmlVal = { s: shown }; }
+          else if (PCTS.includes(key)) { const p = +value; if (!isFinite(p)) continue; xmlVal = { n: meta.scale[key] === 'frac' ? Math.round(p * 100) / 10000 : p }; shown = p + '%'; }
+          else if (typeof value === 'number') { xmlVal = { n: value }; shown = value.toLocaleString('en-US'); }
+          else { xmlVal = { s: T(value) }; shown = T(value); }
+          const na = Object.assign({}, ca); delete na.t; na.r = ref; if (opts.highlight !== false) na.s = hiStyle(ca.s || 0);
+          const cellXml = xmlVal.n != null ? `<c${attrStr(na)}><v>${xmlVal.n}</v></c>` : `<c${attrStr(Object.assign(na, { t: 'inlineStr' }))}><is><t xml:space="preserve">${enc(xmlVal.s)}</t></is></c>`;
+          if (cm) row.inner = row.inner.replace(cm[0], () => cellXml);
+          else { let placed = false; row.inner = row.inner.replace(/<c\b[^>]*?\br="([A-Z]+)\d+"/g, (m, L) => { if (!placed && colN(L) > c) { placed = true; return cellXml + m; } return m; }); if (!placed) row.inner += cellXml; }
+          if (key !== 'seq') changes.push({ sheet: sh.name, ref, row: r, label: a.label, field: meta.head[key] || key, old: '', neu: shown, note: 'صف جديد — من الموقف العام' + (a.src && a.src[key] ? ' (' + a.src[key] + ')' : '') });
+        }
+        parts[pi] = row; r++;
+      }
     }
     const newSd = parts.map(p => typeof p === 'string' ? p : `<row${p.a}>${p.inner}</row>`).join('');
     xml = xml.replace(sd[0], () => sd[0].replace(sd[1], () => newSd));
@@ -258,6 +295,7 @@ function exportBook(buf, model, updates, opts = {}) {
     z.set('xl/styles.xml', Buffer.from(styles, 'utf8'));
   }
   /* ورقة «التغييرات» */
+  if (FILL) addSheet(z, sheetNameFree(book, 'فروقات للتدقيق'), [['الورقة', 'الخلية', 'المشروع (المكوّن)', 'الحقل', 'في ملف التخطيط (لم يُغيَّر)', 'في البرنامج', 'المصدر']].concat(diffs.map(c => [c.sheet, c.ref, c.label, c.field, c.old, c.neu, c.src])));
   addSheet(z, sheetNameFree(book, 'التغييرات ' + stamp.split('/').reverse().join('-')), [['الورقة', 'الخلية', 'المشروع (المكوّن)', 'الحقل', 'القيمة السابقة', 'القيمة الجديدة', 'ملاحظة']].concat(changes.map(c => [c.sheet, c.ref, c.label, c.field, c.old, c.neu, c.note])));
   /* لوحتا المعلومات (الخطة / المنافذ وإعادة الاستقرار) + توقيع القسم والقفل */
   let dash = null; if (opts.dash !== false) { try { dash = require('./planning-dash').addDash(z, book, model, updates, { lockPw: opts.lockPw, stamp: stamp.split('/').reverse().map(x => String(+x)).join('/') }); } catch (e) { dash = { error: String(e && e.message || e) }; } }
@@ -267,7 +305,7 @@ function exportBook(buf, model, updates, opts = {}) {
   z.set('xl/workbook.xml', Buffer.from(wb, 'utf8'));
   if (!opts.keepDates) X.dmyDates(z);   /* التواريخ في الملف المُصدَّر يوم/شهر/سنة (keepDates: «تحديث نسب الإنجاز» لا يغيّر شيئاً غير النسب) */
   xmlGuard(z);
-  return { buf: zip(z), changes, dash };
+  return { buf: zip(z), changes, dash, diffs };
 }
 /* فحص أخير قبل الحفظ: كل أجزاء XML في المصنف سليمة البنية (لا «<» داخل قيمة سمة، وأعداد عناصر التنسيقات مطابقة)؛
    وإن وُجد خلل يتوقف التصدير برسالة بدل ملف يُصلحه Excel */

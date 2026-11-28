@@ -31,6 +31,7 @@ contextBridge.exposeInMainWorld('desktop', {
   openDataFolder: () => ipcRenderer.invoke('data:openFolder'),
   openManual: () => ipcRenderer.invoke('manual:open'),
   mrCard: fn => ipcRenderer.invoke('mr:card', fn),
+  acRecs: () => ipcRenderer.invoke('ac:recsRead'),
   pph: { save: (fn, d) => ipcRenderer.invoke('pph:save', fn, d), read: (fn, n) => ipcRenderer.invoke('pph:read', fn, n), del: (fn, n) => ipcRenderer.invoke('pph:del', fn, n) },
   mailGet: () => ipcRenderer.invoke('mail:get'),
   mailSet: c => ipcRenderer.invoke('mail:set', c),

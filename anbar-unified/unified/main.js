@@ -511,6 +511,11 @@ ipcMain.handle('pl:clean', async (_e, eo) => {
   audit.note('pl', 'clean', `تصدير ملف التخطيط المنظَّم: ${res.stats.comps} مكوّناً، ${res.stats.issues} ملاحظة جودة${lockPw ? ' (مقفل)' : ''}`).catch(() => {});
   return { ok: true, file: out, stats: res.stats, locked: !!lockPw };
 });
+/* سجلات شهادات الاستلام (الأولي، الجزئي، النهائي، النهائي الجزئي) — نسخة نظام الاستلام في مجلد البيانات؛ للقراءة فقط (مصدر لنواقص ملف التخطيط) */
+ipcMain.handle('ac:recsRead', e => { if (!win || e.sender !== win.webContents) return []; const out = [];
+  try { const d = JSON.parse(fs.readFileSync(ACR_FILE(), 'utf8')) || {}; for (const t of ['pac', 'pap', 'fac', 'fpa']) { let o = d[t]; if (typeof o === 'string') { try { o = JSON.parse(o); } catch (_) { o = null; } } if (!o || typeof o !== 'object') continue;
+      for (const [serial, r] of Object.entries(o)) if (r && typeof r === 'object') out.push(Object.assign({}, r, { t, serial: String(r.serial || serial) })); } } catch (_) {}
+  return out; });
 ipcMain.handle('pl:export', async (_e, updates, eo) => {
   /* قفل لوحتي المعلومات وعناوين الجداول بكلمة سر المدير (تُتحقق هنا ولا تُحفظ) */
   const lockPw = eo && eo.pw ? String(eo.pw) : ''; if (lockPw) { const r0 = checkMaster(lockPw); if (r0 !== true) return { error: r0 === 'wait' ? 'محاولات كثيرة — انتظر دقيقة' : 'كلمة سر المدير غير صحيحة' }; }
@@ -523,13 +528,20 @@ ipcMain.handle('pl:export', async (_e, updates, eo) => {
     if (om.clean) { try { fs.unlinkSync(planSrc()); } catch (_) {} return { error: 'الملف المختار هو «الملف المنظَّم» نفسه — اختر ملف التخطيط الأصلي (ملف لجنة تحديث الخطة) لتصدير نسخة محدَّثة منه' }; }
     const byKind = {}; Object.entries(om.sheets).forEach(([n, m2]) => { if (!byKind[m2.kind]) byKind[m2.kind] = n; });
     ups = ups.map(u => Object.assign({}, u, { sheet: u.sheet === '__main__' ? byKind.main : u.sheet === '__s2__' ? byKind.s2 : u.sheet })).filter(u => u.sheet && u.row);
+    if (eo && Array.isArray(eo.appends)) eo.appends = eo.appends.map(u => Object.assign({}, u, { sheet: u.sheet === '__main__' ? byKind.main : u.sheet === '__s2__' ? byKind.s2 : u.sheet })).filter(u => u.sheet);
     model = om;
   }
-  let res; try { res = await planWork({ op: 'export', buf: fs.readFileSync(src), model, updates: ups, opts: { lockPw, dash: !(eo && eo.dash === false) } }); } catch (e) { return { error: String(e.message || e) }; }
-  const name = String(rec.file || 'خطة.xlsx').replace(/\.(xlsx|xlsm)$/i, '') + '-محدثة-' + new Date().toISOString().slice(0, 10) + '.xlsx';
+  /* «موقف الخطة التشغيلية» (eo.op === 'op'): ملء النواقص فقط + «فروقات للتدقيق»، ونسب الإنجاز والحالة تُكتب دائماً، ومشاريع المنافذ وإعادة الاستقرار من الموقف تُضاف صفوفاً */
+  const OP = !!(eo && eo.op === 'op');
+  const xo = OP ? { fillOnly: true, always: ['planPct', 'actPct', 'status', 'status2', 'updated'], appends: Array.isArray(eo.appends) ? eo.appends : [] } : {};
+  let res; try { res = await planWork({ op: 'export', buf: fs.readFileSync(src), model, updates: ups, opts: Object.assign({ lockPw, dash: !(eo && eo.dash === false) }, xo) }); } catch (e) { return { error: String(e.message || e) }; }
+  const name = OP ? 'موقف الخطة التشغيلية-' + new Date().toISOString().slice(0, 10) + '.xlsx' : String(rec.file || 'خطة.xlsx').replace(/\.(xlsx|xlsm)$/i, '') + '-محدثة-' + new Date().toISOString().slice(0, 10) + '.xlsx';
   let out = process.env.UNI_TEST_SAVE_DIR ? path.join(process.env.UNI_TEST_SAVE_DIR, name) : '';
-  if (!out) { const r = await dialog.showSaveDialog(win, { title: 'حفظ ملف التخطيط المحدَّث', defaultPath: path.join(app.getPath('documents'), name), filters: [{ name: 'Excel', extensions: ['xlsx'] }] }); if (r.canceled || !r.filePath) return null; out = r.filePath; }
+  if (!out) { const r = await dialog.showSaveDialog(win, { title: OP ? 'حفظ موقف الخطة التشغيلية' : 'حفظ ملف التخطيط المحدَّث', defaultPath: path.join(app.getPath('documents'), name), filters: [{ name: 'Excel', extensions: ['xlsx'] }] }); if (r.canceled || !r.filePath) return null; out = r.filePath; }
   fs.writeFileSync(out, Buffer.from(res.buf));
+  if (OP) { const ch = res.changes.filter(c => !/معادلة/.test(c.note || '')), added = new Set(ch.filter(c => /صف جديد/.test(c.note || '')).map(c => c.sheet + c.row)).size, df = (res.diffs || []).length;
+    audit.note('pl', 'opplan', `تصدير «موقف الخطة التشغيلية»: ${ch.length} خلية مُلئت أو حُدّثت، ${added} مشروع أُضيف من الموقف، ${df} فرق للتدقيق`).catch(() => {});
+    return { ok: true, file: out, changed: ch.length, added, diffs: df, skipped: res.changes.length - ch.length, rows: new Set(ch.map(c => c.sheet + c.row)).size }; }
   const n = res.changes.filter(c => !c.note).length, fx = res.changes.filter(c => c.note).length;
   audit.note('pl', 'export', `تصدير ملف التخطيط المحدَّث: ${n} خلية حُدّثت${fx ? '، ' + fx + ' خلية معادلة لم تُمس' : ''}${res.dash && res.dash.added && res.dash.added.length ? '، مع ' + res.dash.added.join(' و') + (res.dash.locked ? ' (مقفلة)' : '') : ''}`).catch(() => {});
   return { ok: true, file: out, changed: n, skipped: fx, rows: new Set(res.changes.filter(c => !c.note).map(c => c.sheet + c.row)).size, dash: res.dash || null };

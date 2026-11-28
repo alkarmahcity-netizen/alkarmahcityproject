@@ -404,10 +404,12 @@ function rateBadge(n){if(!RATE)return '';const v=rateOf(n);return v?` <span clas
 window.SitRate={rateOf,rateBadge,refresh:rateMap};
 function engView(){if(!engVis()){$q('engs').innerHTML=ENGLOCK.replace('hint','empty');try{$q('ekpis').innerHTML='';const rb=$q('rosterBox');if(rb)rb.innerHTML='';}catch(_){}return;}try{rosterView();}catch(err){console.error(err);}const E=engData(),q=($q('eq').value||'').trim().toLowerCase(),rf=$q('er').value;const RV=finVis()&&!!rateMap();
   opts($q('er'),[...new Set(E.map(e=>e.role).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ar')),'كل الصفات');
+  const dOf=e=>new Set(e.projects.map(x=>String(x.p&&x.p.district||'').trim()).filter(Boolean)),fd=$q('edist')?$q('edist').value:'';
+  if($q('edist'))opts($q('edist'),[...new Set(E.flatMap(e=>[...dOf(e)]))].sort((a,b)=>a.localeCompare(b,'ar')),'كل الأقضية');
   const isRes=e=>e.projects.some(x=>/مقيم/.test(x.role))||/مقيم/.test(e.role),isSup=e=>e.projects.some(x=>/مشرف/.test(x.role))||/مشرف/.test(e.role);
   /* بطاقات المؤشرات تُصفّي القائمة: مقيمون، مشرفون، بلا مشاريع، بلا رقم هاتف */
   const EF={res:isRes,sup:isSup,noproj:e=>!e.projects.length,nophone:e=>!e.phone};
-  const list=E.filter(e=>(!engF||!EF[engF]||EF[engF](e))&&(!rf||e.role===rf)&&(!q||[e.name,e.dept,e.phone,e.role,...e.projects.map(x=>x.p.name)].join(' ').toLowerCase().includes(q)));
+  const list=E.filter(e=>(!engF||!EF[engF]||EF[engF](e))&&(!rf||e.role===rf)&&(!fd||dOf(e).has(fd))&&(!q||[e.name,e.dept,e.phone,e.role,...e.projects.map(x=>x.p.name)].join(' ').toLowerCase().includes(q)));
   window.__engList=list;
   const groups={};list.forEach(e=>{const k=e.dept||'غير محدد';(groups[k]=groups[k]||[]).push(e);});
   const keys=Object.keys(groups).sort((a,b)=>groups[b].length-groups[a].length||a.localeCompare(b,'ar'));
@@ -656,7 +658,7 @@ let tblT=null;
 function renderTable(){if(state.current!=='sit'||sub!=='proj')return;const S=AnbarReg.state();if(!S.projects.length)return;const f=filtered(rows());$q('tbl').innerHTML=table(f);pickBar();
   $q('info').textContent=`${f.length} من ${sitCom?rows().length+' مشروع في موقف «'+sitCom+'» (من '+S.projects.length+')':S.projects.length+' مشروع'} — الموقف: «${S.source}» (${DMY(String(S.updated).slice(0,10))}). انقر أي مشروع لعرض بياناته كاملة. يتحدّث الجدول تلقائياً عند الحفظ في أي نظام.`;}
 ['q','fs','ff','fz','fx','so'].forEach(id=>$q(id).addEventListener('input',()=>{clearTimeout(tblT);tblT=setTimeout(renderTable,id==='q'?180:0);}));
-let engT=null;['eq','er'].forEach(id=>$q(id).addEventListener('input',()=>{clearTimeout(engT);engT=setTimeout(engView,id==='eq'?180:0);}));
+let engT=null;['eq','er','edist'].filter(id=>$q(id)).forEach(id=>$q(id).addEventListener('input',()=>{clearTimeout(engT);engT=setTimeout(engView,id==='eq'?180:0);}));
 $q('charts').addEventListener('click',e=>{const b=e.target.closest('[data-fund]');if(!b)return;$q('ff').value=b.dataset.fund;renderTable();$q('tbl').scrollIntoView({behavior:'smooth',block:'start'});});
 $q('tbl').addEventListener('click',e=>{const ck=e.target.closest('input[data-pk],#pkAll,td.pk,th.pk');if(ck){pickClick(e);return;}const pill=e.target.closest('[data-app]');const tr=e.target.closest('tr[data-fn]');if(!tr)return;if(pill){window.desktop.go(pill.dataset.app,tr.dataset.fn);return;}drawer(tr.dataset.fn);});
 const prevNav=window.onNav,prevData=window.onData;

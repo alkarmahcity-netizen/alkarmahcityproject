@@ -391,8 +391,8 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$q('drawer').hidde
 /* ---------- المهندسون حسب الدائرة ---------- */
 function engData(){const S=AnbarReg.state(),map=new Map(),add=e=>{const k=RN(e.name);if(!k)return null;if(!map.has(k))map.set(k,{name:e.name,role:e.role||'',dept:AnbarReg.cleanDept(e.dept),phone:e.phone||'',notes:e.notes||'',projects:[]});const o=map.get(k);if(!o.dept&&e.dept)o.dept=AnbarReg.cleanDept(e.dept);if(!o.role&&e.role)o.role=e.role;if(!o.phone&&e.phone)o.phone=e.phone;return o;};
   (S.engineers||[]).forEach(add);
-  S.projects.filter(inCom).forEach(p=>{const seen=new Set();(p.staff||[]).forEach(x=>{const e=add(x);if(e&&!seen.has(RN(x.name))){e.projects.push({p,role:x.role});seen.add(RN(x.name));}});
-    if(p.resident&&!seen.has(RN(p.resident))){const e=add({name:p.resident,role:'مهندس مقيم',dept:p.residentOffice,phone:p.phone});if(e)e.projects.push({p,role:'مهندس مقيم'});}});
+  S.projects.filter(inCom).forEach(p=>{const seen=new Set();(p.staff||[]).forEach(x=>{const e=add(x);if(e&&!seen.has(RN(x.name))){e.projects.push({p,role:x.role,dept:AnbarReg.cleanDept(x.dept)});seen.add(RN(x.name));}});
+    if(p.resident&&!seen.has(RN(p.resident))){const e=add({name:p.resident,role:'مهندس مقيم',dept:p.residentOffice,phone:p.phone});if(e)e.projects.push({p,role:'مهندس مقيم',dept:AnbarReg.cleanDept(p.residentOffice)});}});
   /* المشروع المنجز يُرفع من عدد مشاريع المهندس (يبقى مذكوراً في قائمة «المنجزة» للاطلاع فقط) */
   let E=[...map.values()];if(sitCom)E=E.filter(e=>e.projects.length);E.forEach(e=>{e.done=e.projects.filter(x=>stKind(x.p.status)==='ok');e.projects=e.projects.filter(x=>stKind(x.p.status)!=='ok');});return E;}
 /* تقييم المهندس (على حاسبة مدير القسم فقط): خمسة مربعات، وأقل من 3 = «لا يكلّف». التقييم لا يُزامَن ولا يصل إلى حاسبات اللجان */
@@ -404,26 +404,57 @@ function rateBadge(n){if(!RATE)return '';const v=rateOf(n);return v?` <span clas
 window.SitRate={rateOf,rateBadge,refresh:rateMap};
 /* البحث يتجاهل فروق الكتابة: أ/إ/آ=ا، ة=ه، ى=ي، ؤ=و، ئ=ي، والتشكيل والمسافات الزائدة */
 const SK=t=>RN(String(t==null?'':t)).replace(/ؤ/g,'و').replace(/ئ/g,'ي').replace(/\s+/g,' ').toLowerCase();
-function engView(){if(!engVis()){$q('engs').innerHTML=ENGLOCK.replace('hint','empty');try{$q('ekpis').innerHTML='';const rb=$q('rosterBox');if(rb)rb.innerHTML='';}catch(_){}return;}try{rosterView();}catch(err){console.error(err);}const E=engData(),q=($q('eq').value||'').trim().toLowerCase(),rf=$q('er').value;const RV=finVis()&&!!rateMap();
+/* ===== توحيد أسماء الدوائر (دائرة المقيم والمشرف) على الجهات المستفيدة كما في الموقف =====
+   المفتاح: بلا «مديرية / دائرة / قسم / شعبة / هيئة / محافظة / الانبار» ولا «ال» — فـ«تربية الانبار» = «مديرية تربية الانبار» = «تربية»،
+   و«ديوان محافظة الانبار» = «ديوان المحافظة»، و«طرق وجسور الانبار» = «مديرية الطرق والجسور». الاسم المعروض: كما في الجهة المستفيدة في الموقف إن وُجد. */
+const DSTOP=new Set(['مديريه','دائره','قسم','شعبه','هيئه','وحده','محافظه','انبار','في','العامه','العام']);
+const DK=s=>RN(String(s==null?'':s)).replace(/[^ء-ي0-9\s]/g,' ').split(/\s+/).filter(Boolean).map(w=>w.replace(/^وال(?=..)/,'و').replace(/^ال(?=..)/,'')).filter(w=>!DSTOP.has(w)).join(' ');
+let DIX=null,DIXk='';
+function deptIndex(E){const S=AnbarReg.state(),key=(S.updated||'')+'|'+E.length;if(DIX&&DIXk===key)return DIX;const C={};
+  const put=(v,w)=>{const t=String(v==null?'':v).replace(/\s+/g,' ').trim();if(!t||t==='-'||t.length>45)return;const k=DK(t);if(!k)return;const o=C[k]=C[k]||{};o[t]=(o[t]||0)+w;};
+  S.projects.forEach(p=>put(p.sector,100));   // الجهة المستفيدة في الموقف تغلب
+  E.forEach(e=>{put(e.dept,1);e.projects.concat(e.done||[]).forEach(x=>put(x.dept,1));});(S.roster||[]).forEach(r=>put(r.dept,1));
+  const lab={};Object.keys(C).forEach(k=>{lab[k]=Object.entries(C[k]).sort((a,b)=>b[1]-a[1]||b[0].length-a[0].length)[0][0];});
+  const memo=new Map();DIX={lab,of:v=>{const sv=String(v==null?'':v);let r=memo.get(sv);if(r===undefined){const k=DK(sv);r=k?(lab[k]||sv.trim()):'';memo.set(sv,r);}return r;}};DIXk=key;return DIX;}
+function engView(){if(!engVis()){$q('engs').innerHTML=ENGLOCK.replace('hint','empty');try{$q('ekpis').innerHTML='';const rb=$q('rosterBox');if(rb)rb.innerHTML='';}catch(_){}return;}
+  const E=engData(),q=($q('eq').value||'').trim(),rf=$q('er').value,RV=finVis()&&!!rateMap(),CV=cntVis(),DX=deptIndex(E);
+  try{rosterView(DX);}catch(err){console.error(err);}
   opts($q('er'),[...new Set(E.map(e=>e.role).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ar')),'كل الصفات');
-  const dOf=e=>new Set(e.projects.map(x=>String(x.p&&x.p.district||'').trim()).filter(Boolean)),fd=$q('edist')?$q('edist').value:'';
+  const dOf=e=>new Set(e.projects.concat(e.done||[]).map(x=>String(x.p&&x.p.district||'').trim()).filter(Boolean)),fd=$q('edist')?$q('edist').value:'';
   if($q('edist'))opts($q('edist'),[...new Set(E.flatMap(e=>[...dOf(e)]))].sort((a,b)=>a.localeCompare(b,'ar')),'كل الأقضية');
+  /* الدائرة الموحّدة للمهندس، وكل دوائر مشاريعه (الجهات المستفيدة ودائرته فيها) */
+  const eDept=e=>DX.of(e.dept)||'غير محدد',eDepts=e=>{const st=new Set();[e.dept,...e.projects.concat(e.done||[]).flatMap(x=>[x.dept,x.p&&x.p.sector])].forEach(v=>{const l=DX.of(v);if(l)st.add(l);});return st;};
+  const fdep=$q('edept')?$q('edept').value:'';
   const isRes=e=>e.projects.some(x=>/مقيم/.test(x.role))||/مقيم/.test(e.role),isSup=e=>e.projects.some(x=>/مشرف/.test(x.role))||/مشرف/.test(e.role);
-  /* بطاقات المؤشرات تُصفّي القائمة: مقيمون، مشرفون، بلا مشاريع، بلا رقم هاتف */
   const EF={res:isRes,sup:isSup,noproj:e=>!e.projects.length,nophone:e=>!e.phone};
-  const list=E.filter(e=>(!engF||!EF[engF]||EF[engF](e))&&(!rf||e.role===rf)&&(!fd||dOf(e).has(fd))&&(!q||SK([e.name,e.dept,e.phone,e.role,...e.projects.map(x=>x.p.name)].join(' ')).includes(SK(q))));
+  const list=E.filter(e=>(!engF||!EF[engF]||EF[engF](e))&&(!rf||e.role===rf)&&(!fd||dOf(e).has(fd))&&(!fdep||eDepts(e).has(fdep))&&(!q||SK([e.name,e.dept,eDept(e),e.phone,e.role,...e.projects.map(x=>x.p.name)].join(' ')).includes(SK(q))));
   window.__engList=list;
-  const groups={};list.forEach(e=>{const k=e.dept||'غير محدد';(groups[k]=groups[k]||[]).push(e);});
-  const keys=Object.keys(groups).sort((a,b)=>groups[b].length-groups[a].length||a.localeCompare(b,'ar'));
-  const nRes=E.filter(e=>e.projects.some(x=>/مقيم/.test(x.role))||/مقيم/.test(e.role)).length,nSup=E.filter(e=>e.projects.some(x=>/مشرف/.test(x.role))||/مشرف/.test(e.role)).length;
+  /* قائمة الدوائر المنسدلة (موحّدة، أبجدياً، بعدد المهندسين) */
+  if($q('edept')){const cnt={};E.forEach(e=>eDepts(e).forEach(l=>{cnt[l]=(cnt[l]||0)+1;}));const sel=$q('edept'),cur=sel.value,ks=Object.keys(cnt).sort((a,b)=>a.localeCompare(b,'ar'));
+    sel.innerHTML='<option value="">كل الدوائر (الجهات المستفيدة)</option>'+ks.map(k=>`<option value="${esc(k)}">${esc(k)} (${cnt[k]})</option>`).join('');if(ks.includes(cur))sel.value=cur;}
+  const nRes=E.filter(isRes).length,nSup=E.filter(isSup).length;
   const k=(l,v,s,f)=>`<div class="kpi${f?' ekf'+(engF===f?' on':''):''}"${f?` data-ef="${f}" title="${engF===f?'إلغاء التصفية':'عرض هذه الأسماء فقط'}"`:''}><span>${l}</span><b>${v}</b>${s?`<small>${s}</small>`:''}${f?`<small class="ekh">${engF===f?'✕ إلغاء التصفية':'اضغط لعرض الأسماء'}</small>`:''}</div>`;
-  $q('ekpis').innerHTML=k('مهندس في القاعدة',E.length,'')+k('دائرة',new Set(E.map(e=>e.dept||'غير محدد')).size,'')+k('مهندسون مقيمون',nRes,'','res')+k('مهندسون مشرفون',nSup,'','sup')+k('بلا مشاريع',E.filter(e=>!e.projects.length).length,'','noproj')+k('بلا رقم هاتف',E.filter(e=>!e.phone).length,'','nophone')+(engF?`<div class="kpi ekbar"><span>يُعرض الآن</span><b>${list.length}</b><small>${({res:'مهندسون مقيمون',sup:'مهندسون مشرفون',noproj:'مهندسون بلا مشاريع',nophone:'بلا رقم هاتف'})[engF]} — «تصدير CSV» يصدّر هذه الأسماء</small></div>`:'');
-  if(selDept&&!keys.includes(selDept))selDept='';
-  $q('depts').innerHTML=`<button class="dchip ${selDept?'':'on'}" data-d="">الكل <small>(${list.length})</small></button>`+keys.map(k=>`<button class="dchip ${selDept===k?'on':''}" data-d="${esc(k)}">${esc(k)} <small>(${groups[k].length})</small></button>`).join('');
+  $q('ekpis').innerHTML=k('مهندس في القاعدة',E.length,'')+k('دائرة (موحّدة)',new Set(E.map(eDept)).size,'')+k('مهندسون مقيمون',nRes,'','res')+k('مهندسون مشرفون',nSup,'','sup')+k('بلا مشاريع',E.filter(e=>!e.projects.length).length,'','noproj')+k('بلا رقم هاتف',E.filter(e=>!e.phone).length,'','nophone')+`<div class="kpi ekbar"><span>يُعرض الآن</span><b>${list.length}</b><small>${q?'نتيجة البحث «'+esc(q)+'»':fdep?esc(fdep):engF?'حسب البطاقة المختارة':'كل المهندسين'}</small></div>`;
+  $q('depts').innerHTML='';$q('depts').hidden=true;
   if(!E.length){$q('engs').innerHTML='<div class="empty">لا توجد قاعدة مهندسين بعد. استورد ملف الموقف الذي يحوي ورقتي «قائمة المشرفين» و«الكادر الهندسي» (أو أي ملف فيه عمود المهندس المقيم ودائرته).</div>';return;}
-  $q('engs').innerHTML=(RV?'':'<div style="margin:6px 0"><button class="btn" data-finshow="1" title="تقييم المهندسين من 1 إلى 5 — على حاسبة مدير القسم فقط">🔒 تقييم المهندسين — أدخل كلمة سر المدير</button></div>')+keys.filter(k=>!selDept||selDept===k).map(k=>{const CV=cntVis(),L=groups[k].slice().sort((a,b)=>(CV?b.projects.length-a.projects.length:0)||a.name.localeCompare(b.name,'ar')),pn=new Set();L.forEach(e=>e.projects.forEach(x=>pn.add(x.p.fileNo)));
-    return `<div class="dept"><h3>${esc(k)}<span>${L.length} مهندس${CV?` — ${pn.size} مشروع`:''}</span></h3><table><thead><tr><th>الاسم</th><th>الصفة</th><th>الهاتف</th>${RV?'<th title="يظهر على حاسبة مدير القسم فقط">التقييم 🔒</th>':''}<th>المشاريع${CV?'':' 🔒'}</th></tr></thead><tbody>${L.map(e=>`<tr style="cursor:default"><td><b>${esc(e.name)}</b>${e.notes?`<div class="co">${esc(e.notes)}</div>`:''}</td><td>${esc(e.role||'')}</td><td class="n" dir="ltr" style="text-align:right">${esc(e.phone||'—')}</td>${RV?rateCell(e.name):''}
-      <td>${!CV?(e.projects.length||e.done.length?'<span class="co" data-finshow="1" style="cursor:pointer" title="عدد المشاريع لكل مهندس — كلمة سر المدير">🔒 مخفي</span>':'<span class="co">—</span>'):e.projects.length||e.done.length?`<details><summary>${e.projects.length} مشروع${e.done.length?` <span class="co">(+${e.done.length} منجز لا يُحسب)</span>`:''}</summary><ul>${e.projects.map(x=>`<li>${esc(x.p.name)} <span class="co">— ${esc(x.role||'')}</span></li>`).join('')}${e.done.map(x=>`<li class="co" style="text-decoration:line-through">${esc(x.p.name)} — ${esc(x.role||'')} (منجز)</li>`).join('')}</ul></details>`:'<span class="co">—</span>'}</td></tr>`).join('')}</tbody></table></div>`;}).join('')||'<div class="empty">لا نتائج مطابقة.</div>';}
+  const rateBtn=RV?'':'<div style="margin:6px 0"><button class="btn" data-finshow="1" title="تقييم المهندسين من 1 إلى 5 — على حاسبة مدير القسم فقط">🔒 تقييم المهندسين — أدخل كلمة سر المدير</button></div>';
+  const lock='<span class="co" data-finshow="1" style="cursor:pointer" title="مشاريع كل مهندس — كلمة سر المدير">🔒 مخفي</span>';
+  if(!list.length){$q('engs').innerHTML=rateBtn+`<div class="empty">لا نتائج${q?' للبحث «'+esc(q)+'»':''}. جرّب جزءاً من الاسم، أو ألغِ تصفية البطاقة أو القائمة المختارة.</div>`;return;}
+  /* البحث: بطاقة تفاصيل لكل مهندس — دائرته، دوائر مشاريعه، ما في استمارة القسم، ومشاريعه بالجهة المستفيدة والقضاء */
+  if(q&&list.length<=40){const RS=new Map();(AnbarReg.state().roster||[]).forEach(r=>{const kk=NK(r.name);if(kk&&!RS.has(kk))RS.set(kk,r);});
+    $q('engs').innerHTML=rateBtn+`<h3 class="eres">نتائج البحث «${esc(q)}» — ${list.length}</h3>`+list.slice().sort((a,b)=>a.name.localeCompare(b.name,'ar')).map(e=>{const ro=RS.get(NK(e.name)),ds=[...eDepts(e)];
+      const row=(x,dn)=>`<tr${dn?' class="co" style="text-decoration:line-through"':''}><td>${esc(x.p.name)} <button class="btn sm" data-open-fn="${esc(x.p.fileNo)}" title="فتح بطاقة المشروع">اضبارة ${esc(x.p.fileNo)}</button></td><td>${esc(x.role||'')}</td><td>${esc(DX.of(x.p.sector)||'—')}</td><td>${esc(DX.of(x.dept)||'—')}</td><td>${esc(String(x.p.district||'').trim()||'—')}</td><td>${esc(x.p.status||'')}${dn?' (منجز — لا يُحسب)':''}</td></tr>`;
+      return `<div class="ecard"><div class="ech"><b>${esc(e.name)}</b>${RV?rateBadge(e.name):''}<span class="co">${esc(e.role||'')}${e.phone?' — <span dir="ltr">'+esc(e.phone)+'</span>':''}</span></div>
+        <div class="ecd"><span><i>الدائرة</i> <b>${esc(eDept(e))}</b></span>${ds.length?`<span><i>دوائر مشاريعه</i> ${ds.map(x=>`<span class="dtag">${esc(x)}</span>`).join(' ')}</span>`:''}${ro?`<span><i>في استمارة القسم</i> ${esc(ro.title||'')}${ro.dept?' — '+esc(DX.of(ro.dept)||ro.dept):''}</span>`:''}</div>
+        ${!CV?(e.projects.length||e.done.length?'<div>'+lock+'</div>':''):e.projects.length||e.done.length?`<table class="etb"><thead><tr><th>المشروع</th><th>صفته فيه</th><th>الجهة المستفيدة</th><th>دائرته في المشروع</th><th>القضاء</th><th>الحالة</th></tr></thead><tbody>${e.projects.map(x=>row(x,0)).join('')}${e.done.map(x=>row(x,1)).join('')}</tbody></table>`:'<div class="co">لا مشاريع في الموقف.</div>'}</div>`;}).join('');return;}
+  /* القائمة: حسب الدائرة الموحّدة (أبجدياً، و«غير محدد» أخيراً)، والأسماء أبجدياً */
+  const groups={};list.forEach(e=>{const kk=eDept(e);(groups[kk]=groups[kk]||[]).push(e);});
+  const keys=Object.keys(groups).sort((a,b)=>(a==='غير محدد')-(b==='غير محدد')||a.localeCompare(b,'ar'));
+  $q('engs').innerHTML=rateBtn+keys.map(kk=>{const L=groups[kk].slice().sort((a,b)=>a.name.localeCompare(b.name,'ar')),pn=new Set();L.forEach(e=>e.projects.forEach(x=>pn.add(x.p.fileNo)));
+    return `<div class="dept"><h3>${esc(kk)}<span>${L.length} مهندس${CV?` — ${pn.size} مشروع`:''}</span></h3><table><thead><tr><th>الاسم</th><th>الصفة</th><th>الهاتف</th>${RV?'<th title="يظهر على حاسبة مدير القسم فقط">التقييم 🔒</th>':''}<th>المشاريع${CV?'':' 🔒'}</th></tr></thead><tbody>${L.map(e=>`<tr style="cursor:default"><td><b>${esc(e.name)}</b>${e.notes?`<div class="co">${esc(e.notes)}</div>`:''}</td><td>${esc(e.role||'')}</td><td class="n" dir="ltr" style="text-align:right">${esc(e.phone||'—')}</td>${RV?rateCell(e.name):''}
+      <td>${!CV?(e.projects.length||e.done.length?lock:'<span class="co">—</span>'):e.projects.length||e.done.length?`<details><summary>${e.projects.length} مشروع${e.done.length?` <span class="co">(+${e.done.length} منجز لا يُحسب)</span>`:''}</summary><ul>${e.projects.map(x=>`<li>${esc(x.p.name)} <span class="co">— ${esc(x.role||'')}${x.p.sector?' — '+esc(DX.of(x.p.sector)):''}${x.p.district?' — '+esc(String(x.p.district).trim()):''}</span></li>`).join('')}${e.done.map(x=>`<li class="co" style="text-decoration:line-through">${esc(x.p.name)} — ${esc(x.role||'')} (منجز)</li>`).join('')}</ul></details>`:'<span class="co">—</span>'}</td></tr>`).join('')}</tbody></table></div>`;}).join('');}
+document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('#engs [data-open-fn]');if(!b)return;try{drawer(b.dataset.openFn);}catch(_){}});
+{const st=document.createElement('style');st.textContent='.eres{margin:8px 0 6px}.ecard{border:1px solid var(--line,#dde3e0);border-radius:10px;padding:9px 11px;margin:0 0 9px;background:#fff}.ech{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}.ech b{font-size:16px}.ecd{display:flex;flex-wrap:wrap;gap:6px 16px;margin:6px 0}.ecd i{font-style:normal;color:#5b6660;font-size:12px;margin-inline-end:4px}.dtag{display:inline-block;background:#eef3f0;border-radius:6px;padding:0 6px;margin:1px 0;font-size:12.5px}.etb{width:100%;border-collapse:collapse;font-size:13px}.etb th,.etb td{border-bottom:1px solid #eef1ef;padding:4px 6px;text-align:right}';document.head.appendChild(st);}
 $q('depts').addEventListener('click',e=>{const b=e.target.closest('[data-d]');if(b){selDept=b.dataset.d;engView();}});
 document.addEventListener('click',async e=>{const b=e.target.closest('#engs [data-rv], #rosterBox [data-rv]');if(!b)return;const td=b.closest('[data-rn]');if(!td||!window.desktop||!window.desktop.engRate)return;e.preventDefault();e.stopPropagation();
   const n=td.dataset.rn,r=await window.desktop.engRate(NKR(n),n,+b.dataset.rv);if(r==='locked'){flash('التقييم على حاسبة مدير القسم فقط — أظهر المبالغ بكلمة سر المدير',true);engView();return;}rateMap();engView();});
@@ -463,8 +494,11 @@ function rosterX(){const S=AnbarReg.state(),P=(S.roster||[]).map(r=>({...r,k:NK(
     if(!c){const t=k.split(' ');if(t.length<2)return null;const pre=n=>P.filter(p=>{const a=p.t.length<=t.length?p.t:t,b=p.t.length<=t.length?t:p.t;return a.length>=n&&a.every((x,i)=>b[i]===x);});
       c=t.length>=3?pre(3):[];
       /* الاسم الثنائي («عمر خالد») أو استمارة ثنائية: يُقبل فقط إن كان مطابقاً لاسم واحد، أو لواحد في الدائرة نفسها */
-      if(!c.length){const c2=pre(2);if(c2.length===1)c=c2;else if(c2.length>1&&dept){const d=RN(dept),c3=c2.filter(p=>{const q=RN(p.dept);return q&&(q.includes(d)||d.includes(q));});if(c3.length===1)c=c3;}}}
-    if(!c.length)return null;if(c.length>1&&dept){const d=RN(dept),c2=c.filter(p=>{const q=RN(p.dept);return q&&(q.includes(d)||d.includes(q));});if(c2.length)c=c2;}return c[0];};
+      if(!c.length){const c2=pre(2);if(c2.length===1)c=c2;else if(c2.length>1&&dept){const d=DK(dept),c3=c2.filter(p=>{const q=DK(p.dept);return q&&d&&(q.includes(d)||d.includes(q));});if(c3.length===1)c=c3;}}
+      /* خطأ إملائي بسيط («عبدالرزاق»/«عبد الرزاق»، حرف ناقص): الاسم الأول نفسه وتشابه 88% فأكثر، واسم واحد فقط */
+      if(!c.length&&t.length>=3){const sim=(a,b)=>{if(a===b)return 1;const g=x=>{const m={};for(let i=0;i<x.length-1;i++){const y=x.substr(i,2);m[y]=(m[y]||0)+1;}return m;},A=g(a),B=g(b);let n=0;for(const y in A)n+=Math.min(A[y],B[y]||0);return 2*n/Math.max(1,a.length+b.length-2);};
+        const kz=k.replace(/\s/g,''),c4=P.filter(p=>p.t[0]===t[0]&&sim(kz,p.k.replace(/\s/g,''))>=0.88);if(c4.length===1)c=c4;}}
+    if(!c.length)return null;if(c.length>1&&dept){const d=DK(dept),c2=c.filter(p=>{const q=DK(p.dept);return q&&d&&(q.includes(d)||d.includes(q));});if(c2.length)c=c2;}return c[0];};
   const out=new Map();
   S.projects.forEach(p=>{const done=stKind(p.status)==='ok',seen=new Set(),L=(p.staff||[]).map(x=>({name:x.name,dept:x.dept,role:x.role}));if(p.resident)L.push({name:p.resident,dept:p.residentOffice,role:'مهندس مقيم'});
     L.forEach(x=>{const k=NK(x.name);if(!k)return;const isR=/مقيم/.test(x.role||''),key=k+(isR?'|r':'|s');if(seen.has(key))return;seen.add(key);
@@ -473,14 +507,14 @@ function rosterX(){const S=AnbarReg.state(),P=(S.roster||[]).map(r=>({...r,k:NK(
   const cat=e=>e.res.length&&e.sup.length?'both':e.res.length?'res':e.sup.length?'sup':'none';P.forEach(e=>e.cat=cat(e));
   return {P,out:[...out.values()].filter(e=>e.res.length||e.sup.length),S};}
 const ROSC={all:'كل الأسماء في الاستمارة',res:'مقيم فقط',sup:'مشرف فقط',both:'مقيم ومشرف معاً',none:'بلا مشاريع',out:'في الموقف وغير مدرجين في الاستمارة'};
-function rosterView(){const box=$q('rosterBox');if(!box)return;const S=AnbarReg.state();
+function rosterView(DXo){const box=$q('rosterBox');if(!box)return;const S=AnbarReg.state();const DL=v=>(DXo&&v?DXo.of(v):v)||'غير محدد';
   const btns=`<button class="btn pri" data-ro="up">⬆ تحميل استمارة أسماء القسم والدوائر</button><button class="btn" data-ro="tpl" title="ملف Excel فارغ بالأعمدة المطلوبة">⬇ نموذج الاستمارة (Excel)</button>`;
   if(!(S.roster||[]).length){box.innerHTML=`<div class="rbox"><div class="rhd"><div><b>📋 مقاطعة أسماء القسم الهندسي والدوائر مع المشاريع</b><div class="co">حمّل ملف Excel بأسماء مهندسي القسم والدوائر (الاسم، العنوان الوظيفي، الدائرة) ليُطابق مع المهندسين المقيمين والمشرفين في الموقف: كم مشروعاً لكل مهندس مقيماً أو مشرفاً أو كليهما، ومن لا توجد لديه مشاريع.</div></div><div class="row">${btns}</div></div></div>`;return;}
   const X=rosterX(),P=X.P,n=c=>c==='all'?P.length:c==='out'?X.out.length:P.filter(e=>e.cat===c).length;
   const card=(c,cls)=>`<div class="kpi ekf ${cls||''}${rosF===c?' on':''}" data-rf="${c}"><span>${ROSC[c]}</span><b>${n(c)}</b><small class="ekh">${rosF===c?'✓ معروض أدناه':'اضغط لعرض الأسماء'}</small></div>`;
   const nAsg=P.reduce((a,e)=>a+e.res.length+e.sup.length,0);
   let L=rosF==='out'?X.out:P.filter(e=>rosF==='all'||e.cat===rosF);
-  const g={};L.forEach(e=>{const k=e.dept||'غير محدد';(g[k]=g[k]||[]).push(e);});const keys=Object.keys(g).sort((a,b)=>g[b].length-g[a].length||a.localeCompare(b,'ar'));
+  const g={};L.forEach(e=>{const k=DL(e.dept);(g[k]=g[k]||[]).push(e);});const keys=Object.keys(g).sort((a,b)=>(a==='غير محدد')-(b==='غير محدد')||a.localeCompare(b,'ar'));Object.values(g).forEach(A=>A.sort((a,b)=>String(a.name).localeCompare(String(b.name),'ar')));
   const pl=(A,lab)=>A.length?`<details><summary>${A.length} ${lab}</summary><ul>${A.map(p=>`<li>${esc(p.name)} <span class="co">(${esc(p.fileNo)})</span></li>`).join('')}</ul></details>`:'<span class="co">—</span>';
   let i=0;const RV=finVis()&&!!rateMap();
   box.innerHTML=`<div class="rbox"><div class="rhd"><div><b>📋 مقاطعة أسماء القسم الهندسي والدوائر مع المشاريع</b><div class="co">الاستمارة: «${esc(S.rosterSrc||'—')}» — ${P.length} اسماً في ${new Set(P.map(e=>e.dept||'غير محدد')).size} دائرة/قسم${S.rosterAt?' — حُمّلت '+new Date(S.rosterAt).toLocaleDateString('en-GB'):''} — ${nAsg} تكليفاً في مشاريع غير منجزة (المنجزة لا تُحسب)</div></div>
@@ -667,7 +701,7 @@ let tblT=null;
 function renderTable(){if(state.current!=='sit'||sub!=='proj')return;const S=AnbarReg.state();if(!S.projects.length)return;const f=filtered(rows());$q('tbl').innerHTML=table(f);pickBar();
   $q('info').textContent=`${f.length} من ${sitCom?rows().length+' مشروع في موقف «'+sitCom+'» (من '+S.projects.length+')':S.projects.length+' مشروع'} — الموقف: «${S.source}» (${DMY(String(S.updated).slice(0,10))}). انقر أي مشروع لعرض بياناته كاملة. يتحدّث الجدول تلقائياً عند الحفظ في أي نظام.`;}
 ['q','fs','ff','fz','fx','so'].forEach(id=>$q(id).addEventListener('input',()=>{clearTimeout(tblT);tblT=setTimeout(renderTable,id==='q'?180:0);}));
-let engT=null;['eq','er','edist'].filter(id=>$q(id)).forEach(id=>$q(id).addEventListener('input',()=>{clearTimeout(engT);engT=setTimeout(engView,id==='eq'?180:0);}));
+let engT=null;['eq','er','edist','edept'].filter(id=>$q(id)).forEach(id=>$q(id).addEventListener('input',()=>{clearTimeout(engT);engT=setTimeout(engView,id==='eq'?180:0);}));
 $q('charts').addEventListener('click',e=>{const b=e.target.closest('[data-fund]');if(!b)return;$q('ff').value=b.dataset.fund;renderTable();$q('tbl').scrollIntoView({behavior:'smooth',block:'start'});});
 $q('tbl').addEventListener('click',e=>{const ck=e.target.closest('input[data-pk],#pkAll,td.pk,th.pk');if(ck){pickClick(e);return;}const pill=e.target.closest('[data-app]');const tr=e.target.closest('tr[data-fn]');if(!tr)return;if(pill){window.desktop.go(pill.dataset.app,tr.dataset.fn);return;}drawer(tr.dataset.fn);});
 const prevNav=window.onNav,prevData=window.onData;

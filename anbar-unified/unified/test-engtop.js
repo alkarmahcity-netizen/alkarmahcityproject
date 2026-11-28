@@ -9,7 +9,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms)); const R = []; const ok 
   const pg = await app.firstWindow(); await sleep(1500); await pg.evaluate(() => window.desktop.go('sit')); await sleep(1200);
   await pg.evaluate(() => document.querySelector('.st[data-st="eng"]').click()); await sleep(1000);
   const o = await pg.evaluate(() => { const y = id => { const e = document.getElementById(id); return e ? e.getBoundingClientRect().top : -1; }; return { eq: y('eq'), depts: y('depts'), roster: y('rosterBox'), engs: y('engs'), kpis: y('ekpis'), dist: [...document.querySelectorAll('#edist option')].map(o => o.textContent) }; });
-  ok('search and the departments list are above the KPIs, the roster box and the engineers list', o.eq < o.kpis && o.depts < o.kpis && o.depts < o.engs && o.eq < o.roster && o.eq < o.engs && o.depts >= o.eq, JSON.stringify(o));
+  ok('order: search and dropdowns, then the KPIs, then the engineers (results), then the names-list matching box', o.eq < o.kpis && o.kpis < o.engs && o.engs < o.roster, JSON.stringify(o));
   ok('districts list («كل الأقضية») built from the engineers\' projects', JSON.stringify(o.dist) === '["كل الأقضية","القائم","هيت"]', JSON.stringify(o.dist));
   await pg.evaluate(() => { const s = document.getElementById('edist'); s.value = 'هيت'; s.dispatchEvent(new Event('input', { bubbles: true })); }); await sleep(600);
   const n = await pg.evaluate(() => (window.__engList || []).map(e => e.name).sort());

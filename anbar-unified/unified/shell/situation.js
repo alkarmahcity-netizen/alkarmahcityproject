@@ -398,10 +398,12 @@ function engData(){const S=AnbarReg.state(),map=new Map(),add=e=>{const k=RN(e.n
 /* تقييم المهندس (على حاسبة مدير القسم فقط): خمسة مربعات، وأقل من 3 = «لا يكلّف». التقييم لا يُزامَن ولا يصل إلى حاسبات اللجان */
 var RATE=null;
 function rateMap(){try{RATE=window.desktop&&window.desktop.engRatings?window.desktop.engRatings():null;}catch(_){RATE=null;}return RATE;}
-function rateOf(n){try{const x=(RATE||{})[NK(n)];return x?+x.v||0:0;}catch(_){return 0;}}
+function rateOf(n){try{const x=(RATE||{})[NKR(n)];return x?+x.v||0:0;}catch(_){return 0;}}
 function rateCell(n){const v=rateOf(n);return `<td class="rate" data-rn="${esc(n)}"><span class="rbx">${[1,2,3,4,5].map(i=>`<button class="rb${i<=v?' on':''}" data-rv="${i}" title="${i} من 5">${i<=v?'■':'□'}</button>`).join('')}${v?'<button class="rb x" data-rv="0" title="مسح التقييم">×</button>':''}</span>${v&&v<3?' <span class="nocharge">لا يكلّف</span>':''}</td>`;}
 function rateBadge(n){if(!RATE)return '';const v=rateOf(n);return v?` <span class="rbadge${v<3?' bad':''}" title="تقييم مدير القسم">${'■'.repeat(v)}${'□'.repeat(5-v)}${v<3?' لا يكلّف':''}</span>`:'';}
 window.SitRate={rateOf,rateBadge,refresh:rateMap};
+/* البحث يتجاهل فروق الكتابة: أ/إ/آ=ا، ة=ه، ى=ي، ؤ=و، ئ=ي، والتشكيل والمسافات الزائدة */
+const SK=t=>RN(String(t==null?'':t)).replace(/ؤ/g,'و').replace(/ئ/g,'ي').replace(/\s+/g,' ').toLowerCase();
 function engView(){if(!engVis()){$q('engs').innerHTML=ENGLOCK.replace('hint','empty');try{$q('ekpis').innerHTML='';const rb=$q('rosterBox');if(rb)rb.innerHTML='';}catch(_){}return;}try{rosterView();}catch(err){console.error(err);}const E=engData(),q=($q('eq').value||'').trim().toLowerCase(),rf=$q('er').value;const RV=finVis()&&!!rateMap();
   opts($q('er'),[...new Set(E.map(e=>e.role).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ar')),'كل الصفات');
   const dOf=e=>new Set(e.projects.map(x=>String(x.p&&x.p.district||'').trim()).filter(Boolean)),fd=$q('edist')?$q('edist').value:'';
@@ -409,7 +411,7 @@ function engView(){if(!engVis()){$q('engs').innerHTML=ENGLOCK.replace('hint','em
   const isRes=e=>e.projects.some(x=>/مقيم/.test(x.role))||/مقيم/.test(e.role),isSup=e=>e.projects.some(x=>/مشرف/.test(x.role))||/مشرف/.test(e.role);
   /* بطاقات المؤشرات تُصفّي القائمة: مقيمون، مشرفون، بلا مشاريع، بلا رقم هاتف */
   const EF={res:isRes,sup:isSup,noproj:e=>!e.projects.length,nophone:e=>!e.phone};
-  const list=E.filter(e=>(!engF||!EF[engF]||EF[engF](e))&&(!rf||e.role===rf)&&(!fd||dOf(e).has(fd))&&(!q||[e.name,e.dept,e.phone,e.role,...e.projects.map(x=>x.p.name)].join(' ').toLowerCase().includes(q)));
+  const list=E.filter(e=>(!engF||!EF[engF]||EF[engF](e))&&(!rf||e.role===rf)&&(!fd||dOf(e).has(fd))&&(!q||SK([e.name,e.dept,e.phone,e.role,...e.projects.map(x=>x.p.name)].join(' ')).includes(SK(q))));
   window.__engList=list;
   const groups={};list.forEach(e=>{const k=e.dept||'غير محدد';(groups[k]=groups[k]||[]).push(e);});
   const keys=Object.keys(groups).sort((a,b)=>groups[b].length-groups[a].length||a.localeCompare(b,'ar'));
@@ -424,13 +426,17 @@ function engView(){if(!engVis()){$q('engs').innerHTML=ENGLOCK.replace('hint','em
       <td>${!CV?(e.projects.length||e.done.length?'<span class="co" data-finshow="1" style="cursor:pointer" title="عدد المشاريع لكل مهندس — كلمة سر المدير">🔒 مخفي</span>':'<span class="co">—</span>'):e.projects.length||e.done.length?`<details><summary>${e.projects.length} مشروع${e.done.length?` <span class="co">(+${e.done.length} منجز لا يُحسب)</span>`:''}</summary><ul>${e.projects.map(x=>`<li>${esc(x.p.name)} <span class="co">— ${esc(x.role||'')}</span></li>`).join('')}${e.done.map(x=>`<li class="co" style="text-decoration:line-through">${esc(x.p.name)} — ${esc(x.role||'')} (منجز)</li>`).join('')}</ul></details>`:'<span class="co">—</span>'}</td></tr>`).join('')}</tbody></table></div>`;}).join('')||'<div class="empty">لا نتائج مطابقة.</div>';}
 $q('depts').addEventListener('click',e=>{const b=e.target.closest('[data-d]');if(b){selDept=b.dataset.d;engView();}});
 document.addEventListener('click',async e=>{const b=e.target.closest('#engs [data-rv], #rosterBox [data-rv]');if(!b)return;const td=b.closest('[data-rn]');if(!td||!window.desktop||!window.desktop.engRate)return;e.preventDefault();e.stopPropagation();
-  const n=td.dataset.rn,r=await window.desktop.engRate(NK(n),n,+b.dataset.rv);if(r==='locked'){flash('التقييم على حاسبة مدير القسم فقط — أظهر المبالغ بكلمة سر المدير',true);engView();return;}rateMap();engView();});
+  const n=td.dataset.rn,r=await window.desktop.engRate(NKR(n),n,+b.dataset.rv);if(r==='locked'){flash('التقييم على حاسبة مدير القسم فقط — أظهر المبالغ بكلمة سر المدير',true);engView();return;}rateMap();engView();});
 $q('ekpis').addEventListener('click',e=>{const b=e.target.closest('[data-ef]');if(!b)return;engF=engF===b.dataset.ef?'':b.dataset.ef;selDept='';engView();const d=$q('engs');if(d&&engF)d.scrollIntoView({behavior:'smooth',block:'start'});});
 
 /* ---------- استمارة أسماء القسم الهندسي والدوائر: مقاطعة الأسماء مع المقيمين والمشرفين ---------- */
 let rosF='none';
 /* مفتاح الاسم: بلا ألقاب (م. / المهندس / السيد) وبلا تشكيل، و«عبد الله» = «عبدالله» */
-const NK=s=>RN(s).replace(/[^ء-ي\s.]/g,' ').replace(/^\s*(?:(?:م|د)\s*\.\s*|(?:ال)?مهندس(?:ه)?\s+|(?:ال)?سيد(?:ه)?\s+|(?:ال)?دكتور(?:ه)?\s+)+/,'').replace(/\./g,' ').replace(/(^|\s)عبد\s+/g,'$1عبد').replace(/\s+/g,' ').trim();
+/* الألقاب في أول الاسم تُحذف: م. / د. / ر.م. / م.م. / المهندس (الأقدم، الأول، الاستشاري…) / رئيس مهندسين (أقدم) / السيد / الأستاذ / الدكتور، وحرف مفرد قبل الاسم */
+const NK_T=/^\s*(?:(?:[مدر]\s*\.\s*)+|(?:ال)?ر(?:ئ|ي)يس\s+(?:ال)?مهندسين(?:\s+(?:ال)?(?:اقدم|اول))?\s+|(?:ال)?مهندس(?:ه)?(?:\s+(?:ال)?(?:اقدم|اول|استشاري|مدني|معماري|كهربائي|ميكانيكي|مساعد))*\s+|مساعد\s+(?:ال)?مهندس\s+|(?:ال)?(?:سيد|سيده|ست|استاذ|استاذه|دكتور|دكتوره)\s+|[مدر]\s+(?=\S{2}))+/;
+/* مفتاح التقييمات المحفوظة: بالصيغة السابقة نفسها (لا تضيع تقييمات أسماء فيها «ئ» أو «ؤ» مثل رائد ولؤي) */
+const NKR=s=>RN(s).replace(/[^ء-ي\s.]/g,' ').replace(/^\s*(?:(?:م|د)\s*\.\s*|(?:ال)?مهندس(?:ه)?\s+|(?:ال)?سيد(?:ه)?\s+|(?:ال)?دكتور(?:ه)?\s+)+/,'').replace(/\./g,' ').replace(/(^|\s)عبد\s+/g,'$1عبد').replace(/\s+/g,' ').trim();
+const NK=s=>RN(s).replace(/ؤ/g,'و').replace(/ئ/g,'ي').replace(/[^ء-ي\s.]/g,' ').replace(/\s+/g,' ').replace(NK_T,'').replace(/\./g,' ').replace(/(^|\s)عبد\s+/g,'$1عبد').replace(/\s+/g,' ').trim();
 const RH=t=>RN(t).replace(/[^ء-ي\s\/]/g,'').replace(/\s+/g,' ').trim();
 const RCOL={name:t=>/^(?:ال)?اسم(?:\s|$)|^اسم (?:المهندس|الموظف|المنتسب)/.test(t)&&!/المشروع|الدائره|الام|الشركه/.test(t),
   dept:t=>/الدائره|^القسم|الشعبه|جهه الانتساب|مكان العمل|مقر العمل|^الجهه|الوحده|التشكيل|المديريه/.test(t),
@@ -454,7 +460,10 @@ function rosterParse(sheets){const out=[],seen=new Set();
 function rosterX(){const S=AnbarReg.state(),P=(S.roster||[]).map(r=>({...r,k:NK(r.name),res:[],sup:[],done:[]}));P.forEach(p=>p.t=p.k.split(' '));
   const ex=new Map();P.forEach(p=>{if(!ex.has(p.k))ex.set(p.k,[]);ex.get(p.k).push(p);});
   const find=(name,dept)=>{const k=NK(name);if(!k)return null;let c=ex.get(k);
-    if(!c){const t=k.split(' ');if(t.length<3)return null;c=P.filter(p=>{const a=p.t.length<=t.length?p.t:t,b=p.t.length<=t.length?t:p.t;return a.length>=3&&a.every((x,i)=>b[i]===x);});}
+    if(!c){const t=k.split(' ');if(t.length<2)return null;const pre=n=>P.filter(p=>{const a=p.t.length<=t.length?p.t:t,b=p.t.length<=t.length?t:p.t;return a.length>=n&&a.every((x,i)=>b[i]===x);});
+      c=t.length>=3?pre(3):[];
+      /* الاسم الثنائي («عمر خالد») أو استمارة ثنائية: يُقبل فقط إن كان مطابقاً لاسم واحد، أو لواحد في الدائرة نفسها */
+      if(!c.length){const c2=pre(2);if(c2.length===1)c=c2;else if(c2.length>1&&dept){const d=RN(dept),c3=c2.filter(p=>{const q=RN(p.dept);return q&&(q.includes(d)||d.includes(q));});if(c3.length===1)c=c3;}}}
     if(!c.length)return null;if(c.length>1&&dept){const d=RN(dept),c2=c.filter(p=>{const q=RN(p.dept);return q&&(q.includes(d)||d.includes(q));});if(c2.length)c=c2;}return c[0];};
   const out=new Map();
   S.projects.forEach(p=>{const done=stKind(p.status)==='ok',seen=new Set(),L=(p.staff||[]).map(x=>({name:x.name,dept:x.dept,role:x.role}));if(p.resident)L.push({name:p.resident,dept:p.residentOffice,role:'مهندس مقيم'});
